@@ -7,8 +7,14 @@
 name: Sync Issues and PRs
 
 on:  # yamllint disable-line rule:truthy
-  # Allow manual triggering
+  # Allow manual triggering with optional force-update
   workflow_dispatch:
+    inputs:
+      force-update:
+        description: 'Force update all issues and PRs (ignores last sync timestamp)'
+        required: false
+        default: false
+        type: boolean
   # Run on issue creation/updates
   issues:
     types:
@@ -16,10 +22,11 @@ on:  # yamllint disable-line rule:truthy
       - edited
       - reopened
       - closed
-  # Run on PR creation/closure
+  # Run on PR creation/updates/closure
   pull_request:
     types:
       - opened
+      - edited
       - closed
 
 jobs:
@@ -28,7 +35,7 @@ jobs:
     # Prevent concurrent runs to avoid race conditions when committing
     concurrency:
       group: sync-issues-${{ github.repository }}
-      cancel-in-progress: false
+      cancel-in-progress: true
     permissions:
       contents: write
       issues: read
@@ -53,28 +60,35 @@ jobs:
       - name: Sync Issues and PRs
         id: sync
         # Using from vigOS public repository (recommended for external users)
-        uses: vig-os/sync-issues-action@v1.0.0
+        uses: vig-os/sync-issues-action@v0.1.0
         # If using locally from the same repository, use: ./
         with:
+          # Optional: Use GitHub App authentication to bypass rulesets
+          # app-id: ${{ secrets.APP_SYNC_ISSUES_ID }}
+          # app-private-key: ${{ secrets.APP_SYNC_ISSUES_PRIVATE_KEY }}
           output-dir: 'synced-issues'
           sync-issues: 'true'
           sync-prs: 'true'
           include-closed: 'false'
           state-file: '.sync-state/last-sync.txt'
+          # Force update all issues when manually triggered with force-update input
+          updated-since: ${{ inputs.force-update && '1970-01-01T00:00:00Z' || '' }}
 
-      - name: Commit and push changes
+      - name: Commit and push changes via API
         id: commit
-        if: steps.sync.outputs.issues-count != '0' || steps.sync.outputs.prs-count != '0'
-        uses: suzuki-shunsuke/commit-action@v0.0.14
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit_message: "chore: sync issues and PRs [skip ci]"
-          files: synced-issues/**
-          fail_on_self_push: false
+        if: steps.sync.outputs.modified-files != ''
+        uses: vig-os/commit-action@v0.1.0
+        env:
+          # Use app token if available, otherwise fall back to github token
+          GITHUB_TOKEN: ${{ steps.sync.outputs.app-token || steps.sync.outputs.github-token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: refs/heads/dev
+          COMMIT_MESSAGE: "chore: sync issues and PRs"
+          FILE_PATHS: ${{ steps.sync.outputs.modified-files }}
 
       - name: Save sync state
         if: always()
         uses: actions/cache/save@v4
         with:
           path: .sync-state
-          key: sync-issues-state-${{ github.repository }}-${{ github.run_id }}
+          key: sync-issues-state-${{ github.repository }}

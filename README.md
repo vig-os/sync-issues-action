@@ -69,8 +69,6 @@ The action provides the following outputs:
 
 ### Example Usage
 
-**Basic usage:**
-
 ```yaml
 - name: Sync Issues and PRs
   id: sync
@@ -82,28 +80,6 @@ The action provides the following outputs:
     echo "Synced ${{ steps.sync.outputs.prs-count }} pull requests"
     echo "Last synced at ${{ steps.sync.outputs.last-synced-at }}"
 ```
-
-**Using GitHub App authentication to bypass rulesets:**
-
-```yaml
-- name: Sync Issues and PRs
-  id: sync
-  uses: vig-os/sync-issues-action@v1.0.0
-  with:
-    app-id: ${{ secrets.APP_SYNC_ISSUES_ID }}
-    app-private-key: ${{ secrets.APP_SYNC_ISSUES_PRIVATE_KEY }}
-
-- name: Checkout with app token
-  uses: actions/checkout@v4
-  with:
-    token: ${{ steps.sync.outputs.app-token }}
-    ref: dev
-```
-
-When GitHub App credentials are provided:
-- The action generates an installation token and uses it for all API calls (bypasses rulesets)
-- The original `GITHUB_TOKEN` is preserved and output as `github-token` for commit signing
-- The app token is output as `app-token` for use in checkout/push operations
 
 See [example-workflow.yml](./example-workflow.yml) for a complete workflow example using manual, issue (opened/edited/reopened/closed), and pull request (opened/closed) triggers (no scheduled run).
 
