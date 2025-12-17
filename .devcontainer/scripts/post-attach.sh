@@ -8,7 +8,7 @@ set -euo pipefail
 echo "Running post-attach setup..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="/workspace/sync_issues_action"
+PROJECT_ROOT="/workspace/actions"
 
 if [ ! -d "$PROJECT_ROOT" ]; then
     echo "Error: Project directory $PROJECT_ROOT does not exist"
@@ -18,5 +18,9 @@ fi
 "$SCRIPT_DIR/init-git.sh"
 "$SCRIPT_DIR/setup-git-conf.sh"
 "$SCRIPT_DIR/init-precommit.sh"
+
+# Install Node.js dependencies
+echo -e "Installing Node.js dependencies..."
+npm install
 
 echo "Post-attach setup complete"

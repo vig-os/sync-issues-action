@@ -1,0 +1,80 @@
+# Example workflow using the sync-issues action
+# Place this in .github/workflows/sync-issues.yml in your repository
+#
+# This example uses the vigOS action from the public repository:
+# https://github.com/vig-os/sync-issues-action
+
+name: Sync Issues and PRs
+
+on:  # yamllint disable-line rule:truthy
+  # Allow manual triggering
+  workflow_dispatch:
+  # Run on issue creation/updates
+  issues:
+    types:
+      - opened
+      - edited
+      - reopened
+      - closed
+  # Run on PR creation/closure
+  pull_request:
+    types:
+      - opened
+      - closed
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Prevent concurrent runs to avoid race conditions when committing
+    concurrency:
+      group: sync-issues-${{ github.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Restore sync state (last synced timestamp)
+        id: restore-state
+        uses: actions/cache/restore@v4
+        with:
+          path: .sync-state
+          key: sync-issues-state-${{ github.repository }}
+          restore-keys: |
+            sync-issues-state-
+
+      - name: Sync Issues and PRs
+        id: sync
+        # Using from vigOS public repository (recommended for external users)
+        uses: vig-os/sync-issues-action@v1.0.0
+        # If using locally from the same repository, use: ./
+        with:
+          output-dir: 'synced-issues'
+          sync-issues: 'true'
+          sync-prs: 'true'
+          include-closed: 'false'
+          state-file: '.sync-state/last-sync.txt'
+
+      - name: Commit and push changes
+        id: commit
+        if: steps.sync.outputs.issues-count != '0' || steps.sync.outputs.prs-count != '0'
+        uses: suzuki-shunsuke/commit-action@v0.0.14
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit_message: "chore: sync issues and PRs [skip ci]"
+          files: synced-issues/**
+          fail_on_self_push: false
+
+      - name: Save sync state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .sync-state
+          key: sync-issues-state-${{ github.repository }}-${{ github.run_id }}
