@@ -64,7 +64,7 @@ main() {
   local GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}"
   if [ -z "$GITHUB_REPOSITORY" ]; then
     # Try to get from git remote
-    GITHUB_REPOSITORY="vig-os/actions"
+    GITHUB_REPOSITORY="vig-os/sync-issues-action"
   fi
 
   local GITHUB_REF="${GITHUB_REF:-}"
@@ -78,7 +78,8 @@ main() {
   fi
 
   # Set output directory (use bash-friendly name, but @actions/core expects INPUT_OUTPUT-DIR with hyphen)
-  local OUTPUT_DIR="${INPUT_OUTPUT_DIR:-/workspace/actions/test_output/$(date +%Y-%m-%d_%H-%M-%S)}"
+  # Use current working directory (project root) instead of hardcoded path
+  local OUTPUT_DIR="${INPUT_OUTPUT_DIR:-$(pwd)/test_output/$(date +%Y-%m-%d_%H-%M-%S)}"
   mkdir -p "$OUTPUT_DIR"
 
   # Boolean inputs must be exactly "true" or "false" for getBooleanInput

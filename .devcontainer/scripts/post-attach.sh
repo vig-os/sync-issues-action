@@ -8,7 +8,7 @@ set -euo pipefail
 echo "Running post-attach setup..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="/workspace/actions"
+PROJECT_ROOT="/workspace/sync_issues_action"
 
 if [ ! -d "$PROJECT_ROOT" ]; then
     echo "Error: Project directory $PROJECT_ROOT does not exist"
