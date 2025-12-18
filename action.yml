@@ -1,0 +1,57 @@
+name: 'Sync Issues and PRs'
+description: 'Sync GitHub issues and pull requests to markdown files'
+branding:
+  icon: 'file-text'
+  color: 'blue'
+
+inputs:
+  token:
+    description: 'GitHub token with repo access (defaults to github.token)'
+    required: false
+    default: ${{ github.token }}
+  output-dir:
+    description: 'Directory to store synced markdown files'
+    required: false
+    default: 'synced-issues'
+  sync-issues:
+    description: 'Whether to sync issues'
+    required: false
+    default: 'true'
+  sync-prs:
+    description: 'Whether to sync pull requests'
+    required: false
+    default: 'true'
+  include-closed:
+    description: 'Whether to include closed issues/PRs'
+    required: false
+    default: 'false'
+  app-id:
+    description: 'GitHub App ID (optional)'
+    required: false
+  app-private-key:
+    description: 'GitHub App private key (PEM, optional)'
+    required: false
+  updated-since:
+    description: 'Only sync items updated after this ISO8601 timestamp'
+    required: false
+  state-file:
+    description: 'Optional path to store last sync timestamp (use with cache)'
+    required: false
+
+outputs:
+  issues-count:
+    description: 'Number of issues synced'
+  prs-count:
+    description: 'Number of PRs synced'
+  last-synced-at:
+    description: 'Timestamp when this action completed'
+  modified-files:
+    description: 'Comma-separated list of file paths that were created or modified'
+  app-token:
+    description: 'GitHub App installation token (if app credentials provided). Use for checkout/push operations.'
+  github-token:
+    description: 'Original GitHub token. Use for commit signing.'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
