@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.1.1] - 2025-12-19
+
+### Fixed
+
+- Fixed missing `dist/index.js` file in published releases by updating `.gitignore` to allow dist files to be committed
+- GitHub Actions now correctly finds and executes the compiled action code
+
+## [0.1.0] - 2025-12-18
+
+### Added
+
 - Initial release of `Sync Issues and PRs` GitHub Action
 - Core functionality to sync GitHub issues and pull requests to markdown files
 - Flexible authentication system supporting both GitHub tokens and GitHub App credentials
@@ -50,10 +69,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Issue templates for bug reports, feature requests, and tasks
 - CI/CD workflow for automated issue syncing
 
-### Changed
-
-### Removed
-
-### Fixed
-
-### Security
+[0.1.1]: https://github.com/vig-os/sync-issues-action/releases/tag/v0.1.1
+[0.1.0]: https://github.com/vig-os/sync-issues-action/releases/tag/v0.1.0

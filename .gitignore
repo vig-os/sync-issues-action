@@ -10,7 +10,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -221,6 +220,7 @@ __marimo__/
 # Action output
 node_modules/
 dist/__tests__
+dist/*.tsbuildinfo
 *.log
 .DS_Store
 coverage/

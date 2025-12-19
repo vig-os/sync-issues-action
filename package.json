@@ -1,6 +1,6 @@
 {
   "name": "sync-issues-action",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "Sync GitHub PRs and issues to markdown files",
   "main": "dist/index.js",
   "scripts": {
