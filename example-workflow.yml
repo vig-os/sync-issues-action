@@ -60,7 +60,7 @@ jobs:
       - name: Sync Issues and PRs
         id: sync
         # Using from vigOS public repository (recommended for external users)
-        uses: vig-os/sync-issues-action@v0.1.0
+        uses: vig-os/sync-issues-action@v0.1.1
         # If using locally from the same repository, use: ./
         with:
           # Optional: Use GitHub App authentication to bypass rulesets

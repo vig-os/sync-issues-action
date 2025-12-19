@@ -21,7 +21,7 @@ A GitHub Action that syncs all issues and pull requests from a repository to mar
 
 ```yaml
 - name: Sync Issues and PRs
-  uses: vig-os/sync-issues-action@v1.0.0
+  uses: vig-os/sync-issues-action@v0.1.1
 ```
 
 **Alternative: Use a branch (for latest changes)**
@@ -72,7 +72,7 @@ The action provides the following outputs:
 ```yaml
 - name: Sync Issues and PRs
   id: sync
-  uses: vig-os/sync-issues-action@v1.0.0
+  uses: vig-os/sync-issues-action@v0.1.1
 
 - name: Display sync results
   run: |
