@@ -97,7 +97,7 @@ jobs:
       - name: Commit and push changes via API
         id: commit
         if: steps.sync.outputs.modified-files != ''
-        uses: vig-os/commit-action@v0.1.0
+        uses: vig-os/commit-action@v0.1.1
         env:
           # Use app token if available, otherwise fall back to github token
           GITHUB_TOKEN: ${{ steps.sync.outputs.app-token || steps.sync.outputs.github-token }}
