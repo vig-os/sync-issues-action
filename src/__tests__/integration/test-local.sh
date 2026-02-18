@@ -31,7 +31,7 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
 fi
 
 # Set GitHub context if not provided
-export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-vig-os/actions}"
+export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-vig-os/sync-issues-action}"
 
 # Create a temporary .env file for local-action
 ENV_FILE=$(mktemp)
@@ -48,13 +48,9 @@ EOF
 # Run local-action with entrypoint and capture outputs
 echo "🚀 Running local-action..."
 GITHUB_OUTPUT="$OUTPUT_FILE" local-action run . dist/index.js "$ENV_FILE" || {
-    echo "⚠️  local-action failed, trying alternative syntax..."
-    # Try alternative: local-action <entrypoint>
-    GITHUB_OUTPUT="$OUTPUT_FILE" local-action dist/index.js || {
-        echo "❌ local-action failed. Make sure @github/local-action is up to date."
-        rm -f "$ENV_FILE" "$OUTPUT_FILE"
-        exit 1
-    }
+    echo "❌ local-action failed. Make sure @github/local-action is up to date."
+    rm -f "$ENV_FILE" "$OUTPUT_FILE"
+    exit 1
 }
 
 # Show outputs if any were written
