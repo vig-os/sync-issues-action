@@ -1,0 +1,25 @@
+# CodeQL Analysis Workflow
+#
+# This workflow placeholder is registered with GitHub to enable CodeQL security scanning.
+# It performs static analysis on the codebase to detect potential vulnerabilities and code quality issues.
+# Full implementation details are managed separately.
+
+name: CodeQL
+
+"on":
+  pull_request:  # TODO: consider restricting to protected branches (dev, main, release/**) when implementing
+  push:
+    branches:
+      - dev
+      - main
+      # TODO: add schedule trigger (e.g. weekly cron) for drift detection when implementing
+
+permissions:
+  contents: read
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4

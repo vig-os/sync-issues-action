@@ -1,0 +1,24 @@
+# Scorecard Workflow
+#
+# This workflow placeholder is registered with GitHub to enable OpenSSF Scorecard analysis.
+# It evaluates repository security posture and best practices compliance.
+# Runs on main branch pushes to track security metrics over time.
+# Full implementation details are managed separately.
+
+name: Scorecard
+
+"on":
+  push:
+    branches:
+      - main
+      # TODO: add schedule trigger (e.g. weekly cron) for continuous monitoring when implementing
+
+permissions:
+  contents: read
+
+jobs:
+  scorecard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
