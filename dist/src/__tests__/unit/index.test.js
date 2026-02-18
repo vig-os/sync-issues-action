@@ -677,6 +677,216 @@ describe('Sync Issues Action', () => {
             expect(markdown).toContain('```diff');
             expect(markdown).toContain('@@ -40,7 +42,7 @@ function demo() {');
         });
+        it('should use level-1 header for Comments section', () => {
+            const pr = {
+                number: 20,
+                title: 'PR with comments section',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/20',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: 'Simple comment',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/20#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('# Comments (1)');
+            expect(markdown).not.toMatch(/^## Comments/m);
+        });
+        it('should use level-2 header for individual comment entries', () => {
+            const pr = {
+                number: 21,
+                title: 'PR with comment entries',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/21',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: 'A comment',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/21#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('## [Comment #1]');
+            expect(markdown).not.toMatch(/^### \[Comment #1\]/m);
+        });
+        it('should shift comment body headers starting with ## so top-level becomes ###', () => {
+            const pr = {
+                number: 22,
+                title: 'PR with header comment',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/22',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: '## Idea: Tracking\n\nSome text\n\n### How it would work\n\n- bullet',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/22#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('### Idea: Tracking');
+            expect(markdown).toContain('#### How it would work');
+            expect(markdown).not.toMatch(/^## Idea/m);
+            expect(markdown).not.toMatch(/^### How it would work$/m);
+        });
+        it('should shift comment body headers starting with # so top-level becomes ###', () => {
+            const pr = {
+                number: 23,
+                title: 'PR with h1 comment',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/23',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: '# Big Title\n\n## Subtitle\n\nContent',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/23#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('### Big Title');
+            expect(markdown).toContain('#### Subtitle');
+        });
+        it('should not shift comment body headers already at or below min level', () => {
+            const pr = {
+                number: 24,
+                title: 'PR with deep headers',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/24',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: '### Already deep\n\n#### Even deeper\n\nContent',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/24#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('### Already deep');
+            expect(markdown).toContain('#### Even deeper');
+        });
+        it('should cap shifted headers at max level 6 in comment bodies', () => {
+            const pr = {
+                number: 25,
+                title: 'PR with max level headers',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/25',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: '## Title\n\n### Sub\n\n##### Deep\n\n###### Max',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/25#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('### Title');
+            expect(markdown).toContain('#### Sub');
+            expect(markdown).toContain('###### Deep');
+            expect(markdown).toContain('###### Max');
+        });
+    });
+    describe('shiftHeadersToMinLevel', () => {
+        it('should return empty/falsy content unchanged', () => {
+            expect((0, index_1.shiftHeadersToMinLevel)('', 3)).toBe('');
+        });
+        it('should return content with no headers unchanged', () => {
+            const content = 'Just some text\nwith no headers';
+            expect((0, index_1.shiftHeadersToMinLevel)(content, 3)).toBe(content);
+        });
+        it('should shift headers when min current level is below target', () => {
+            const content = '## Title\n\n### Sub\n\nText';
+            const result = (0, index_1.shiftHeadersToMinLevel)(content, 3);
+            expect(result).toBe('### Title\n\n#### Sub\n\nText');
+        });
+        it('should not shift when min current level already meets target', () => {
+            const content = '### Title\n\n#### Sub';
+            expect((0, index_1.shiftHeadersToMinLevel)(content, 3)).toBe(content);
+        });
+        it('should not shift when min current level exceeds target', () => {
+            const content = '#### Title\n\n##### Sub';
+            expect((0, index_1.shiftHeadersToMinLevel)(content, 3)).toBe(content);
+        });
+        it('should cap shifted headers at level 6', () => {
+            const content = '# Title\n\n##### Deep';
+            const result = (0, index_1.shiftHeadersToMinLevel)(content, 3);
+            expect(result).toBe('### Title\n\n###### Deep');
+        });
+        it('should not exceed 6 hashes even when shift is large', () => {
+            const content = '# Title\n\n###### Max';
+            const result = (0, index_1.shiftHeadersToMinLevel)(content, 4);
+            expect(result).toBe('#### Title\n\n###### Max');
+        });
     });
     describe('Input Parameters', () => {
         const mockGetInput = core.getInput;

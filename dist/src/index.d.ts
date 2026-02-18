@@ -105,5 +105,11 @@ export declare function formatPRAsMarkdown(pr: PullRequest, comments?: Comment[]
     }>;
 }>): string;
 export declare function formatDate(dateString: string): string;
+/**
+ * Shifts all markdown headers so the shallowest header in the content is at `minLevel`.
+ * If the shallowest header already meets or exceeds `minLevel`, the content is returned unchanged.
+ * Headers are capped at the maximum markdown level of 6.
+ */
+export declare function shiftHeadersToMinLevel(content: string, minLevel: number): string;
 export { run };
 //# sourceMappingURL=index.d.ts.map
