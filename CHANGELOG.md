@@ -9,22 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Exported `shiftHeadersToMinLevel` utility function for independent unit testing
+
 ### Changed
 
 ### Removed
 
 ### Fixed
 
+- Corrected heading hierarchy in `formatPRAsMarkdown`: promoted the Comments section header from `##` to `#` and individual comment entry headers from `###` to `##`
+- Added `shiftHeadersToMinLevel` helper to re-level headers inside comment bodies so the shallowest header maps to `###`, preventing collisions with outer document structure
+- Fixed default `GITHUB_REPOSITORY` in `test-local.sh` from non-existent `vig-os/actions` to `vig-os/sync-issues-action`
+- Removed broken fallback command in `test-local.sh` that passed a file path where a directory is required
+
+
 ### Security
 
-## [0.1.1] - 2025-12-19
+
+## [0.1.1](https://github.com/vig-os/sync-issues-action/releases/tag/v0.1.1) - 2025-12-19
 
 ### Fixed
 
 - Fixed missing `dist/index.js` file in published releases by updating `.gitignore` to allow dist files to be committed
 - GitHub Actions now correctly finds and executes the compiled action code
 
-## [0.1.0] - 2025-12-18
+## [0.1.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.1.0) - 2025-12-18
 
 ### Added
 
@@ -68,6 +77,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Pull request template with testing checklist
   - Issue templates for bug reports, feature requests, and tasks
 - CI/CD workflow for automated issue syncing
-
-[0.1.1]: https://github.com/vig-os/sync-issues-action/releases/tag/v0.1.1
-[0.1.0]: https://github.com/vig-os/sync-issues-action/releases/tag/v0.1.0

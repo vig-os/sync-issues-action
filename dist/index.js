@@ -29964,6 +29964,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.formatIssueAsMarkdown = formatIssueAsMarkdown;
 exports.formatPRAsMarkdown = formatPRAsMarkdown;
 exports.formatDate = formatDate;
+exports.shiftHeadersToMinLevel = shiftHeadersToMinLevel;
 exports.run = run;
 const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
@@ -30457,11 +30458,12 @@ function formatPRAsMarkdown(pr, comments = [], reviewComments = [], commits = []
     frontmatter.push('---');
     let commentsSection = '';
     if (comments.length > 0) {
-        commentsSection += `\n\n---\n---\n\n## Comments (${comments.length})\n\n`;
+        commentsSection += `\n\n---\n---\n\n# Comments (${comments.length})\n\n`;
         comments.forEach((comment, index) => {
-            commentsSection += `### [Comment #${index + 1}](${comment.html_url}) by [@${comment.user.login}](${comment.user.html_url})\n\n`;
+            commentsSection += `## [Comment #${index + 1}](${comment.html_url}) by [@${comment.user.login}](${comment.user.html_url})\n\n`;
             commentsSection += `_Posted on ${formatDate(comment.created_at)}_\n\n`;
-            commentsSection += `${comment.body}\n\n---\n\n`;
+            const commentBody = shiftHeadersToMinLevel(comment.body, 3);
+            commentsSection += `${commentBody}\n\n---\n\n`;
         });
     }
     if (reviewComments.length > 0) {
@@ -30575,6 +30577,25 @@ function incrementHeadersIfNeeded(content) {
         }
         // Otherwise, increment by one level
         return hashes + '# ';
+    });
+}
+/**
+ * Shifts all markdown headers so the shallowest header in the content is at `minLevel`.
+ * If the shallowest header already meets or exceeds `minLevel`, the content is returned unchanged.
+ * Headers are capped at the maximum markdown level of 6.
+ */
+function shiftHeadersToMinLevel(content, minLevel) {
+    if (!content)
+        return content;
+    const headerMatches = content.match(/^#{1,6} /gm);
+    if (!headerMatches)
+        return content;
+    const minCurrentLevel = Math.min(...headerMatches.map((h) => h.length - 1));
+    if (minCurrentLevel >= minLevel)
+        return content;
+    const shift = minLevel - minCurrentLevel;
+    return content.replace(/^(#{1,6}) /gm, (_match, hashes) => {
+        return '#'.repeat(Math.min(hashes.length + shift, 6)) + ' ';
     });
 }
 function resolveUpdatedSince(input, stateFilePath) {
