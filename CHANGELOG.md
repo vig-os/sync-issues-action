@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- CI workflow placeholder registered with GitHub as a pre-merge gate for pull requests targeting `dev`, `main`, and `release/**` branches
+- CodeQL analysis workflow for automated security vulnerability scanning
+- Post-release workflow to automatically sync `dev` with `main` after release merges
+- Prepare-release workflow for validating and preparing release branches
+- Release workflow for finalizing, building, testing, and publishing releases
+- Scorecard workflow for ongoing supply-chain security assessments
+- Security scan workflow for continuous security monitoring
+- Composite `setup-env` action to set up the CI environment with Python, `uv`, and optional tooling
+
 ### Changed
 
 ### Removed
