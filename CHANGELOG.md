@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Exported `shiftHeadersToMinLevel` utility function for independent unit testing
+- **Sync sub-issue relationships into frontmatter** ([#8](https://github.com/vig-os/sync-issues-action/issues/8))
+  - Fetch `parentIssue` and `subIssues` via GraphQL batch query for all synced issues
+  - Replace hardcoded `relationship: none` with dynamic `parent` and `children` fields
+  - Graceful degradation: falls back to `none` if GraphQL query fails
 
 ### Changed
 
