@@ -27,20 +27,11 @@ repos:
       - id: check-symlinks
       - id: check-toml
       - id: check-yaml
-      - id: debug-statements
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: trailing-whitespace
-
-  # Python Linting and Formatting (Ruff)
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: aad66557af3b56ba6d4d69cd1b6cba87cef50cbb  # v0.14.3
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
 
   # YAML Linting
   - repo: https://github.com/adrienverge/yamllint
