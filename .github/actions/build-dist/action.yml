@@ -1,0 +1,33 @@
+# Composite action to build the ncc bundle and verify dist/ is up-to-date
+#
+# Runs 'npm run package' (ncc build) and then asserts that the resulting
+# dist/ output matches what is already committed. Fails if they differ,
+# which means a contributor updated src/ without rebuilding dist/.
+#
+# Prerequisites (caller must provide):
+#   - Repository is checked out
+#   - Node.js is installed and npm ci has been run (use ./.github/actions/setup-env)
+#
+# Usage:
+#   - uses: actions/checkout@v4
+#   - uses: ./.github/actions/setup-env
+#   - uses: ./.github/actions/build-dist
+
+name: 'Build dist'
+description: 'Build ncc bundle and verify dist/ is committed and up-to-date'
+
+runs:
+  using: composite
+  steps:
+    - name: Build action bundle
+      shell: bash
+      run: npm run package
+
+    - name: Verify dist is up-to-date
+      shell: bash
+      run: |
+        if ! git diff --exit-code dist/; then
+          echo "::error::dist/ is out of sync with source. Run 'npm run package' and commit the result."
+          exit 1
+        fi
+        echo "dist/ is up-to-date"

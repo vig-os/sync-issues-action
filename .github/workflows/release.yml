@@ -12,7 +12,7 @@
 # Steps:
 #   1. Validate  — Check all prerequisites
 #   2. Finalize  — Set release date in CHANGELOG, commit, push
-#   3. Test      — Run full test suite on finalized code
+#   3. Test      — Build verification and full test suite on finalized code
 #   4. Release   — Create tag and GitHub Release with changelog notes
 #   5. Rollback  — Revert changes and create issue on failure
 #
@@ -311,6 +311,9 @@ jobs:
       - name: Set up environment
         uses: ./.github/actions/setup-env
 
+      - name: Build and verify dist
+        uses: ./.github/actions/build-dist
+
       - name: Run tests
         run: npm run test:coverage
 
@@ -329,22 +332,26 @@ jobs:
           ref: ${{ needs.finalize.outputs.finalize_sha }}
           persist-credentials: true
 
-      - name: Configure git
-        env:
-          GIT_USER_NAME: ${{ github.event.inputs.git-user-name }}
-          GIT_USER_EMAIL: ${{ github.event.inputs.git-user-email }}
-        run: |
-          git config user.name "$GIT_USER_NAME"
-          git config user.email "$GIT_USER_EMAIL"
-
-      - name: Create and push tag
+      - name: Create verified tag via API
         env:
           VERSION: ${{ needs.validate.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
-          echo "Tag $VERSION created and pushed"
+          COMMIT_SHA=$(git rev-parse HEAD)
+
+          TAG_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/tags" \
+            -f tag="$VERSION" \
+            -f message="Release $VERSION" \
+            -f object="$COMMIT_SHA" \
+            -f type="commit" \
+            --jq '.sha')
+
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f ref="refs/tags/$VERSION" \
+            -f sha="$TAG_SHA"
+
+          echo "Verified tag $VERSION created at $COMMIT_SHA"
 
       - name: Extract release notes from CHANGELOG
         id: notes

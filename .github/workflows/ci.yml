@@ -5,9 +5,10 @@
 #
 # Jobs:
 #   1. lint              — Pre-commit hooks (yamllint, pymarkdown, shellcheck, typos, etc.)
-#   2. test              — Jest unit tests with coverage
-#   3. dependency-review — Dependency vulnerability check (PRs only)
-#   4. summary           — Aggregate results for branch protection
+#   2. build             — ncc bundle + verify dist/ is committed and up-to-date
+#   3. test              — Jest unit tests with coverage
+#   4. dependency-review — Dependency vulnerability check (PRs only)
+#   5. summary           — Aggregate results for branch protection
 #
 # Triggers:
 #   - Pull requests to dev, release/**, and main (runs all checks)
@@ -32,6 +33,7 @@ on:  # yamllint disable-line rule:truthy
         options:
           - all
           - lint
+          - build
           - test
 
 concurrency:
@@ -62,6 +64,25 @@ jobs:
 
       - name: Run pre-commit hooks
         run: uv run pre-commit run --all-files --show-diff-on-failure
+
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      inputs.test-suite == 'all' ||
+      inputs.test-suite == 'build'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up environment
+        uses: ./.github/actions/setup-env
+
+      - name: Build and verify dist
+        uses: ./.github/actions/build-dist
 
   test:
     name: Tests
@@ -113,7 +134,7 @@ jobs:
     name: CI Summary
     runs-on: ubuntu-22.04
     timeout-minutes: 5
-    needs: [lint, test, dependency-review]
+    needs: [lint, build, test, dependency-review]
     if: always()
 
     steps:
@@ -123,6 +144,7 @@ jobs:
           echo "==================="
           echo ""
           echo "Lint:              ${{ needs.lint.result }}"
+          echo "Build:             ${{ needs.build.result }}"
           echo "Test:              ${{ needs.test.result }}"
           echo "Dependency Review: ${{ needs.dependency-review.result }}"
           echo ""
@@ -131,6 +153,11 @@ jobs:
 
           if [ "${{ needs.lint.result }}" = "failure" ]; then
             echo "ERROR: Lint checks failed"
+            FAILED=true
+          fi
+
+          if [ "${{ needs.build.result }}" = "failure" ]; then
+            echo "ERROR: Build failed"
             FAILED=true
           fi
 
