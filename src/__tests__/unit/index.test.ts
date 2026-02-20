@@ -1731,6 +1731,123 @@ describe('Sync Issues Action', () => {
       });
     });
 
+    describe('force-update input', () => {
+      it('should re-write issue files even when body is unchanged', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-prs') return 'false';
+          if (name === 'force-update') return 'true';
+          return '';
+        });
+
+        const issue = {
+          number: 1,
+          title: 'Issue 1',
+          body: 'Body',
+          state: 'open',
+          labels: [],
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-02T00:00:00Z',
+          user: { login: 'user1' },
+          html_url: 'https://example.com/issue/1',
+          milestone: null,
+        };
+
+        const newContent = formatIssueAsMarkdown(issue, []);
+        const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
+
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(existingContent);
+        mockWriteFileSync.mockImplementation(() => undefined);
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+              get: jest.fn().mockResolvedValue({ data: issue }),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn(),
+              get: jest.fn(),
+              listReviewComments: jest.fn(),
+            },
+          },
+          graphql: jest.fn().mockResolvedValue({ repository: {} }),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockWriteFileSync).toHaveBeenCalled();
+        expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 1);
+        expect(mockSetOutput).toHaveBeenCalledWith(
+          'modified-files',
+          expect.stringContaining('issue-1.md')
+        );
+      });
+
+      it('should re-write PR files even when body is unchanged', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-issues') return 'false';
+          if (name === 'force-update') return 'true';
+          return '';
+        });
+
+        const pr = {
+          number: 10,
+          title: 'PR 10',
+          body: 'PR Body',
+          state: 'open',
+          labels: [],
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-02T00:00:00Z',
+          merged_at: null,
+          user: { login: 'pr-user' },
+          html_url: 'https://example.com/pr/10',
+          head: { ref: 'feature' },
+          base: { ref: 'main' },
+        };
+
+        const newContent = formatPRAsMarkdown(pr as never, [], []);
+        const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
+
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(existingContent);
+        mockWriteFileSync.mockImplementation(() => undefined);
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn(),
+              listComments: jest.fn(),
+            },
+            pulls: {
+              list: jest.fn().mockResolvedValue({ data: [pr] }),
+              get: jest.fn().mockResolvedValue({ data: pr }),
+              listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+              listCommits: jest.fn(),
+            },
+            repos: {
+              getCommit: jest.fn(),
+            },
+          },
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockWriteFileSync).toHaveBeenCalled();
+        expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
+        expect(mockSetOutput).toHaveBeenCalledWith(
+          'modified-files',
+          expect.stringContaining('pr-10.md')
+        );
+      });
+    });
+
     describe('app-id and app-private-key inputs', () => {
       it('should throw error when only app-id provided', async () => {
         mockGetInput.mockImplementation((name: string): string => {

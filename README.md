@@ -53,6 +53,7 @@ A GitHub Action that syncs all issues and pull requests from a repository to mar
 | `include-closed` | Include closed issues/PRs | No | `false` |
 | `updated-since` | Only sync items updated after this ISO8601 timestamp | No | - |
 | `state-file` | Optional path to store last sync timestamp (use with cache) | No | - |
+| `force-update` | Re-write all synced files even if content is unchanged | No | `false` |
 
 ### Outputs
 

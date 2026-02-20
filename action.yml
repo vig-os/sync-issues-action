@@ -37,6 +37,10 @@ inputs:
   state-file:
     description: 'Optional path to store last sync timestamp (use with cache)'
     required: false
+  force-update:
+    description: 'Re-write all synced files even if content is unchanged'
+    required: false
+    default: 'false'
 
 outputs:
   issues-count:

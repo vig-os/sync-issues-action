@@ -120,11 +120,13 @@ async function run(): Promise<void> {
     const syncIssuesInput = core.getInput('sync-issues') || 'true';
     const syncPRsInput = core.getInput('sync-prs') || 'true';
     const includeClosedInput = core.getInput('include-closed') || 'false';
+    const forceUpdateInput = core.getInput('force-update') || 'false';
 
     // Convert to boolean (getBooleanInput is strict and throws if input is missing)
     const syncIssues = syncIssuesInput.toLowerCase() === 'true';
     const syncPRs = syncPRsInput.toLowerCase() === 'true';
     const includeClosed = includeClosedInput.toLowerCase() === 'true';
+    const forceUpdate = forceUpdateInput.toLowerCase() === 'true';
     const updatedSince = resolveUpdatedSince(updatedSinceInput, stateFilePath);
 
     const octokit = github.getOctokit(tokenToUse);
@@ -155,7 +157,8 @@ async function run(): Promise<void> {
         repo,
         issuesDir,
         includeClosed,
-        updatedSince
+        updatedSince,
+        forceUpdate
       );
       issuesCount = issuesResult.count;
       modifiedFiles.push(...issuesResult.files);
@@ -172,7 +175,8 @@ async function run(): Promise<void> {
         repo,
         prsDir,
         includeClosed,
-        updatedSince
+        updatedSince,
+        forceUpdate
       );
       prsCount = prsResult.count;
       modifiedFiles.push(...prsResult.files);
@@ -203,7 +207,8 @@ async function syncIssuesToMarkdown(
   repo: string,
   outputDir: string,
   includeClosed: boolean,
-  updatedSince?: string
+  updatedSince?: string,
+  forceUpdate = false
 ): Promise<{ count: number; files: string[] }> {
   const state = includeClosed ? 'all' : 'open';
   let page = 1;
@@ -247,7 +252,7 @@ async function syncIssuesToMarkdown(
 
     const content = formatIssueAsMarkdown(fullIssue as Issue, comments, relationship);
 
-    if (hasContentChanged(content, filepath)) {
+    if (forceUpdate || hasContentChanged(content, filepath)) {
       fs.writeFileSync(filepath, content, 'utf-8');
       files.push(filepath);
       core.info(
@@ -267,7 +272,8 @@ async function syncPRsToMarkdown(
   repo: string,
   outputDir: string,
   includeClosed: boolean,
-  updatedSince?: string
+  updatedSince?: string,
+  forceUpdate = false
 ): Promise<{ count: number; files: string[] }> {
   const state = includeClosed ? 'all' : 'open';
   let page = 1;
@@ -326,9 +332,7 @@ async function syncPRsToMarkdown(
 
       const content = formatPRAsMarkdown(fullPR as PullRequest, comments, reviewComments, commits);
 
-      // Only write if content has actually changed (excluding synced timestamp)
-      // For closed PRs, commits section will be included, so if commits weren't there before, content will change
-      if (hasContentChanged(content, filepath)) {
+      if (forceUpdate || hasContentChanged(content, filepath)) {
         fs.writeFileSync(filepath, content, 'utf-8');
         files.push(filepath);
         const commitInfo = commits.length > 0 ? ` with ${commits.length} commit(s)` : '';
