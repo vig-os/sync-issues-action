@@ -83,8 +83,7 @@ jobs:
 
       - name: Sync Issues and PRs
         id: sync
-        # Using local action for testing
-        uses: vig-os/sync-issues-action@b4cdf371bb708230ce410a8203e6463e9e6caf2d  # v0.1.1
+        uses: ./
         with:
           app-id: ${{ secrets.APP_SYNC_ISSUES_ID }}
           app-private-key: ${{ secrets.APP_SYNC_ISSUES_PRIVATE_KEY }}
