@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Corrected heading hierarchy in `formatPRAsMarkdown`: promoted the Comments section header from `##` to `#` and individual comment entry headers from `###` to `##`
+- **`--force-update` does not re-sync issues (only PRs)** ([#10](https://github.com/vig-os/sync-issues-action/issues/10))
+  - Added `force-update` action input that bypasses the `hasContentChanged` content-comparison gate
+  - When active, all fetched items are re-written (with updated `synced:` frontmatter) even if body content is unchanged
+  - Updated `sync-issues.yml` workflow to pass the `force-update` dispatch input to the action
 - Added `shiftHeadersToMinLevel` helper to re-level headers inside comment bodies so the shallowest header maps to `###`, preventing collisions with outer document structure
 - Fixed default `GITHUB_REPOSITORY` in `test-local.sh` from non-existent `vig-os/actions` to `vig-os/sync-issues-action`
 - Removed broken fallback command in `test-local.sh` that passed a file path where a directory is required
