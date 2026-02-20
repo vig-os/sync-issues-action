@@ -1786,6 +1786,66 @@ describe('Sync Issues Action', () => {
           expect.stringContaining('issue-1.md')
         );
       });
+
+      it('should re-write PR files even when body is unchanged', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-issues') return 'false';
+          if (name === 'force-update') return 'true';
+          return '';
+        });
+
+        const pr = {
+          number: 10,
+          title: 'PR 10',
+          body: 'PR Body',
+          state: 'open',
+          labels: [],
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-02T00:00:00Z',
+          merged_at: null,
+          user: { login: 'pr-user' },
+          html_url: 'https://example.com/pr/10',
+          head: { ref: 'feature' },
+          base: { ref: 'main' },
+        };
+
+        const newContent = formatPRAsMarkdown(pr as never, [], []);
+        const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
+
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(existingContent);
+        mockWriteFileSync.mockImplementation(() => undefined);
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn(),
+              listComments: jest.fn(),
+            },
+            pulls: {
+              list: jest.fn().mockResolvedValue({ data: [pr] }),
+              get: jest.fn().mockResolvedValue({ data: pr }),
+              listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+              listCommits: jest.fn(),
+            },
+            repos: {
+              getCommit: jest.fn(),
+            },
+          },
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockWriteFileSync).toHaveBeenCalled();
+        expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
+        expect(mockSetOutput).toHaveBeenCalledWith(
+          'modified-files',
+          expect.stringContaining('pr-10.md')
+        );
+      });
     });
 
     describe('app-id and app-private-key inputs', () => {
