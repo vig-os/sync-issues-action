@@ -127,4 +127,3 @@ jest.mock('path', () => {
         join: jest.fn((...args) => args.join('/')),
     };
 });
-//# sourceMappingURL=setup.js.map
