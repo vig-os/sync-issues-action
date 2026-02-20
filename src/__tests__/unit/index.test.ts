@@ -402,6 +402,89 @@ describe('Sync Issues Action', () => {
       const betweenComments = markdown.substring(comment1Index, comment2Index);
       expect(betweenComments).toContain('---');
     });
+
+    it('should include parent field when issue has a parent', () => {
+      const issue = {
+        number: 20,
+        title: 'Child Issue',
+        body: 'I am a sub-issue',
+        state: 'open',
+        labels: [],
+        created_at: '2024-01-15T10:30:00Z',
+        updated_at: '2024-01-16T10:30:00Z',
+        user: { login: 'testuser' },
+        html_url: 'https://github.com/test/repo/issues/20',
+      };
+
+      const relationship = { parent: 67, children: [] };
+      const markdown = formatIssueAsMarkdown(issue, [], relationship);
+
+      expect(markdown).toContain('parent: 67');
+      expect(markdown).toContain('children: none');
+      expect(markdown).not.toContain('relationship:');
+    });
+
+    it('should include children field when issue has sub-issues', () => {
+      const issue = {
+        number: 30,
+        title: 'Parent Issue',
+        body: 'I have sub-issues',
+        state: 'open',
+        labels: [],
+        created_at: '2024-01-15T10:30:00Z',
+        updated_at: '2024-01-16T10:30:00Z',
+        user: { login: 'testuser' },
+        html_url: 'https://github.com/test/repo/issues/30',
+      };
+
+      const relationship = { parent: null, children: [61, 63, 80] };
+      const markdown = formatIssueAsMarkdown(issue, [], relationship);
+
+      expect(markdown).toContain('parent: none');
+      expect(markdown).toContain('children: 61, 63, 80');
+      expect(markdown).not.toContain('relationship:');
+    });
+
+    it('should include both parent and children when issue is nested', () => {
+      const issue = {
+        number: 40,
+        title: 'Nested Issue',
+        body: 'I am both parent and child',
+        state: 'open',
+        labels: [],
+        created_at: '2024-01-15T10:30:00Z',
+        updated_at: '2024-01-16T10:30:00Z',
+        user: { login: 'testuser' },
+        html_url: 'https://github.com/test/repo/issues/40',
+      };
+
+      const relationship = { parent: 10, children: [61, 63] };
+      const markdown = formatIssueAsMarkdown(issue, [], relationship);
+
+      expect(markdown).toContain('parent: 10');
+      expect(markdown).toContain('children: 61, 63');
+      expect(markdown).not.toContain('relationship:');
+    });
+
+    it('should default to none for both fields when no relationship provided', () => {
+      const issue = {
+        number: 50,
+        title: 'Standalone Issue',
+        body: 'No relationships',
+        state: 'open',
+        labels: [],
+        created_at: '2024-01-15T10:30:00Z',
+        updated_at: '2024-01-16T10:30:00Z',
+        user: { login: 'testuser' },
+        html_url: 'https://github.com/test/repo/issues/50',
+      };
+
+      const markdown = formatIssueAsMarkdown(issue, []);
+
+      expect(markdown).toContain('parent: none');
+      expect(markdown).toContain('children: none');
+      expect(markdown).not.toContain('relationship:');
+    });
   });
 
   describe('formatPRAsMarkdown', () => {
