@@ -78,6 +78,7 @@ jest.mock('@actions/github', () => {
           get: jest.fn(),
         },
       },
+      graphql: jest.fn(),
     })),
     context: {
       repo: {

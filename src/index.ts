@@ -388,6 +388,66 @@ async function fetchComments(
   return comments;
 }
 
+const GRAPHQL_BATCH_SIZE = 50;
+
+export async function fetchIssueRelationships(
+  octokit: ReturnType<typeof github.getOctokit>,
+  owner: string,
+  repo: string,
+  issueNumbers: number[]
+): Promise<Map<number, IssueRelationship>> {
+  const relationships = new Map<number, IssueRelationship>();
+
+  if (issueNumbers.length === 0) {
+    return relationships;
+  }
+
+  try {
+    for (let i = 0; i < issueNumbers.length; i += GRAPHQL_BATCH_SIZE) {
+      const batch = issueNumbers.slice(i, i + GRAPHQL_BATCH_SIZE);
+
+      const issueFields = batch
+        .map(
+          (num) =>
+            `issue_${num}: issue(number: ${num}) {
+              parentIssue { number }
+              subIssues(first: 100) { nodes { number } }
+            }`
+        )
+        .join('\n');
+
+      const query = `query($owner: String!, $repo: String!) {
+        repository(owner: $owner, name: $repo) {
+          ${issueFields}
+        }
+      }`;
+
+      const response: any = await octokit.graphql(query, {
+        owner,
+        repo,
+        headers: { 'GraphQL-Features': 'sub_issues' },
+      });
+
+      for (const num of batch) {
+        const data = response.repository[`issue_${num}`];
+        if (data) {
+          relationships.set(num, {
+            parent: data.parentIssue?.number ?? null,
+            children: (data.subIssues?.nodes ?? []).map((n: any) => n.number),
+          });
+        }
+      }
+    }
+  } catch (error) {
+    core.warning(
+      `Failed to fetch sub-issue relationships: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    return new Map();
+  }
+
+  return relationships;
+}
+
 async function fetchPRCommits(
   octokit: ReturnType<typeof github.getOctokit>,
   owner: string,
