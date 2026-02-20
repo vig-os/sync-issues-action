@@ -66,6 +66,11 @@ interface ReviewThread {
   replies: ReviewComment[];
 }
 
+interface IssueRelationship {
+  parent: number | null;
+  children: number[];
+}
+
 async function run(): Promise<void> {
   try {
     // Get token from input (defaults to github.token via action.yml)
@@ -613,7 +618,11 @@ function hasContentChanged(newContent: string, existingFilePath: string): boolea
   }
 }
 
-export function formatIssueAsMarkdown(issue: Issue, comments: Comment[] = []): string {
+export function formatIssueAsMarkdown(
+  issue: Issue,
+  comments: Comment[] = [],
+  relationship?: IssueRelationship
+): string {
   const labels =
     issue.labels && issue.labels.length > 0
       ? issue.labels.map((label) => label.name).join(', ')
@@ -623,6 +632,9 @@ export function formatIssueAsMarkdown(issue: Issue, comments: Comment[] = []): s
       ? issue.assignees.map((assignee) => assignee.login).join(', ')
       : 'none';
   const milestone = issue.milestone ? issue.milestone.title : 'none';
+  const parentField = relationship?.parent != null ? String(relationship.parent) : 'none';
+  const childrenField =
+    relationship?.children?.length ? relationship.children.join(', ') : 'none';
   const syncedAt = new Date().toISOString();
 
   // Build YAML frontmatter
@@ -640,7 +652,8 @@ export function formatIssueAsMarkdown(issue: Issue, comments: Comment[] = []): s
     `assignees: ${assignees}`,
     `milestone: ${milestone}`,
     `projects: none`,
-    `relationship: none`,
+    `parent: ${parentField}`,
+    `children: ${childrenField}`,
     `synced: ${syncedAt}`,
     '---',
   ];
@@ -704,7 +717,8 @@ export function formatPRAsMarkdown(
     `assignees: ${assignees}`,
     `milestone: ${milestone}`,
     `projects: none`,
-    `relationship: none`,
+    `parent: none`,
+    `children: none`,
   ];
 
   if (pr.merged_at) {
