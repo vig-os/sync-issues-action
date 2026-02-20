@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-02-20T13:57:05Z
-updated: 2026-02-20T14:15:18Z
+updated: 2026-02-20T14:16:58Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/13
@@ -12,12 +12,12 @@ assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-20T14:15:37.733Z
+synced: 2026-02-20T14:17:13.467Z
 ---
 
 # [Issue 13]: [[FEATURE] Develop and validate CI/CD workflows](https://github.com/vig-os/sync-issues-action/issues/13)
 
-### Description
+## Description
 
 Add fully operational CI/CD workflows to the repository. Four GitHub Actions workflows and a composite setup action exist as templates carried over from the vigOS devcontainer but have not been validated or customized for this project.
 
@@ -30,11 +30,11 @@ Add fully operational CI/CD workflows to the repository. Four GitHub Actions wor
 | `.github/workflows/release.yml` | Release automation (validate → finalize → test → release → rollback) |
 | `.github/actions/setup-env/action.yml` | Composite action: Python, uv, optional tooling |
 
-### Problem Statement
+## Problem Statement
 
 The repository has no working CI pipeline. PRs can be merged without lint checks, tests, or security scans. The release workflow has never been exercised. Without validated CI, there is no automated quality gate and branch protection cannot be meaningfully configured.
 
-### Proposed Solution
+## Proposed Solution
 
 Review, customize, and validate each workflow end-to-end:
 
@@ -54,22 +54,22 @@ Review, customize, and validate each workflow end-to-end:
 - `scorecard.yml` uses `codeql-action/upload-sarif@v3` (SHA `b5ebac6`) while `codeql.yml` uses `codeql-action@v4` (SHA `45cbd0c`) — verify this is intentional or align versions
 - Runner is `ubuntu-22.04` across all workflows — decide whether to stay or move to `ubuntu-24.04`
 
-### Alternatives Considered
+## Alternatives Considered
 
 - **Minimal CI (lint + test only):** Faster to set up but leaves security scanning and release automation for later. Rejected because the workflows already exist and just need validation.
 - **Third-party CI (CircleCI, etc.):** Would require rewriting all workflows. Not justified since GitHub Actions is already in use.
 
-### Additional Context
+## Additional Context
 
 - Related to #6
 - The `setup-env` action also supports optional tooling (podman, Node.js, devcontainer CLI, BATS, just) that isn't currently used by any workflow but may be needed later.
 
-### Impact
+## Impact
 
 - All contributors benefit from automated quality gates on PRs
 - Backward compatible — adds CI infrastructure without changing existing code
 - Enables branch protection rules that require CI to pass
 
-### Changelog Category
+## Changelog Category
 
 Added
