@@ -4,7 +4,7 @@
 # Customized for the sync-issues-action project.
 #
 # Jobs:
-#   1. lint              — Pre-commit hooks (Ruff, yamllint, pymarkdown, shellcheck, etc.)
+#   1. lint              — Pre-commit hooks (yamllint, pymarkdown, shellcheck, typos, etc.)
 #   2. test              — Jest unit tests with coverage
 #   3. dependency-review — Dependency vulnerability check (PRs only)
 #   4. summary           — Aggregate results for branch protection
@@ -57,6 +57,8 @@ jobs:
 
       - name: Set up environment
         uses: ./.github/actions/setup-env
+        with:
+          install-uv: 'true'
 
       - name: Run pre-commit hooks
         run: uv run pre-commit run --all-files --show-diff-on-failure
