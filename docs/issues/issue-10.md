@@ -1,8 +1,8 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-20T10:58:09Z
-updated: 2026-02-20T12:43:37Z
+updated: 2026-02-20T14:13:37Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/10
@@ -12,7 +12,7 @@ assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-20T13:57:23.282Z
+synced: 2026-02-20T14:13:51.874Z
 ---
 
 # [Issue 10]: [[BUG] --force-update does not re-sync issues (only PRs)](https://github.com/vig-os/sync-issues-action/issues/10)
