@@ -1,3 +1,4 @@
+import * as github from '@actions/github';
 interface Comment {
     id: number;
     body: string;
@@ -79,8 +80,13 @@ interface ReviewComment {
     original_line?: number | null;
     original_commit_id?: string | null;
 }
+interface IssueRelationship {
+    parent: number | null;
+    children: number[];
+}
 declare function run(): Promise<void>;
-export declare function formatIssueAsMarkdown(issue: Issue, comments?: Comment[]): string;
+export declare function fetchIssueRelationships(octokit: ReturnType<typeof github.getOctokit>, owner: string, repo: string, issueNumbers: number[]): Promise<Map<number, IssueRelationship>>;
+export declare function formatIssueAsMarkdown(issue: Issue, comments?: Comment[], relationship?: IssueRelationship): string;
 export declare function formatPRAsMarkdown(pr: PullRequest, comments?: Comment[], reviewComments?: ReviewComment[], commits?: Array<{
     sha: string;
     commit: {
