@@ -384,6 +384,77 @@ describe('Sync Issues Action', () => {
             const betweenComments = markdown.substring(comment1Index, comment2Index);
             expect(betweenComments).toContain('---');
         });
+        it('should include parent field when issue has a parent', () => {
+            const issue = {
+                number: 20,
+                title: 'Child Issue',
+                body: 'I am a sub-issue',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/issues/20',
+            };
+            const relationship = { parent: 67, children: [] };
+            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, [], relationship);
+            expect(markdown).toContain('parent: 67');
+            expect(markdown).toContain('children: none');
+            expect(markdown).not.toContain('relationship:');
+        });
+        it('should include children field when issue has sub-issues', () => {
+            const issue = {
+                number: 30,
+                title: 'Parent Issue',
+                body: 'I have sub-issues',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/issues/30',
+            };
+            const relationship = { parent: null, children: [61, 63, 80] };
+            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, [], relationship);
+            expect(markdown).toContain('parent: none');
+            expect(markdown).toContain('children: 61, 63, 80');
+            expect(markdown).not.toContain('relationship:');
+        });
+        it('should include both parent and children when issue is nested', () => {
+            const issue = {
+                number: 40,
+                title: 'Nested Issue',
+                body: 'I am both parent and child',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/issues/40',
+            };
+            const relationship = { parent: 10, children: [61, 63] };
+            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, [], relationship);
+            expect(markdown).toContain('parent: 10');
+            expect(markdown).toContain('children: 61, 63');
+            expect(markdown).not.toContain('relationship:');
+        });
+        it('should default to none for both fields when no relationship provided', () => {
+            const issue = {
+                number: 50,
+                title: 'Standalone Issue',
+                body: 'No relationships',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/issues/50',
+            };
+            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            expect(markdown).toContain('parent: none');
+            expect(markdown).toContain('children: none');
+            expect(markdown).not.toContain('relationship:');
+        });
     });
     describe('formatPRAsMarkdown', () => {
         it('should format open PR correctly', () => {
@@ -854,6 +925,41 @@ describe('Sync Issues Action', () => {
             expect(markdown).toContain('#### Sub');
             expect(markdown).toContain('###### Deep');
             expect(markdown).toContain('###### Max');
+        });
+    });
+    describe('fetchIssueRelationships', () => {
+        const mockOctokit = github.getOctokit('fake-token');
+        beforeEach(() => {
+            jest.clearAllMocks();
+        });
+        it('should return correct map from GraphQL response', async () => {
+            mockOctokit.graphql.mockResolvedValueOnce({
+                repository: {
+                    issue_5: {
+                        parentIssue: { number: 2 },
+                        subIssues: { nodes: [{ number: 10 }, { number: 11 }] },
+                    },
+                    issue_7: {
+                        parentIssue: null,
+                        subIssues: { nodes: [] },
+                    },
+                },
+            });
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [5, 7]);
+            expect(result.get(5)).toEqual({ parent: 2, children: [10, 11] });
+            expect(result.get(7)).toEqual({ parent: null, children: [] });
+            expect(mockOctokit.graphql).toHaveBeenCalledTimes(1);
+        });
+        it('should return empty map for empty issue list', async () => {
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', []);
+            expect(result.size).toBe(0);
+            expect(mockOctokit.graphql).not.toHaveBeenCalled();
+        });
+        it('should return empty map and warn on GraphQL error', async () => {
+            mockOctokit.graphql.mockRejectedValueOnce(new Error('GraphQL rate limit'));
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [1, 2]);
+            expect(result.size).toBe(0);
+            expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('GraphQL rate limit'));
         });
     });
     describe('shiftHeadersToMinLevel', () => {
@@ -1781,6 +1887,59 @@ describe('Sync Issues Action', () => {
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 0);
                 expect(mockOctokit.rest.issues.listForRepo).not.toHaveBeenCalled();
                 expect(mockOctokit.rest.pulls.list).not.toHaveBeenCalled();
+            });
+        });
+        describe('sub-issue relationships', () => {
+            it('should write parent and children from GraphQL into issue frontmatter', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    return '';
+                });
+                const issue = {
+                    number: 5,
+                    title: 'Child Issue',
+                    body: 'Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    user: { login: 'user1' },
+                    html_url: 'https://example.com/issue/5',
+                    milestone: null,
+                };
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+                            get: jest.fn().mockResolvedValue({ data: issue }),
+                            listComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                        pulls: {
+                            list: jest.fn(),
+                            get: jest.fn(),
+                            listReviewComments: jest.fn(),
+                        },
+                    },
+                    graphql: jest.fn().mockResolvedValue({
+                        repository: {
+                            issue_5: {
+                                parentIssue: { number: 2 },
+                                subIssues: { nodes: [{ number: 10 }, { number: 11 }] },
+                            },
+                        },
+                    }),
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                const writeCall = mockWriteFileSync.mock.calls.find((call) => String(call[0]).includes('issue-5.md'));
+                expect(writeCall).toBeDefined();
+                const content = writeCall[1];
+                expect(content).toContain('parent: 2');
+                expect(content).toContain('children: 10, 11');
+                expect(content).not.toContain('relationship:');
             });
         });
         describe('pagination', () => {
