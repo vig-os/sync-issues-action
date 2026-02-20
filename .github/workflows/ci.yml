@@ -63,7 +63,7 @@ jobs:
           install-uv: 'true'
 
       - name: Run pre-commit hooks
-        run: uv run pre-commit run --all-files --show-diff-on-failure
+        run: uvx pre-commit run --all-files --show-diff-on-failure
 
   build:
     name: Build

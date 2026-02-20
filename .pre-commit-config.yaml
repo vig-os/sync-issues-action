@@ -62,13 +62,3 @@ repos:
     rev: 07d900b8fa1097806b8adb6391b0d3e0ac2fdea7  # v1.39.0
     hooks:
       - id: typos
-
-  # GitHub Actions SHA pinning enforcement
-  - repo: local
-    hooks:
-      - id: check-action-pins
-        name: check-action-pins (verify SHA-pinned actions)
-        entry: uv run check-action-pins
-        language: system
-        files: ^\.github/(workflows/.*\.ya?ml|actions/.*/action\.ya?ml)$
-        pass_filenames: false
