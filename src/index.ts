@@ -777,8 +777,6 @@ export function formatPRAsMarkdown(
     `assignees: ${assignees}`,
     `milestone: ${milestone}`,
     `projects: none`,
-    `parent: none`,
-    `children: none`,
   ];
 
   if (pr.merged_at) {
