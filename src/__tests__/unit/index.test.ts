@@ -2108,6 +2108,64 @@ describe('Sync Issues Action', () => {
       });
     });
 
+    describe('sub-issue relationships', () => {
+      it('should write parent and children from GraphQL into issue frontmatter', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-prs') return 'false';
+          return '';
+        });
+
+        const issue = {
+          number: 5,
+          title: 'Child Issue',
+          body: 'Body',
+          state: 'open',
+          labels: [],
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-02T00:00:00Z',
+          user: { login: 'user1' },
+          html_url: 'https://example.com/issue/5',
+          milestone: null,
+        };
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+              get: jest.fn().mockResolvedValue({ data: issue }),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn(),
+              get: jest.fn(),
+              listReviewComments: jest.fn(),
+            },
+          },
+          graphql: jest.fn().mockResolvedValue({
+            repository: {
+              issue_5: {
+                parentIssue: { number: 2 },
+                subIssues: { nodes: [{ number: 10 }, { number: 11 }] },
+              },
+            },
+          }),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        const writeCall = mockWriteFileSync.mock.calls.find(
+          (call) => String(call[0]).includes('issue-5.md')
+        );
+        expect(writeCall).toBeDefined();
+        const content = writeCall![1] as string;
+        expect(content).toContain('parent: 2');
+        expect(content).toContain('children: 10, 11');
+        expect(content).not.toContain('relationship:');
+      });
+    });
+
     describe('pagination', () => {
       it('should handle pagination for issues', async () => {
         mockGetInput.mockImplementation((name: string): string => {
