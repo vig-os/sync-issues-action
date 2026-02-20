@@ -9,6 +9,7 @@ import {
   formatIssueAsMarkdown,
   formatPRAsMarkdown,
   shiftHeadersToMinLevel,
+  fetchIssueRelationships,
   run,
 } from '../../index';
 
@@ -1012,6 +1013,53 @@ describe('Sync Issues Action', () => {
       expect(markdown).toContain('#### Sub');
       expect(markdown).toContain('###### Deep');
       expect(markdown).toContain('###### Max');
+    });
+  });
+
+  describe('fetchIssueRelationships', () => {
+    const mockOctokit = github.getOctokit('fake-token') as any;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should return correct map from GraphQL response', async () => {
+      mockOctokit.graphql.mockResolvedValueOnce({
+        repository: {
+          issue_5: {
+            parentIssue: { number: 2 },
+            subIssues: { nodes: [{ number: 10 }, { number: 11 }] },
+          },
+          issue_7: {
+            parentIssue: null,
+            subIssues: { nodes: [] },
+          },
+        },
+      });
+
+      const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', [5, 7]);
+
+      expect(result.get(5)).toEqual({ parent: 2, children: [10, 11] });
+      expect(result.get(7)).toEqual({ parent: null, children: [] });
+      expect(mockOctokit.graphql).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return empty map for empty issue list', async () => {
+      const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', []);
+
+      expect(result.size).toBe(0);
+      expect(mockOctokit.graphql).not.toHaveBeenCalled();
+    });
+
+    it('should return empty map and warn on GraphQL error', async () => {
+      mockOctokit.graphql.mockRejectedValueOnce(new Error('GraphQL rate limit'));
+
+      const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', [1, 2]);
+
+      expect(result.size).toBe(0);
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining('GraphQL rate limit')
+      );
     });
   });
 
