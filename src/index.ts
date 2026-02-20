@@ -209,8 +209,7 @@ async function syncIssuesToMarkdown(
   let page = 1;
   const perPage = 100;
   let hasMore = true;
-  let issuesCount = 0;
-  const files: string[] = [];
+  const allIssues: Array<{ number: number; pull_request?: unknown }> = [];
 
   while (hasMore) {
     const { data: issues } = await octokit.rest.issues.listForRepo({
@@ -222,43 +221,44 @@ async function syncIssuesToMarkdown(
       ...(updatedSince ? { since: updatedSince } : {}),
     });
 
-    // Filter out pull requests (issues API returns both)
     const actualIssues = issues.filter((issue) => !issue.pull_request);
-    issuesCount += actualIssues.length;
-
-    for (const issue of actualIssues) {
-      const filename = `issue-${issue.number}.md`;
-      const filepath = path.join(outputDir, filename);
-
-      // Fetch full issue details to get all metadata
-      const { data: fullIssue } = await octokit.rest.issues.get({
-        owner,
-        repo,
-        issue_number: issue.number,
-      });
-
-      // Fetch comments for this issue
-      const comments = await fetchComments(octokit, owner, repo, issue.number);
-
-      const content = formatIssueAsMarkdown(fullIssue as Issue, comments);
-
-      // Only write if content has actually changed (excluding synced timestamp)
-      if (hasContentChanged(content, filepath)) {
-        fs.writeFileSync(filepath, content, 'utf-8');
-        files.push(filepath);
-        core.info(
-          `Synced issue #${issue.number} with ${comments.length} comment(s) to ${filepath}`
-        );
-      } else {
-        core.info(`Issue #${issue.number} unchanged, skipping write to ${filepath}`);
-      }
-    }
+    allIssues.push(...actualIssues);
 
     hasMore = issues.length === perPage;
     page++;
   }
 
-  return { count: issuesCount, files };
+  const issueNumbers = allIssues.map((issue) => issue.number);
+  const relationships = await fetchIssueRelationships(octokit, owner, repo, issueNumbers);
+
+  const files: string[] = [];
+  for (const issue of allIssues) {
+    const filename = `issue-${issue.number}.md`;
+    const filepath = path.join(outputDir, filename);
+
+    const { data: fullIssue } = await octokit.rest.issues.get({
+      owner,
+      repo,
+      issue_number: issue.number,
+    });
+
+    const comments = await fetchComments(octokit, owner, repo, issue.number);
+    const relationship = relationships.get(issue.number);
+
+    const content = formatIssueAsMarkdown(fullIssue as Issue, comments, relationship);
+
+    if (hasContentChanged(content, filepath)) {
+      fs.writeFileSync(filepath, content, 'utf-8');
+      files.push(filepath);
+      core.info(
+        `Synced issue #${issue.number} with ${comments.length} comment(s) to ${filepath}`
+      );
+    } else {
+      core.info(`Issue #${issue.number} unchanged, skipping write to ${filepath}`);
+    }
+  }
+
+  return { count: allIssues.length, files };
 }
 
 async function syncPRsToMarkdown(
