@@ -20,8 +20,10 @@ fi
 
 # 2. Install Node.js
 if ! command -v node &> /dev/null; then
-    echo "Installing Node.js 20.x..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    NODE_MAJOR=$(tr -d 'v\n' < .nvmrc 2>/dev/null | cut -d'.' -f1)
+    NODE_MAJOR=${NODE_MAJOR:-20}
+    echo "Installing Node.js ${NODE_MAJOR}.x..."
+    curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash -
     apt-get install -y nodejs
 fi
 NODE_VERSION=$(node --version)
