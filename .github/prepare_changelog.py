@@ -302,12 +302,59 @@ def finalize_release_date(version, release_date, filepath="CHANGELOG.md"):
     path.write_text(new_content)
 
 
+def extract_release_notes(version, filepath="CHANGELOG.md"):
+    """
+    Extract release notes for a specific version from CHANGELOG.
+
+    Returns the body content between the version's ``## [X.Y.Z]`` header
+    and the next ``## [`` header (or end of file), excluding both headers.
+
+    Args:
+        version: Semantic version (e.g., "1.0.0")
+        filepath: Path to CHANGELOG.md
+
+    Returns:
+        Extracted notes as a string, or empty string if none found.
+
+    Raises:
+        ValueError: If version format is invalid
+        FileNotFoundError: If CHANGELOG file doesn't exist
+    """
+    if not re.match(r"^\d+\.\d+\.\d+$", version):
+        raise ValueError(f"Invalid semantic version: {version}")
+
+    path = Path(filepath)
+    if not path.exists():
+        raise FileNotFoundError(f"CHANGELOG not found: {filepath}")
+
+    content = path.read_text()
+
+    pattern = rf"^## \[{re.escape(version)}\][^\n]*\n(.*?)(?=^## \[|\Z)"
+    match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+
+    if not match:
+        return ""
+
+    notes = match.group(1).strip()
+    return notes if notes else ""
+
+
 def cmd_finalize(args):
     """Handle finalize command."""
     finalize_release_date(args.version, args.date, args.file)
 
     print(f"✓ Set release date for version {args.version}")
     print(f"✓ Date: {args.date}")
+
+
+def cmd_extract_notes(args):
+    """Handle extract-notes command."""
+    notes = extract_release_notes(args.version, args.file)
+    if notes:
+        print(notes)
+    else:
+        print(f"No changelog notes found for {args.version}", file=sys.stderr)
+        sys.exit(1)
 
 
 def main():
@@ -401,6 +448,23 @@ Examples:
         help="Path to CHANGELOG file (default: CHANGELOG.md)",
     )
     finalize_parser.set_defaults(func=cmd_finalize)
+
+    # extract-notes command
+    extract_parser = subparsers.add_parser(
+        "extract-notes",
+        help="Extract release notes for a specific version",
+    )
+    extract_parser.add_argument(
+        "version",
+        help="Semantic version (e.g., 1.0.0)",
+    )
+    extract_parser.add_argument(
+        "file",
+        nargs="?",
+        default="CHANGELOG.md",
+        help="Path to CHANGELOG file (default: CHANGELOG.md)",
+    )
+    extract_parser.set_defaults(func=cmd_extract_notes)
 
     # Parse and execute
     args = parser.parse_args()

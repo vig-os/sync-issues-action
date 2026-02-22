@@ -8,6 +8,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from prepare_changelog import (
+    extract_release_notes,
+    finalize_release_date,
     prepare_changelog,
     reset_unreleased,
     validate_changelog,
@@ -116,6 +118,109 @@ class TestPrepareChangelog(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             reset_unreleased(path)
         self.assertIn("already exists", str(ctx.exception))
+
+
+class TestFinalizeReleaseDate(unittest.TestCase):
+    def test_replaces_tbd_with_date(self):
+        path = _write_tmp(SAMPLE_CHANGELOG)
+        prepare_changelog("1.0.0", path)
+        finalize_release_date("1.0.0", "2026-02-22", path)
+        content = Path(path).read_text()
+        self.assertIn("## [1.0.0] - 2026-02-22", content)
+        self.assertNotIn("TBD", content)
+
+    def test_rejects_invalid_version(self):
+        path = _write_tmp(SAMPLE_CHANGELOG)
+        with self.assertRaises(ValueError):
+            finalize_release_date("bad", "2026-02-22", path)
+
+    def test_rejects_invalid_date(self):
+        path = _write_tmp(SAMPLE_CHANGELOG)
+        prepare_changelog("1.0.0", path)
+        with self.assertRaises(ValueError):
+            finalize_release_date("1.0.0", "22-02-2026", path)
+
+    def test_raises_when_tbd_section_missing(self):
+        path = _write_tmp(SAMPLE_CHANGELOG)
+        with self.assertRaises(ValueError):
+            finalize_release_date("9.9.9", "2026-02-22", path)
+
+    def test_raises_when_file_missing(self):
+        with self.assertRaises(FileNotFoundError):
+            finalize_release_date("1.0.0", "2026-02-22", "/nonexistent.md")
+
+
+class TestExtractReleaseNotes(unittest.TestCase):
+    """Tests for extract_release_notes()."""
+
+    PREPARED_CHANGELOG = """\
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - TBD
+
+### Added
+
+- New feature A
+
+### Fixed
+
+- Bug fix B
+
+## [0.1.0] - 2025-12-01
+
+### Added
+
+- Initial release
+"""
+
+    def test_extracts_notes_for_existing_version(self):
+        path = _write_tmp(self.PREPARED_CHANGELOG)
+        notes = extract_release_notes("1.0.0", path)
+        self.assertIn("- New feature A", notes)
+        self.assertIn("- Bug fix B", notes)
+
+    def test_does_not_include_header_line(self):
+        path = _write_tmp(self.PREPARED_CHANGELOG)
+        notes = extract_release_notes("1.0.0", path)
+        self.assertNotIn("## [1.0.0]", notes)
+
+    def test_does_not_include_next_version(self):
+        path = _write_tmp(self.PREPARED_CHANGELOG)
+        notes = extract_release_notes("1.0.0", path)
+        self.assertNotIn("Initial release", notes)
+        self.assertNotIn("0.1.0", notes)
+
+    def test_extracts_last_version(self):
+        path = _write_tmp(self.PREPARED_CHANGELOG)
+        notes = extract_release_notes("0.1.0", path)
+        self.assertIn("- Initial release", notes)
+
+    def test_returns_empty_for_nonexistent_version(self):
+        path = _write_tmp(self.PREPARED_CHANGELOG)
+        notes = extract_release_notes("9.9.9", path)
+        self.assertEqual(notes, "")
+
+    def test_rejects_invalid_version(self):
+        path = _write_tmp(self.PREPARED_CHANGELOG)
+        with self.assertRaises(ValueError):
+            extract_release_notes("bad", path)
+
+    def test_raises_when_file_missing(self):
+        with self.assertRaises(FileNotFoundError):
+            extract_release_notes("1.0.0", "/nonexistent.md")
+
+    def test_round_trip_prepare_then_extract(self):
+        """extract_release_notes works on the output of prepare_changelog."""
+        path = _write_tmp(SAMPLE_CHANGELOG)
+        prepare_changelog("2.0.0", path)
+        notes = extract_release_notes("2.0.0", path)
+        self.assertIn("- New feature A", notes)
+        self.assertIn("- Bug fix B", notes)
 
 
 if __name__ == "__main__":
