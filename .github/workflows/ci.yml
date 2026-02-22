@@ -7,8 +7,9 @@
 #   1. lint              — Pre-commit hooks (yamllint, pymarkdown, shellcheck, typos, etc.)
 #   2. build             — ncc bundle + verify dist/ is committed and up-to-date
 #   3. test              — Jest unit tests with coverage
-#   4. dependency-review — Dependency vulnerability check (PRs only)
-#   5. summary           — Aggregate results for branch protection
+#   4. integration-test  — End-to-end action test (reusable workflow)
+#   5. dependency-review — Dependency vulnerability check (PRs only)
+#   6. summary           — Aggregate results for branch protection
 #
 # Triggers:
 #   - Pull requests to dev, release/**, and main (runs all checks)
@@ -112,6 +113,14 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
+  integration-test:
+    name: Integration Test
+    uses: ./.github/workflows/integration-test.yml
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      inputs.test-suite == 'all' ||
+      inputs.test-suite == 'test'
+
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-22.04
@@ -134,7 +143,7 @@ jobs:
     name: CI Summary
     runs-on: ubuntu-22.04
     timeout-minutes: 5
-    needs: [lint, build, test, dependency-review]
+    needs: [lint, build, test, integration-test, dependency-review]
     if: always()
 
     steps:
@@ -146,6 +155,7 @@ jobs:
           echo "Lint:              ${{ needs.lint.result }}"
           echo "Build:             ${{ needs.build.result }}"
           echo "Test:              ${{ needs.test.result }}"
+          echo "Integration Test:  ${{ needs.integration-test.result }}"
           echo "Dependency Review: ${{ needs.dependency-review.result }}"
           echo ""
 
@@ -163,6 +173,11 @@ jobs:
 
           if [ "${{ needs.test.result }}" = "failure" ]; then
             echo "ERROR: Tests failed"
+            FAILED=true
+          fi
+
+          if [ "${{ needs.integration-test.result }}" = "failure" ]; then
+            echo "ERROR: Integration tests failed"
             FAILED=true
           fi
 

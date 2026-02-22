@@ -1,0 +1,194 @@
+# Integration Test — Reusable workflow
+#
+# Runs the sync-issues-action against the current repository with multiple
+# input combinations to verify end-to-end behavior.
+#
+# Called from:
+#   - ci.yml (on PRs, to catch regressions)
+#   - release.yml test job (on finalized code, before tagging)
+#
+# Tests:
+#   1. Sync issues only — verify issues-count > 0 and output files exist
+#   2. Sync PRs only    — verify prs-count > 0 and output files exist
+#   3. Force update      — verify all files are re-written
+#   4. Include closed    — verify closed items are synced
+#
+# Refs: https://github.com/vig-os/sync-issues-action/issues/13
+
+name: Integration Test
+
+on:  # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Git ref to test (branch, tag, or SHA)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Test — sync issues only
+        id: sync-issues
+        uses: ./
+        with:
+          output-dir: test-output/issues-only
+          sync-issues: 'true'
+          sync-prs: 'false'
+          include-closed: 'false'
+
+      - name: Verify — sync issues only
+        env:
+          ISSUES_COUNT: ${{ steps.sync-issues.outputs.issues-count }}
+          PRS_COUNT: ${{ steps.sync-issues.outputs.prs-count }}
+          MODIFIED_FILES: ${{ steps.sync-issues.outputs.modified-files }}
+          LAST_SYNCED: ${{ steps.sync-issues.outputs.last-synced-at }}
+        run: |
+          set -euo pipefail
+          echo "Issues count: $ISSUES_COUNT"
+          echo "PRs count: $PRS_COUNT"
+          echo "Modified files: $MODIFIED_FILES"
+          echo "Last synced: $LAST_SYNCED"
+
+          if [ -z "$ISSUES_COUNT" ] || [ "$ISSUES_COUNT" -eq 0 ]; then
+            echo "ERROR: Expected issues-count > 0"
+            exit 1
+          fi
+
+          if [ "$PRS_COUNT" != "0" ] && [ -n "$PRS_COUNT" ]; then
+            echo "ERROR: Expected prs-count == 0 when sync-prs is false, got $PRS_COUNT"
+            exit 1
+          fi
+
+          if [ -z "$LAST_SYNCED" ]; then
+            echo "ERROR: last-synced-at output is empty"
+            exit 1
+          fi
+
+          if [ ! -d "test-output/issues-only/issues" ]; then
+            echo "ERROR: Output directory test-output/issues-only/issues does not exist"
+            exit 1
+          fi
+
+          FILE_COUNT=$(find test-output/issues-only/issues -name "*.md" | wc -l)
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "ERROR: No markdown files generated in issues directory"
+            exit 1
+          fi
+          echo "OK: $FILE_COUNT issue files generated"
+
+      - name: Test — sync PRs only
+        id: sync-prs
+        uses: ./
+        with:
+          output-dir: test-output/prs-only
+          sync-issues: 'false'
+          sync-prs: 'true'
+          include-closed: 'false'
+
+      - name: Verify — sync PRs only
+        env:
+          ISSUES_COUNT: ${{ steps.sync-prs.outputs.issues-count }}
+          PRS_COUNT: ${{ steps.sync-prs.outputs.prs-count }}
+        run: |
+          set -euo pipefail
+          echo "Issues count: $ISSUES_COUNT"
+          echo "PRs count: $PRS_COUNT"
+
+          if [ "$ISSUES_COUNT" != "0" ] && [ -n "$ISSUES_COUNT" ]; then
+            echo "ERROR: Expected issues-count == 0 when sync-issues is false, got $ISSUES_COUNT"
+            exit 1
+          fi
+
+          if [ -z "$PRS_COUNT" ] || [ "$PRS_COUNT" -eq 0 ]; then
+            echo "ERROR: Expected prs-count > 0"
+            exit 1
+          fi
+
+          if [ ! -d "test-output/prs-only/pull-requests" ]; then
+            echo "ERROR: Output directory test-output/prs-only/pull-requests does not exist"
+            exit 1
+          fi
+
+          FILE_COUNT=$(find test-output/prs-only/pull-requests -name "*.md" | wc -l)
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "ERROR: No markdown files generated in pull-requests directory"
+            exit 1
+          fi
+          echo "OK: $FILE_COUNT PR files generated"
+
+      - name: Test — force update (re-run with same output dir)
+        id: sync-force
+        uses: ./
+        with:
+          output-dir: test-output/issues-only
+          sync-issues: 'true'
+          sync-prs: 'false'
+          force-update: 'true'
+
+      - name: Verify — force update re-wrote files
+        env:
+          MODIFIED_FILES: ${{ steps.sync-force.outputs.modified-files }}
+          ISSUES_COUNT: ${{ steps.sync-force.outputs.issues-count }}
+        run: |
+          set -euo pipefail
+          echo "Force-update modified files: $MODIFIED_FILES"
+          echo "Issues count: $ISSUES_COUNT"
+
+          if [ -z "$MODIFIED_FILES" ]; then
+            echo "ERROR: force-update should report modified files"
+            exit 1
+          fi
+          echo "OK: force-update re-wrote files"
+
+      - name: Test — include closed items
+        id: sync-closed
+        uses: ./
+        with:
+          output-dir: test-output/with-closed
+          sync-issues: 'true'
+          sync-prs: 'false'
+          include-closed: 'true'
+
+      - name: Verify — include closed has >= open-only count
+        env:
+          CLOSED_COUNT: ${{ steps.sync-closed.outputs.issues-count }}
+          OPEN_COUNT: ${{ steps.sync-issues.outputs.issues-count }}
+        run: |
+          set -euo pipefail
+          echo "Open-only count: $OPEN_COUNT"
+          echo "With-closed count: $CLOSED_COUNT"
+
+          if [ "$CLOSED_COUNT" -lt "$OPEN_COUNT" ]; then
+            echo "ERROR: include-closed count ($CLOSED_COUNT) should be >= open-only count ($OPEN_COUNT)"
+            exit 1
+          fi
+          echo "OK: include-closed count >= open-only count"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "Integration Test Results"
+          echo "========================"
+          echo ""
+          echo "Sync issues only:  ${{ steps.sync-issues.outcome }}"
+          echo "Sync PRs only:     ${{ steps.sync-prs.outcome }}"
+          echo "Force update:      ${{ steps.sync-force.outcome }}"
+          echo "Include closed:    ${{ steps.sync-closed.outcome }}"
