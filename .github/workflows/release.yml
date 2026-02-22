@@ -91,7 +91,6 @@ jobs:
 
       - name: Checkout release branch
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
-
         with:
           ref: release/${{ steps.vars.outputs.version }}
           fetch-depth: 0
@@ -244,13 +243,7 @@ jobs:
           RELEASE_DATE: ${{ needs.validate.outputs.release_date }}
         run: |
           set -euo pipefail
-          sed -i "s/## \[$VERSION\] - TBD/## [$VERSION] - $RELEASE_DATE/" CHANGELOG.md
-
-          if ! grep -q "## \[$VERSION\] - $RELEASE_DATE" CHANGELOG.md; then
-            echo "ERROR: Failed to set release date in CHANGELOG"
-            exit 1
-          fi
-          echo "Release date set in CHANGELOG.md"
+          python3 .github/prepare_changelog.py finalize "$VERSION" "$RELEASE_DATE" CHANGELOG.md
 
       - name: Commit and push finalization changes via API
         uses: vig-os/commit-action@b70c2d87acd0f146c40e8d88a9bda40b76c084b5  # v0.1.3
@@ -361,13 +354,8 @@ jobs:
           VERSION: ${{ needs.validate.outputs.version }}
         run: |
           set -euo pipefail
-          # Extract content between this version header and the next version header
-          awk '/^## \['"$VERSION"'\]/{found=1; next} /^## \[/{found=0} found' \
-            CHANGELOG.md > /tmp/release-notes.md
-
-          if [ ! -s /tmp/release-notes.md ]; then
-            echo "No changelog notes found for $VERSION" > /tmp/release-notes.md
-          fi
+          python3 .github/prepare_changelog.py extract-notes "$VERSION" CHANGELOG.md \
+            > /tmp/release-notes.md
 
           echo "Release notes:"
           cat /tmp/release-notes.md
@@ -450,6 +438,53 @@ jobs:
           echo "Phase 3 (post-release.yml) will:"
           echo "  1. Merge the release PR to main"
           echo "  2. Sync dev with main"
+
+  dry-run-preview:
+    name: Dry-Run Preview
+    needs: validate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    if: ${{ github.event.inputs.dry-run == 'true' }}
+
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: release/${{ needs.validate.outputs.version }}
+
+      - name: Preview CHANGELOG finalization
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_DATE: ${{ needs.validate.outputs.release_date }}
+        run: |
+          set -euo pipefail
+          cp CHANGELOG.md CHANGELOG.md.bak
+          python3 .github/prepare_changelog.py finalize "$VERSION" "$RELEASE_DATE" CHANGELOG.md
+          echo "=== CHANGELOG diff ==="
+          diff -u CHANGELOG.md.bak CHANGELOG.md || true
+
+      - name: Preview release notes
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          echo "=== Release notes for v$VERSION ==="
+          echo ""
+          python3 .github/prepare_changelog.py extract-notes "$VERSION" CHANGELOG.md
+
+      - name: Summary
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_DATE: ${{ needs.validate.outputs.release_date }}
+          PR_NUMBER: ${{ needs.validate.outputs.pr_number }}
+        run: |
+          echo "✓ Dry-run preview complete (no changes pushed)"
+          echo ""
+          echo "  Version:       $VERSION"
+          echo "  Release Date:  $RELEASE_DATE"
+          echo "  Tag (would create):    v$VERSION"
+          echo "  Floating (would update): v${VERSION%%.*}, v${VERSION%.*}"
+          echo "  PR:            #$PR_NUMBER"
 
   rollback:
     name: Rollback on Failure

@@ -74,14 +74,10 @@ jobs:
           INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
           set -euo pipefail
+          source .github/release_helpers.sh
+          validate_version "$INPUT_VERSION"
+
           VERSION="$INPUT_VERSION"
-
-          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "ERROR: Invalid version format '$VERSION'"
-            echo "Version must follow semantic versioning format: MAJOR.MINOR.PATCH (e.g., 1.2.3)"
-            exit 1
-          fi
-
           RELEASE_BRANCH="release/$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "release_branch=$RELEASE_BRANCH" >> "$GITHUB_OUTPUT"
@@ -187,8 +183,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Extract the version section from CHANGELOG (between ## [VERSION] and next ## [)
-          CHANGELOG_CONTENT=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d')
+          CHANGELOG_CONTENT=$(python3 .github/prepare_changelog.py extract-notes "$VERSION" CHANGELOG.md)
 
           {
             echo "changelog<<CHANGELOGEOF"
@@ -290,3 +285,47 @@ jobs:
           echo "  4. Mark PR as ready for review (gh pr ready <PR_NUMBER>)"
           echo "  5. Get PR approval from reviewer"
           echo "  6. Run the Release workflow with version $VERSION"
+
+  dry-run-preview:
+    name: Dry-Run Preview
+    needs: validate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    if: ${{ github.event.inputs.dry-run == 'true' }}
+
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: dev
+
+      - name: Prepare CHANGELOG (local only)
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          cp CHANGELOG.md CHANGELOG.md.bak
+          python3 .github/prepare_changelog.py prepare "$VERSION" CHANGELOG.md
+
+      - name: Show CHANGELOG diff
+        run: diff -u CHANGELOG.md.bak CHANGELOG.md || true
+
+      - name: Show release notes preview
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          echo "=== Release notes for $VERSION ==="
+          echo ""
+          python3 .github/prepare_changelog.py extract-notes "$VERSION" CHANGELOG.md
+
+      - name: Summary
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_BRANCH: ${{ needs.validate.outputs.release_branch }}
+        run: |
+          echo "✓ Dry-run preview complete (no changes pushed)"
+          echo ""
+          echo "  Version: $VERSION"
+          echo "  Branch (would create): $RELEASE_BRANCH"
+          echo "  PR (would create): draft → main"
