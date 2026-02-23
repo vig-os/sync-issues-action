@@ -1,8 +1,8 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-23T15:01:56Z
-updated: 2026-02-23T15:01:56Z
+updated: 2026-02-23T16:12:33Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/25
@@ -12,7 +12,7 @@ assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-23T15:02:19.730Z
+synced: 2026-02-23T16:13:02.624Z
 ---
 
 # [Issue 25]: [[ENHANCEMENT] Return partial results from fetchIssueRelationships on mid-batch failure](https://github.com/vig-os/sync-issues-action/issues/25)
