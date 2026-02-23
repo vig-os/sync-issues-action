@@ -342,7 +342,7 @@ jobs:
           sync-issues: 'true'
           sync-prs: 'false'
           sync-sub-issues: 'true'
-          include-closed: 'false'
+          include-closed: 'true'
 
       - name: Verify — sub-issue relationships
         run: |
@@ -401,7 +401,7 @@ jobs:
           sync-issues: 'true'
           sync-prs: 'false'
           sync-sub-issues: 'false'
-          include-closed: 'false'
+          include-closed: 'true'
 
       - name: Verify — parent/children are "none" when disabled
         run: |
