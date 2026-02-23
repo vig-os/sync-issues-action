@@ -30069,7 +30069,7 @@ async function run() {
         }
     }
 }
-async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = false) {
+async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = true) {
     const state = includeClosed ? 'all' : 'open';
     let page = 1;
     const perPage = 100;
