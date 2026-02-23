@@ -1,18 +1,18 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-22T11:01:08Z
-updated: 2026-02-22T11:01:08Z
+updated: 2026-02-23T09:00:01Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/15
-comments: 0
+comments: 1
 labels: none
 assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-22T11:01:26.230Z
+synced: 2026-02-23T09:00:15.530Z
 ---
 
 # [Issue 15]: [Suppress noisy parentIssue GraphQL warnings when sub-issues API is unavailable](https://github.com/vig-os/sync-issues-action/issues/15)
@@ -52,3 +52,28 @@ This fires for every batch of issues fetched. The `parentIssue` and `subIssues` 
 ## Context
 
 Observed in the `integration-test.yml` workflow on PR #14.
+---
+
+# [Comment #1]() by [c-vigo]()
+
+_Posted on February 23, 2026 at 08:50 AM_
+
+## Root cause found
+
+The GraphQL warnings were **not** caused by API unavailability or plan restrictions. The query used the wrong field name:
+
+- **Wrong:** `parentIssue { number }` (doesn't exist in the schema)
+- **Correct:** `parent { number }` (standard field, no preview header needed)
+
+Schema introspection confirms `parent`, `subIssues`, and `subIssuesSummary` are available in the standard GraphQL schema on `github.com`. The `GraphQL-Features: sub_issues` preview header was also unnecessary.
+
+## Changes on `bugfix/15-suppress-sub-issues-warnings`
+
+1. **Fixed the field name** — `parentIssue` → `parent` in the GraphQL query
+2. **Removed `GraphQL-Features: sub_issues` header** — not needed for standard schema fields
+3. **Added `sync-sub-issues` opt-in input** (default `true`) — allows users to disable sub-issue fetching if their environment (e.g. older GHES) doesn't support these fields
+4. **Graceful schema error handling** — if the fields genuinely don't exist, emits `core.info()` instead of `core.warning()` and continues without relationships
+5. **Integration test** — verifies parent/children frontmatter on issues 13 and 15
+
+The REST sub-issues API (`/issues/{number}/parent`, `/issues/{number}/sub_issues`) also works and was considered as a fallback, but the GraphQL fix makes it unnecessary since it preserves the efficient batched queries (50 issues per request).
+
