@@ -24,6 +24,7 @@
 # Trigger:
 #   - Manual workflow_dispatch with version input
 #
+
 name: Release
 
 on:  # yamllint disable-line rule:truthy

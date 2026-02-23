@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CHANGELOG management CLI (`prepare_changelog.py`) for automated release note preparation
   - Dependabot configuration for automated dependency updates
   - CODEOWNERS file for automated review assignment
+  - CodeQL analysis workflow for automated security vulnerability scanning
+  - Scorecard workflow for ongoing supply-chain security assessments
+  - Security scan workflow for continuous security monitoring
 
 ### Changed
 
