@@ -1,8 +1,8 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-23T15:02:01Z
-updated: 2026-02-23T15:02:01Z
+updated: 2026-02-23T16:10:37Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/26
@@ -12,7 +12,7 @@ assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-23T15:02:19.405Z
+synced: 2026-02-23T16:10:59.146Z
 ---
 
 # [Issue 26]: [[BUG] syncSubIssues default parameter does not match action.yml](https://github.com/vig-os/sync-issues-action/issues/26)
