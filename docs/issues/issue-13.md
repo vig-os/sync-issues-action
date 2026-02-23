@@ -1,8 +1,8 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-20T13:57:05Z
-updated: 2026-02-20T14:31:51Z
+updated: 2026-02-23T10:05:50Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/13
@@ -12,7 +12,7 @@ assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-21T01:29:10.591Z
+synced: 2026-02-23T10:06:05.022Z
 ---
 
 # [Issue 13]: [[FEATURE] Develop and validate CI/CD workflows](https://github.com/vig-os/sync-issues-action/issues/13)
