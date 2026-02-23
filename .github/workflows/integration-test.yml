@@ -7,15 +7,15 @@
 #   - ci.yml (on PRs, to catch regressions)
 #   - release.yml test job (on finalized code, before tagging)
 #
-# Tests:
-#   1. Sync issues only    — verify issues-count > 0 and output files exist
-#   2. Sync PRs only       — verify prs-count > 0 and output files exist
-#   3. No-op baseline       — re-sync unchanged issues, verify zero modifications
-#   4. Force update         — verify all files are re-written despite no changes
-#   5. Include closed       — verify closed items are synced
-#   6. Sub-issue relations  — verify parent/children frontmatter on issues 13/15
+# Jobs (all run in parallel):
+#   sync-issues-only  — verify issues-count > 0 and output files exist
+#   sync-prs-only     — verify prs-count > 0 and output files exist
+#   force-update      — no-op baseline (zero mods) then force (non-zero mods)
+#   include-closed    — verify closed items count >= open-only count
+#   sub-issues        — verify parent/children frontmatter on issues 13/15
 #
 # Refs: https://github.com/vig-os/sync-issues-action/issues/13
+#       https://github.com/vig-os/sync-issues-action/issues/15
 
 name: Integration Test
 
@@ -32,14 +32,13 @@ permissions:
   contents: read
 
 jobs:
-  integration:
-    name: Integration Tests
+  sync-issues-only:
+    name: Sync issues only
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
       contents: read
       issues: read
-      pull-requests: read
 
     steps:
       - name: Checkout
@@ -96,6 +95,20 @@ jobs:
           fi
           echo "OK: $FILE_COUNT issue files generated"
 
+  sync-prs-only:
+    name: Sync PRs only
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
       - name: Test — sync PRs only
         id: sync-prs
         uses: ./
@@ -136,16 +149,37 @@ jobs:
           fi
           echo "OK: $FILE_COUNT PR files generated"
 
-      - name: Test — re-sync issues (no-op baseline)
+  force-update:
+    name: Force update
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Populate — initial sync
+        uses: ./
+        with:
+          output-dir: test-output/force-update
+          sync-issues: 'true'
+          sync-prs: 'false'
+
+      - name: Test — re-sync without force (no-op baseline)
         id: sync-noop
         uses: ./
         with:
-          output-dir: test-output/issues-only
+          output-dir: test-output/force-update
           sync-issues: 'true'
           sync-prs: 'false'
           force-update: 'false'
 
-      - name: Verify — no-op re-sync produced zero modifications
+      - name: Verify — no-op produced zero modifications
         env:
           MODIFIED_FILES: ${{ steps.sync-noop.outputs.modified-files }}
         run: |
@@ -158,11 +192,11 @@ jobs:
           fi
           echo "OK: no-op re-sync correctly reported zero modifications"
 
-      - name: Test — force update (re-run with same output dir)
+      - name: Test — re-sync with force update
         id: sync-force
         uses: ./
         with:
-          output-dir: test-output/issues-only
+          output-dir: test-output/force-update
           sync-issues: 'true'
           sync-prs: 'false'
           force-update: 'true'
@@ -170,11 +204,9 @@ jobs:
       - name: Verify — force update re-wrote files
         env:
           MODIFIED_FILES: ${{ steps.sync-force.outputs.modified-files }}
-          ISSUES_COUNT: ${{ steps.sync-force.outputs.issues-count }}
         run: |
           set -euo pipefail
           echo "Force-update modified files: $MODIFIED_FILES"
-          echo "Issues count: $ISSUES_COUNT"
 
           if [ -z "$MODIFIED_FILES" ]; then
             echo "ERROR: force-update should report modified files"
@@ -182,7 +214,30 @@ jobs:
           fi
           echo "OK: force-update re-wrote files"
 
-      - name: Test — include closed items
+  include-closed:
+    name: Include closed
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Test — sync open issues only
+        id: sync-open
+        uses: ./
+        with:
+          output-dir: test-output/open-only
+          sync-issues: 'true'
+          sync-prs: 'false'
+          include-closed: 'false'
+
+      - name: Test — sync with closed included
         id: sync-closed
         uses: ./
         with:
@@ -191,10 +246,10 @@ jobs:
           sync-prs: 'false'
           include-closed: 'true'
 
-      - name: Verify — include closed has >= open-only count
+      - name: Verify — closed count >= open count
         env:
+          OPEN_COUNT: ${{ steps.sync-open.outputs.issues-count }}
           CLOSED_COUNT: ${{ steps.sync-closed.outputs.issues-count }}
-          OPEN_COUNT: ${{ steps.sync-issues.outputs.issues-count }}
         run: |
           set -euo pipefail
           echo "Open-only count: $OPEN_COUNT"
@@ -205,6 +260,20 @@ jobs:
             exit 1
           fi
           echo "OK: include-closed count >= open-only count"
+
+  sub-issues:
+    name: Sub-issue relationships
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Test — sub-issue relationships
         id: sync-sub-issues
@@ -251,16 +320,3 @@ jobs:
             grep '^children:' "$ISSUE_13"
             exit 1
           fi
-
-      - name: Summary
-        if: always()
-        run: |
-          echo "Integration Test Results"
-          echo "========================"
-          echo ""
-          echo "Sync issues only:  ${{ steps.sync-issues.outcome }}"
-          echo "Sync PRs only:     ${{ steps.sync-prs.outcome }}"
-          echo "No-op baseline:    ${{ steps.sync-noop.outcome }}"
-          echo "Force update:      ${{ steps.sync-force.outcome }}"
-          echo "Include closed:    ${{ steps.sync-closed.outcome }}"
-          echo "Sub-issues:        ${{ steps.sync-sub-issues.outcome }}"
