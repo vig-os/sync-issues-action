@@ -1,4 +1,4 @@
-require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
+/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
 /***/ 4914:
@@ -30010,10 +30010,14 @@ async function run() {
         const syncIssuesInput = core.getInput('sync-issues') || 'true';
         const syncPRsInput = core.getInput('sync-prs') || 'true';
         const includeClosedInput = core.getInput('include-closed') || 'false';
+        const forceUpdateInput = core.getInput('force-update') || 'false';
+        const syncSubIssuesInput = core.getInput('sync-sub-issues') || 'true';
         // Convert to boolean (getBooleanInput is strict and throws if input is missing)
         const syncIssues = syncIssuesInput.toLowerCase() === 'true';
         const syncPRs = syncPRsInput.toLowerCase() === 'true';
         const includeClosed = includeClosedInput.toLowerCase() === 'true';
+        const forceUpdate = forceUpdateInput.toLowerCase() === 'true';
+        const syncSubIssues = syncSubIssuesInput.toLowerCase() === 'true';
         const updatedSince = resolveUpdatedSince(updatedSinceInput, stateFilePath);
         const octokit = github.getOctokit(tokenToUse);
         const context = github.context;
@@ -30033,7 +30037,7 @@ async function run() {
             if (!fs.existsSync(issuesDir)) {
                 fs.mkdirSync(issuesDir, { recursive: true });
             }
-            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince);
+            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince, forceUpdate, syncSubIssues);
             issuesCount = issuesResult.count;
             modifiedFiles.push(...issuesResult.files);
         }
@@ -30042,7 +30046,7 @@ async function run() {
             if (!fs.existsSync(prsDir)) {
                 fs.mkdirSync(prsDir, { recursive: true });
             }
-            const prsResult = await syncPRsToMarkdown(octokit, owner, repo, prsDir, includeClosed, updatedSince);
+            const prsResult = await syncPRsToMarkdown(octokit, owner, repo, prsDir, includeClosed, updatedSince, forceUpdate);
             prsCount = prsResult.count;
             modifiedFiles.push(...prsResult.files);
         }
@@ -30065,7 +30069,7 @@ async function run() {
         }
     }
 }
-async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince) {
+async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = false) {
     const state = includeClosed ? 'all' : 'open';
     let page = 1;
     const perPage = 100;
@@ -30086,7 +30090,9 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
         page++;
     }
     const issueNumbers = allIssues.map((issue) => issue.number);
-    const relationships = await fetchIssueRelationships(octokit, owner, repo, issueNumbers);
+    const relationships = syncSubIssues
+        ? await fetchIssueRelationships(octokit, owner, repo, issueNumbers)
+        : new Map();
     const files = [];
     for (const issue of allIssues) {
         const filename = `issue-${issue.number}.md`;
@@ -30099,7 +30105,7 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
         const comments = await fetchComments(octokit, owner, repo, issue.number);
         const relationship = relationships.get(issue.number);
         const content = formatIssueAsMarkdown(fullIssue, comments, relationship);
-        if (hasContentChanged(content, filepath)) {
+        if (forceUpdate || hasContentChanged(content, filepath)) {
             fs.writeFileSync(filepath, content, 'utf-8');
             files.push(filepath);
             core.info(`Synced issue #${issue.number} with ${comments.length} comment(s) to ${filepath}`);
@@ -30110,7 +30116,7 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
     }
     return { count: allIssues.length, files };
 }
-async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince) {
+async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false) {
     const state = includeClosed ? 'all' : 'open';
     let page = 1;
     const perPage = 100;
@@ -30153,9 +30159,7 @@ async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed,
                 commits = await fetchPRCommits(octokit, owner, repo, pr.number);
             }
             const content = formatPRAsMarkdown(fullPR, comments, reviewComments, commits);
-            // Only write if content has actually changed (excluding synced timestamp)
-            // For closed PRs, commits section will be included, so if commits weren't there before, content will change
-            if (hasContentChanged(content, filepath)) {
+            if (forceUpdate || hasContentChanged(content, filepath)) {
                 fs.writeFileSync(filepath, content, 'utf-8');
                 files.push(filepath);
                 const commitInfo = commits.length > 0 ? ` with ${commits.length} commit(s)` : '';
@@ -30213,7 +30217,7 @@ async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
             const batch = issueNumbers.slice(i, i + GRAPHQL_BATCH_SIZE);
             const issueFields = batch
                 .map((num) => `issue_${num}: issue(number: ${num}) {
-              parentIssue { number }
+              parent { number }
               subIssues(first: 100) { nodes { number } }
             }`)
                 .join('\n');
@@ -30225,13 +30229,12 @@ async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
             const response = await octokit.graphql(query, {
                 owner,
                 repo,
-                headers: { 'GraphQL-Features': 'sub_issues' },
             });
             for (const num of batch) {
                 const data = response.repository[`issue_${num}`];
                 if (data) {
                     relationships.set(num, {
-                        parent: data.parentIssue?.number ?? null,
+                        parent: data.parent?.number ?? null,
                         children: (data.subIssues?.nodes ?? []).map((n) => n.number),
                     });
                 }
@@ -30239,7 +30242,13 @@ async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
         }
     }
     catch (error) {
-        core.warning(`Failed to fetch sub-issue relationships: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        if (message.includes("doesn't exist on type")) {
+            core.info('Sub-issues API is not available for this repository. Skipping relationship sync.');
+        }
+        else {
+            core.warning(`Failed to fetch sub-issue relationships: ${message}`);
+        }
         return new Map();
     }
     return relationships;
@@ -38124,4 +38133,3 @@ function createAppAuth(options) {
 /******/ 	
 /******/ })()
 ;
-//# sourceMappingURL=index.js.map

@@ -118,4 +118,3 @@ export declare function formatDate(dateString: string): string;
  */
 export declare function shiftHeadersToMinLevel(content: string, minLevel: number): string;
 export { run };
-//# sourceMappingURL=index.d.ts.map

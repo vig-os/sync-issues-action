@@ -1,0 +1,61 @@
+# Composite action to set up the CI environment
+#
+# Installs Node.js and project dependencies by default.
+# Optionally installs uv (needed for pre-commit hooks in the lint job).
+# All inputs default sensibly — callers typically need zero configuration.
+#
+# IMPORTANT: The caller must checkout the repository before using this action.
+#
+# Usage:
+#   # Default (Node.js + npm deps)
+#   - uses: actions/checkout@v4
+#   - uses: ./.github/actions/setup-env
+#
+#   # With uv (for pre-commit)
+#   - uses: actions/checkout@v4
+#   - uses: ./.github/actions/setup-env
+#     with:
+#       install-uv: 'true'
+
+name: 'Setup Environment'
+description: 'Set up CI environment with Node.js and project dependencies'
+
+inputs:
+  install-node:
+    description: 'Install Node.js and run npm ci'
+    required: false
+    default: 'true'
+  install-uv:
+    description: 'Install uv (required for pre-commit hooks)'
+    required: false
+    default: 'false'
+
+outputs:
+  node-version:
+    description: 'The Node.js version that was installed'
+    value: ${{ steps.setup-node.outputs.node-version }}
+  cache-hit:
+    description: 'Whether the npm cache was hit'
+    value: ${{ steps.setup-node.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    # ── uv ───────────────────────────────────────────────────────────────
+    - name: Install uv
+      if: inputs.install-uv == 'true'
+      uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b  # v7.3.0
+
+    # ── Node.js + npm dependencies ───────────────────────────────────────
+    - name: Install Node.js
+      id: setup-node
+      if: inputs.install-node == 'true'
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+
+    - name: Install npm dependencies
+      if: inputs.install-node == 'true'
+      shell: bash
+      run: npm ci

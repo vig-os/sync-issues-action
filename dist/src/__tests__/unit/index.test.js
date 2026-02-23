@@ -936,11 +936,11 @@ describe('Sync Issues Action', () => {
             mockOctokit.graphql.mockResolvedValueOnce({
                 repository: {
                     issue_5: {
-                        parentIssue: { number: 2 },
+                        parent: { number: 2 },
                         subIssues: { nodes: [{ number: 10 }, { number: 11 }] },
                     },
                     issue_7: {
-                        parentIssue: null,
+                        parent: null,
                         subIssues: { nodes: [] },
                     },
                 },
@@ -960,6 +960,20 @@ describe('Sync Issues Action', () => {
             const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [1, 2]);
             expect(result.size).toBe(0);
             expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('GraphQL rate limit'));
+        });
+        it('should emit info instead of warning on schema error', async () => {
+            mockOctokit.graphql.mockRejectedValueOnce(new Error("Request failed due to following response errors:\n - Field 'parent' doesn't exist on type 'Issue'"));
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [1, 2]);
+            expect(result.size).toBe(0);
+            expect(core.info).toHaveBeenCalledWith('Sub-issues API is not available for this repository. Skipping relationship sync.');
+            expect(core.warning).not.toHaveBeenCalled();
+        });
+        it('should still warn on non-schema errors when sub-issues enabled', async () => {
+            mockOctokit.graphql.mockRejectedValueOnce(new Error('Server error'));
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [3]);
+            expect(result.size).toBe(0);
+            expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('Server error'));
+            expect(core.info).not.toHaveBeenCalled();
         });
     });
     describe('shiftHeadersToMinLevel', () => {
@@ -1551,6 +1565,109 @@ describe('Sync Issues Action', () => {
                 expect(mockWriteFileSync).toHaveBeenCalledWith('/tmp/state/last.txt', expect.any(String), 'utf-8');
             });
         });
+        describe('force-update input', () => {
+            it('should re-write issue files even when body is unchanged', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    if (name === 'force-update')
+                        return 'true';
+                    return '';
+                });
+                const issue = {
+                    number: 1,
+                    title: 'Issue 1',
+                    body: 'Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    user: { login: 'user1' },
+                    html_url: 'https://example.com/issue/1',
+                    milestone: null,
+                };
+                const newContent = (0, index_1.formatIssueAsMarkdown)(issue, []);
+                const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
+                mockExistsSync.mockReturnValue(true);
+                mockReadFileSync.mockReturnValue(existingContent);
+                mockWriteFileSync.mockImplementation(() => undefined);
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+                            get: jest.fn().mockResolvedValue({ data: issue }),
+                            listComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                        pulls: {
+                            list: jest.fn(),
+                            get: jest.fn(),
+                            listReviewComments: jest.fn(),
+                        },
+                    },
+                    graphql: jest.fn().mockResolvedValue({ repository: {} }),
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                expect(mockWriteFileSync).toHaveBeenCalled();
+                expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 1);
+                expect(mockSetOutput).toHaveBeenCalledWith('modified-files', expect.stringContaining('issue-1.md'));
+            });
+            it('should re-write PR files even when body is unchanged', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-issues')
+                        return 'false';
+                    if (name === 'force-update')
+                        return 'true';
+                    return '';
+                });
+                const pr = {
+                    number: 10,
+                    title: 'PR 10',
+                    body: 'PR Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    merged_at: null,
+                    user: { login: 'pr-user' },
+                    html_url: 'https://example.com/pr/10',
+                    head: { ref: 'feature' },
+                    base: { ref: 'main' },
+                };
+                const newContent = (0, index_1.formatPRAsMarkdown)(pr, [], []);
+                const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
+                mockExistsSync.mockReturnValue(true);
+                mockReadFileSync.mockReturnValue(existingContent);
+                mockWriteFileSync.mockImplementation(() => undefined);
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn(),
+                            get: jest.fn(),
+                            listComments: jest.fn(),
+                        },
+                        pulls: {
+                            list: jest.fn().mockResolvedValue({ data: [pr] }),
+                            get: jest.fn().mockResolvedValue({ data: pr }),
+                            listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+                            listCommits: jest.fn(),
+                        },
+                        repos: {
+                            getCommit: jest.fn(),
+                        },
+                    },
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                expect(mockWriteFileSync).toHaveBeenCalled();
+                expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
+                expect(mockSetOutput).toHaveBeenCalledWith('modified-files', expect.stringContaining('pr-10.md'));
+            });
+        });
         describe('app-id and app-private-key inputs', () => {
             it('should throw error when only app-id provided', async () => {
                 mockGetInput.mockImplementation((name) => {
@@ -1890,12 +2007,106 @@ describe('Sync Issues Action', () => {
             });
         });
         describe('sub-issue relationships', () => {
+            it('should skip sub-issue fetch when sync-sub-issues is false', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    if (name === 'sync-sub-issues')
+                        return 'false';
+                    return '';
+                });
+                const issue = {
+                    number: 5,
+                    title: 'Test Issue',
+                    body: 'Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    user: { login: 'user1' },
+                    html_url: 'https://example.com/issue/5',
+                    milestone: null,
+                };
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+                            get: jest.fn().mockResolvedValue({ data: issue }),
+                            listComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                        pulls: {
+                            list: jest.fn(),
+                            get: jest.fn(),
+                            listReviewComments: jest.fn(),
+                        },
+                    },
+                    graphql: jest.fn(),
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                expect(mockOctokit.graphql).not.toHaveBeenCalled();
+                const writeCall = mockWriteFileSync.mock.calls.find((call) => String(call[0]).includes('issue-5.md'));
+                expect(writeCall).toBeDefined();
+                const content = writeCall[1];
+                expect(content).toContain('parent: none');
+                expect(content).toContain('children: none');
+            });
+            it('should fetch sub-issues by default when sync-sub-issues is not set', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    return '';
+                });
+                const issue = {
+                    number: 3,
+                    title: 'Test Issue',
+                    body: 'Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    user: { login: 'user1' },
+                    html_url: 'https://example.com/issue/3',
+                    milestone: null,
+                };
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+                            get: jest.fn().mockResolvedValue({ data: issue }),
+                            listComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                        pulls: {
+                            list: jest.fn(),
+                            get: jest.fn(),
+                            listReviewComments: jest.fn(),
+                        },
+                    },
+                    graphql: jest.fn().mockResolvedValue({
+                        repository: {
+                            issue_3: {
+                                parent: { number: 1 },
+                                subIssues: { nodes: [] },
+                            },
+                        },
+                    }),
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                expect(mockOctokit.graphql).toHaveBeenCalled();
+            });
             it('should write parent and children from GraphQL into issue frontmatter', async () => {
                 mockGetInput.mockImplementation((name) => {
                     if (name === 'token')
                         return 'test-token';
                     if (name === 'sync-prs')
                         return 'false';
+                    if (name === 'sync-sub-issues')
+                        return 'true';
                     return '';
                 });
                 const issue = {
@@ -1926,7 +2137,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn().mockResolvedValue({
                         repository: {
                             issue_5: {
-                                parentIssue: { number: 2 },
+                                parent: { number: 2 },
                                 subIssues: { nodes: [{ number: 10 }, { number: 11 }] },
                             },
                         },
@@ -2573,4 +2784,3 @@ describe('Sync Issues Action', () => {
         });
     });
 });
-//# sourceMappingURL=index.test.js.map

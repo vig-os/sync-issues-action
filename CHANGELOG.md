@@ -10,14 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Exported `shiftHeadersToMinLevel` utility function for independent unit testing
-- **Sync sub-issue relationships into frontmatter** ([#8](https://github.com/vig-os/sync-issues-action/issues/8))
-  - Fetch `parentIssue` and `subIssues` via GraphQL batch query for all synced issues
+- **Sync sub-issue relationships into frontmatter** ([#8](https://github.com/vig-os/sync-issues-action/issues/8), [#15](https://github.com/vig-os/sync-issues-action/issues/15))
+  - Fetch `parent` and `subIssues` via GraphQL batch query for all synced issues
+  - New `sync-sub-issues` action input to control sub-issue syncing (default: `true`)
   - Replace hardcoded `relationship: none` with dynamic `parent` and `children` fields
-  - Graceful degradation: falls back to `none` if GraphQL query fails
+  - Graceful degradation: emits info message and falls back to `none` if the sub-issues API is unavailable
+- **CI/CD pipeline** ([#13](https://github.com/vig-os/sync-issues-action/issues/13))
+  - CI workflow with lint, build-dist verification, and test jobs
+  - Integration test suite as a reusable workflow with parallel jobs covering issues-only, PRs-only, force-update, include-closed, sub-issues, updated-since, state-file, and default-mode scenarios
+  - Three-phase release pipeline: prepare-release (branch + draft PR), release (tag + GitHub Release with provenance attestation), and post-release (dev sync + CHANGELOG reset)
+  - `setup-env` and `build-dist` composite actions for consistent environment setup
+  - CHANGELOG management CLI (`prepare_changelog.py`) for automated release note preparation
+  - Dependabot configuration for automated dependency updates
+  - CODEOWNERS file for automated review assignment
 
 ### Changed
 
-### Removed
+- **Sync-issues workflow uses local action checkout** ([#13](https://github.com/vig-os/sync-issues-action/issues/13))
+  - Replaced pinned remote ref with `uses: ./` so the workflow always tests the current branch's code
+- **Node.js version pinned via `.nvmrc`** ([#13](https://github.com/vig-os/sync-issues-action/issues/13))
+  - `.nvmrc` is the single source of truth; `setup-env` and devcontainer read from it
 
 ### Fixed
 
@@ -30,8 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed default `GITHUB_REPOSITORY` in `test-local.sh` from non-existent `vig-os/actions` to `vig-os/sync-issues-action`
 - Removed broken fallback command in `test-local.sh` that passed a file path where a directory is required
 
-
 ### Security
+
+- **CodeQL and OpenSSF Scorecard analysis workflows** ([#13](https://github.com/vig-os/sync-issues-action/issues/13))
+  - CodeQL scans JavaScript/TypeScript on push and PR
+  - Scorecard publishes results to the Security tab via SARIF
 
 
 ## [0.1.1](https://github.com/vig-os/sync-issues-action/releases/tag/v0.1.1) - 2025-12-19

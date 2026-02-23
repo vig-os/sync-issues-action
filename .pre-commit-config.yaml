@@ -1,14 +1,25 @@
 ---
 # .pre-commit-config.yaml
 
-exclude: ^dist/|^docs/pull-requests/|^docs/issues/
+exclude: ^dist/|test_output/|^docs/issues/|^docs/pull-requests/
 
 repos:
-
   # General Pre-commit Hooks (Fixes formatting issues)
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b  # v5.0.0
     hooks:
+      # Enforce topic branch naming:
+      # - chore/<short_summary> (no issue required)
+      # - <type>/<issue_number>-<short_summary> (for feature, bugfix, etc.)
+      # - worktree/<issue_number> (autonomous worktree branches)
+      # Allows main, dev, and branches matching the convention.
+      - id: no-commit-to-branch
+        name: branch-name (enforce <type>/<issue>-<summary>)
+        args:
+          - --branch
+          - __none__  # override default so main/dev are not protected
+          - --pattern
+          - "^(?!main$)(?!dev$)(?!^(chore)/[a-z0-9]+(-[a-z0-9]+)*$)(?!^(feature|bugfix|hotfix|release|docs|test|refactor)/[0-9]+-[a-z0-9]+(-[a-z0-9]+)*$)(?!^worktree/[0-9]+$).+$"
       - id: check-added-large-files
       - id: check-case-conflict
       - id: check-json
@@ -16,84 +27,38 @@ repos:
       - id: check-symlinks
       - id: check-toml
       - id: check-yaml
-      - id: debug-statements
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: trailing-whitespace
 
-  # Python Linting and Formatting (Ruff)
-  # on pre-commit, fix linting errors
-  # on push, fix linting errors and enforce docstrings
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.3
-    hooks:
-      - id: ruff
-        name: ruff (commit)
-        # ignore docstring linting errors on pre-commit
-        args: [--fix, --ignore=D]
-        stages: [pre-commit]
-      - id: ruff-format
-        name: ruff-format (commit)
-        stages: [pre-commit]
-      - id: ruff
-        name: ruff (push - strict)
-        args: [--fix, --extend-select=D]  # enforce docstrings on push
-        stages: [pre-push]
-      - id: ruff-format
-        name: ruff-format (push - strict)
-        stages: [pre-push]
-
   # YAML Linting
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
+    rev: 81e9f98ffd059efe8aa9c1b1a42e5cce61b640c6  # v1.35.1
     hooks:
       - id: yamllint
         args: ["--format", "parsable", "--strict"]
 
   # Shellcheck
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: a23f6b85d0fdd5bb9d564e2579e678033debbdff  # v0.10.0.1
     hooks:
       - id: shellcheck
         name: shellcheck
-        args: [-x]
+        args: ["-x"]
 
-  # Markdown Linting (auto-fixes issues)
+  # Markdown Linting (excludes auto-generated docs)
   - repo: https://github.com/jackdewinter/pymarkdown
-    rev: v0.9.23
+    rev: f93643d339dfee2a1022e7b05e8b5a281bfac553  # v0.9.23
     hooks:
       - id: pymarkdown
         name: pymarkdown
-        args: ["fix"]
-        exclude: ^\.github_data/
-
-  # Dockerfile Linting (using Podman instead of Docker)
-  - repo: local
-    hooks:
-      - id: hadolint
-        name: hadolint
-        language: system
-        entry: >
-          bash -c 'for file in "$@"; do
-          podman run --rm -i
-          -v "$PWD/.hadolint.yaml:/hadolint.yaml:ro"
-          docker.io/hadolint/hadolint
-          hadolint --config /hadolint.yaml - < "$file";
-          done' --
-        files: (Containerfile|Dockerfile)$
-
-  # Makefile
-  - repo: https://github.com/checkmake/checkmake
-    rev: 0.2.2
-    hooks:
-      - id: checkmake
-        name: checkmake (lint Makefile)
-        files: ^Makefile$
+        args: ["-c", ".pymarkdown", "fix"]
+        exclude: ^(README\.md|CONTRIBUTE\.md|TESTING\.md)
 
   # Typo Linting
   - repo: https://github.com/crate-ci/typos
-    rev: v1.39.0
+    rev: 07d900b8fa1097806b8adb6391b0d3e0ac2fdea7  # v1.39.0
     hooks:
       - id: typos
