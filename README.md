@@ -142,7 +142,7 @@ You can also run the following specific tests:
 ## Development
 
 1. Make changes to `src/index.ts`
-2. Build: `npm run build && npm run package`
+2. Build: `npm run prepare` (runs `tsc` then `ncc build` to update all of `dist/`)
 3. Run tests: `npm test`
 4. Test locally with `local-action`
 
