@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.GRAPHQL_BATCH_SIZE = void 0;
 exports.fetchIssueRelationships = fetchIssueRelationships;
 exports.formatIssueAsMarkdown = formatIssueAsMarkdown;
 exports.formatPRAsMarkdown = formatPRAsMarkdown;
@@ -278,26 +279,26 @@ async function fetchComments(octokit, owner, repo, issueNumber) {
     }
     return comments;
 }
-const GRAPHQL_BATCH_SIZE = 50;
+exports.GRAPHQL_BATCH_SIZE = 50;
 async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
     const relationships = new Map();
     if (issueNumbers.length === 0) {
         return relationships;
     }
-    try {
-        for (let i = 0; i < issueNumbers.length; i += GRAPHQL_BATCH_SIZE) {
-            const batch = issueNumbers.slice(i, i + GRAPHQL_BATCH_SIZE);
-            const issueFields = batch
-                .map((num) => `issue_${num}: issue(number: ${num}) {
-              parent { number }
-              subIssues(first: 100) { nodes { number } }
-            }`)
-                .join('\n');
-            const query = `query($owner: String!, $repo: String!) {
-        repository(owner: $owner, name: $repo) {
-          ${issueFields}
-        }
-      }`;
+    for (let i = 0; i < issueNumbers.length; i += exports.GRAPHQL_BATCH_SIZE) {
+        const batch = issueNumbers.slice(i, i + exports.GRAPHQL_BATCH_SIZE);
+        const issueFields = batch
+            .map((num) => `issue_${num}: issue(number: ${num}) {
+            parent { number }
+            subIssues(first: 100) { nodes { number } }
+          }`)
+            .join('\n');
+        const query = `query($owner: String!, $repo: String!) {
+      repository(owner: $owner, name: $repo) {
+        ${issueFields}
+      }
+    }`;
+        try {
             const response = await octokit.graphql(query, {
                 owner,
                 repo,
@@ -312,16 +313,14 @@ async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
                 }
             }
         }
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        if (message.includes("doesn't exist on type")) {
-            core.info('Sub-issues API is not available for this repository. Skipping relationship sync.');
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            if (message.includes("doesn't exist on type")) {
+                core.info('Sub-issues API is not available for this repository. Skipping relationship sync.');
+                break;
+            }
+            core.warning(`Failed to fetch sub-issue relationships (batch ${Math.floor(i / exports.GRAPHQL_BATCH_SIZE) + 1}): ${message}`);
         }
-        else {
-            core.warning(`Failed to fetch sub-issue relationships: ${message}`);
-        }
-        return new Map();
     }
     return relationships;
 }
