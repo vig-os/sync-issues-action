@@ -1,18 +1,18 @@
 ---
 type: issue
-state: closed
+state: open
 created: 2026-02-23T10:22:12Z
-updated: 2026-02-23T10:35:09Z
+updated: 2026-02-23T10:43:11Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/18
-comments: 1
+comments: 2
 labels: bug, area:ci
 assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-23T10:35:22.331Z
+synced: 2026-02-23T10:43:16.492Z
 ---
 
 # [Issue 18]: [[BUG] Prepare-release workflow fails: App token missing PR permissions + CHANGELOG regex truncation](https://github.com/vig-os/sync-issues-action/issues/18)
@@ -169,4 +169,21 @@ gh api repos/vig-os/sync-issues-action/git/refs/heads/release/0.2.0 --method DEL
 
 - `.github/workflows/prepare-release.yml` — Use `github.token` for PR creation step
 - `.github/prepare_changelog.py` — Fix regex to anchor `##`/`###` matching to line starts
+
+---
+
+# [Comment #2]() by [c-vigo]()
+
+_Posted on February 23, 2026 at 10:43 AM_
+
+## Fix Plan
+
+**Root Cause:** In `.github/workflows/prepare-release.yml`, the "Create draft PR to main" step (line 223) sets `GH_TOKEN: ${{ github.token }}` — the default `GITHUB_TOKEN` which lacks permission to create pull requests when the repo setting "Allow GitHub Actions to create and approve pull requests" is disabled.
+
+Every other step in the `prepare` job already uses the GitHub App token correctly:
+- "Create release branch via API" → `steps.app-token.outputs.token`
+- "Commit release preparation via API" → `steps.app-token.outputs.token`
+- **"Create draft PR to main" → `github.token`** (BUG)
+
+**Fix:** Change line 223 from `GH_TOKEN: ${{ github.token }}` to `GH_TOKEN: ${{ steps.app-token.outputs.token }}`. One-line change, no other files affected.
 
