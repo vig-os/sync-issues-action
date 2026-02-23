@@ -85,6 +85,7 @@ interface IssueRelationship {
     children: number[];
 }
 declare function run(): Promise<void>;
+export declare const GRAPHQL_BATCH_SIZE = 50;
 export declare function fetchIssueRelationships(octokit: ReturnType<typeof github.getOctokit>, owner: string, repo: string, issueNumbers: number[]): Promise<Map<number, IssueRelationship>>;
 export declare function formatIssueAsMarkdown(issue: Issue, comments?: Comment[], relationship?: IssueRelationship): string;
 export declare function formatPRAsMarkdown(pr: PullRequest, comments?: Comment[], reviewComments?: ReviewComment[], commits?: Array<{
