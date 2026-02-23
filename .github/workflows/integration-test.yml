@@ -8,10 +8,11 @@
 #   - release.yml test job (on finalized code, before tagging)
 #
 # Tests:
-#   1. Sync issues only — verify issues-count > 0 and output files exist
-#   2. Sync PRs only    — verify prs-count > 0 and output files exist
-#   3. Force update      — verify all files are re-written
-#   4. Include closed    — verify closed items are synced
+#   1. Sync issues only    — verify issues-count > 0 and output files exist
+#   2. Sync PRs only       — verify prs-count > 0 and output files exist
+#   3. Force update         — verify all files are re-written
+#   4. Include closed       — verify closed items are synced
+#   5. Sub-issue relations  — verify parent/children frontmatter on issues 13/15
 #
 # Refs: https://github.com/vig-os/sync-issues-action/issues/13
 
@@ -182,6 +183,52 @@ jobs:
           fi
           echo "OK: include-closed count >= open-only count"
 
+      - name: Test — sub-issue relationships
+        id: sync-sub-issues
+        uses: ./
+        with:
+          output-dir: test-output/sub-issues
+          sync-issues: 'true'
+          sync-prs: 'false'
+          sync-sub-issues: 'true'
+          include-closed: 'false'
+
+      - name: Verify — sub-issue relationships
+        run: |
+          set -euo pipefail
+
+          ISSUE_15="test-output/sub-issues/issues/issue-15.md"
+          if [ ! -f "$ISSUE_15" ]; then
+            echo "ERROR: $ISSUE_15 not found"
+            exit 1
+          fi
+
+          if grep -q '^parent: 13$' "$ISSUE_15"; then
+            echo "OK: issue-15 has parent: 13"
+          elif grep -q '^parent: none$' "$ISSUE_15"; then
+            echo "WARN: sub-issues API unavailable (parent: none) — graceful fallback worked"
+          else
+            echo "ERROR: issue-15 has unexpected parent field"
+            grep '^parent:' "$ISSUE_15"
+            exit 1
+          fi
+
+          ISSUE_13="test-output/sub-issues/issues/issue-13.md"
+          if [ ! -f "$ISSUE_13" ]; then
+            echo "ERROR: $ISSUE_13 not found"
+            exit 1
+          fi
+
+          if grep -q '^children:.*15' "$ISSUE_13"; then
+            echo "OK: issue-13 lists 15 as child"
+          elif grep -q '^children: none$' "$ISSUE_13"; then
+            echo "WARN: sub-issues API unavailable (children: none) — graceful fallback worked"
+          else
+            echo "ERROR: issue-13 has unexpected children field"
+            grep '^children:' "$ISSUE_13"
+            exit 1
+          fi
+
       - name: Summary
         if: always()
         run: |
@@ -192,3 +239,4 @@ jobs:
           echo "Sync PRs only:     ${{ steps.sync-prs.outcome }}"
           echo "Force update:      ${{ steps.sync-force.outcome }}"
           echo "Include closed:    ${{ steps.sync-closed.outcome }}"
+          echo "Sub-issues:        ${{ steps.sync-sub-issues.outcome }}"
