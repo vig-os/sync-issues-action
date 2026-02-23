@@ -1,8 +1,8 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-23T10:22:12Z
-updated: 2026-02-23T10:43:11Z
+updated: 2026-02-23T10:46:30Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/18
@@ -12,7 +12,7 @@ assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-23T10:43:16.492Z
+synced: 2026-02-23T10:46:45.205Z
 ---
 
 # [Issue 18]: [[BUG] Prepare-release workflow fails: App token missing PR permissions + CHANGELOG regex truncation](https://github.com/vig-os/sync-issues-action/issues/18)
