@@ -10,9 +10,10 @@
 # Tests:
 #   1. Sync issues only    — verify issues-count > 0 and output files exist
 #   2. Sync PRs only       — verify prs-count > 0 and output files exist
-#   3. Force update         — verify all files are re-written
-#   4. Include closed       — verify closed items are synced
-#   5. Sub-issue relations  — verify parent/children frontmatter on issues 13/15
+#   3. No-op baseline       — re-sync unchanged issues, verify zero modifications
+#   4. Force update         — verify all files are re-written despite no changes
+#   5. Include closed       — verify closed items are synced
+#   6. Sub-issue relations  — verify parent/children frontmatter on issues 13/15
 #
 # Refs: https://github.com/vig-os/sync-issues-action/issues/13
 
@@ -135,6 +136,28 @@ jobs:
           fi
           echo "OK: $FILE_COUNT PR files generated"
 
+      - name: Test — re-sync issues (no-op baseline)
+        id: sync-noop
+        uses: ./
+        with:
+          output-dir: test-output/issues-only
+          sync-issues: 'true'
+          sync-prs: 'false'
+          force-update: 'false'
+
+      - name: Verify — no-op re-sync produced zero modifications
+        env:
+          MODIFIED_FILES: ${{ steps.sync-noop.outputs.modified-files }}
+        run: |
+          set -euo pipefail
+          echo "No-op re-sync modified files: '$MODIFIED_FILES'"
+
+          if [ -n "$MODIFIED_FILES" ]; then
+            echo "ERROR: Expected empty modified-files on unchanged re-sync, got: $MODIFIED_FILES"
+            exit 1
+          fi
+          echo "OK: no-op re-sync correctly reported zero modifications"
+
       - name: Test — force update (re-run with same output dir)
         id: sync-force
         uses: ./
@@ -237,6 +260,7 @@ jobs:
           echo ""
           echo "Sync issues only:  ${{ steps.sync-issues.outcome }}"
           echo "Sync PRs only:     ${{ steps.sync-prs.outcome }}"
+          echo "No-op baseline:    ${{ steps.sync-noop.outcome }}"
           echo "Force update:      ${{ steps.sync-force.outcome }}"
           echo "Include closed:    ${{ steps.sync-closed.outcome }}"
           echo "Sub-issues:        ${{ steps.sync-sub-issues.outcome }}"
