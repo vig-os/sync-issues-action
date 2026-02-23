@@ -11,7 +11,7 @@ A GitHub Action that syncs all issues and pull requests from a repository to mar
 - Includes all comments and conversations
 - Groups PR review threads with diff snippets (when available)
 - Preserves original bodies (no extra description header added)
-- Includes metadata (labels, dates, authors, state, etc.)
+- Includes metadata (labels, dates, authors, state, relationships, etc.)
 
 ## Usage
 
@@ -54,6 +54,7 @@ A GitHub Action that syncs all issues and pull requests from a repository to mar
 | `updated-since` | Only sync items updated after this ISO8601 timestamp | No | - |
 | `state-file` | Optional path to store last sync timestamp (use with cache) | No | - |
 | `force-update` | Re-write all synced files even if content is unchanged | No | `false` |
+| `sync-sub-issues` | Sync sub-issue relationships (`parent`/`children`) via GraphQL | No | `true` |
 
 ### Outputs
 
@@ -101,7 +102,7 @@ synced-issues/
 ## Markdown Format
 
 Each file includes:
-- Metadata (state, dates, author, labels, comment count)
+- Metadata (state, dates, author, labels, comment count, relationships)
 - Title with state indicator
 - Full description/body (as written in GitHub)
 - All comments/conversation (with author, timestamp, and links)
