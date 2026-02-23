@@ -30011,11 +30011,13 @@ async function run() {
         const syncPRsInput = core.getInput('sync-prs') || 'true';
         const includeClosedInput = core.getInput('include-closed') || 'false';
         const forceUpdateInput = core.getInput('force-update') || 'false';
+        const syncSubIssuesInput = core.getInput('sync-sub-issues') || 'false';
         // Convert to boolean (getBooleanInput is strict and throws if input is missing)
         const syncIssues = syncIssuesInput.toLowerCase() === 'true';
         const syncPRs = syncPRsInput.toLowerCase() === 'true';
         const includeClosed = includeClosedInput.toLowerCase() === 'true';
         const forceUpdate = forceUpdateInput.toLowerCase() === 'true';
+        const syncSubIssues = syncSubIssuesInput.toLowerCase() === 'true';
         const updatedSince = resolveUpdatedSince(updatedSinceInput, stateFilePath);
         const octokit = github.getOctokit(tokenToUse);
         const context = github.context;
@@ -30035,7 +30037,7 @@ async function run() {
             if (!fs.existsSync(issuesDir)) {
                 fs.mkdirSync(issuesDir, { recursive: true });
             }
-            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince, forceUpdate);
+            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince, forceUpdate, syncSubIssues);
             issuesCount = issuesResult.count;
             modifiedFiles.push(...issuesResult.files);
         }
@@ -30067,7 +30069,7 @@ async function run() {
         }
     }
 }
-async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false) {
+async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = false) {
     const state = includeClosed ? 'all' : 'open';
     let page = 1;
     const perPage = 100;
@@ -30088,7 +30090,9 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
         page++;
     }
     const issueNumbers = allIssues.map((issue) => issue.number);
-    const relationships = await fetchIssueRelationships(octokit, owner, repo, issueNumbers);
+    const relationships = syncSubIssues
+        ? await fetchIssueRelationships(octokit, owner, repo, issueNumbers)
+        : new Map();
     const files = [];
     for (const issue of allIssues) {
         const filename = `issue-${issue.number}.md`;
@@ -30239,7 +30243,13 @@ async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
         }
     }
     catch (error) {
-        core.warning(`Failed to fetch sub-issue relationships: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        if (message.includes("doesn't exist on type")) {
+            core.info('Sub-issues API is not available for this repository. Skipping relationship sync.');
+        }
+        else {
+            core.warning(`Failed to fetch sub-issue relationships: ${message}`);
+        }
         return new Map();
     }
     return relationships;
