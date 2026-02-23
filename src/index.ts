@@ -121,12 +121,14 @@ async function run(): Promise<void> {
     const syncPRsInput = core.getInput('sync-prs') || 'true';
     const includeClosedInput = core.getInput('include-closed') || 'false';
     const forceUpdateInput = core.getInput('force-update') || 'false';
+    const syncSubIssuesInput = core.getInput('sync-sub-issues') || 'false';
 
     // Convert to boolean (getBooleanInput is strict and throws if input is missing)
     const syncIssues = syncIssuesInput.toLowerCase() === 'true';
     const syncPRs = syncPRsInput.toLowerCase() === 'true';
     const includeClosed = includeClosedInput.toLowerCase() === 'true';
     const forceUpdate = forceUpdateInput.toLowerCase() === 'true';
+    const syncSubIssues = syncSubIssuesInput.toLowerCase() === 'true';
     const updatedSince = resolveUpdatedSince(updatedSinceInput, stateFilePath);
 
     const octokit = github.getOctokit(tokenToUse);
@@ -158,7 +160,8 @@ async function run(): Promise<void> {
         issuesDir,
         includeClosed,
         updatedSince,
-        forceUpdate
+        forceUpdate,
+        syncSubIssues
       );
       issuesCount = issuesResult.count;
       modifiedFiles.push(...issuesResult.files);
@@ -208,7 +211,8 @@ async function syncIssuesToMarkdown(
   outputDir: string,
   includeClosed: boolean,
   updatedSince?: string,
-  forceUpdate = false
+  forceUpdate = false,
+  syncSubIssues = false
 ): Promise<{ count: number; files: string[] }> {
   const state = includeClosed ? 'all' : 'open';
   let page = 1;
@@ -234,7 +238,9 @@ async function syncIssuesToMarkdown(
   }
 
   const issueNumbers = allIssues.map((issue) => issue.number);
-  const relationships = await fetchIssueRelationships(octokit, owner, repo, issueNumbers);
+  const relationships = syncSubIssues
+    ? await fetchIssueRelationships(octokit, owner, repo, issueNumbers)
+    : new Map<number, IssueRelationship>();
 
   const files: string[] = [];
   for (const issue of allIssues) {
@@ -443,9 +449,14 @@ export async function fetchIssueRelationships(
       }
     }
   } catch (error) {
-    core.warning(
-      `Failed to fetch sub-issue relationships: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    if (message.includes("doesn't exist on type")) {
+      core.info(
+        'Sub-issues API is not available for this repository. Skipping relationship sync.'
+      );
+    } else {
+      core.warning(`Failed to fetch sub-issue relationships: ${message}`);
+    }
     return new Map();
   }
 

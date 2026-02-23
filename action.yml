@@ -41,6 +41,10 @@ inputs:
     description: 'Re-write all synced files even if content is unchanged'
     required: false
     default: 'false'
+  sync-sub-issues:
+    description: 'Whether to sync sub-issue relationships (requires GitHub sub-issues API)'
+    required: false
+    default: 'false'
 
 outputs:
   issues-count:
