@@ -220,7 +220,7 @@ jobs:
       - name: Create draft PR to main
         id: pr
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           VERSION: ${{ needs.validate.outputs.version }}
           RELEASE_BRANCH: ${{ needs.validate.outputs.release_branch }}
           CHANGELOG_CONTENT: ${{ steps.changelog.outputs.changelog }}
