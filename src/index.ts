@@ -212,7 +212,7 @@ async function syncIssuesToMarkdown(
   includeClosed: boolean,
   updatedSince?: string,
   forceUpdate = false,
-  syncSubIssues = false
+  syncSubIssues = true
 ): Promise<{ count: number; files: string[] }> {
   const state = includeClosed ? 'all' : 'open';
   let page = 1;
