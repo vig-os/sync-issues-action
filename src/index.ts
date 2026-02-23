@@ -121,7 +121,7 @@ async function run(): Promise<void> {
     const syncPRsInput = core.getInput('sync-prs') || 'true';
     const includeClosedInput = core.getInput('include-closed') || 'false';
     const forceUpdateInput = core.getInput('force-update') || 'false';
-    const syncSubIssuesInput = core.getInput('sync-sub-issues') || 'false';
+    const syncSubIssuesInput = core.getInput('sync-sub-issues') || 'true';
 
     // Convert to boolean (getBooleanInput is strict and throws if input is missing)
     const syncIssues = syncIssuesInput.toLowerCase() === 'true';
@@ -420,7 +420,7 @@ export async function fetchIssueRelationships(
         .map(
           (num) =>
             `issue_${num}: issue(number: ${num}) {
-              parentIssue { number }
+              parent { number }
               subIssues(first: 100) { nodes { number } }
             }`
         )
@@ -435,14 +435,13 @@ export async function fetchIssueRelationships(
       const response: any = await octokit.graphql(query, {
         owner,
         repo,
-        headers: { 'GraphQL-Features': 'sub_issues' },
       });
 
       for (const num of batch) {
         const data = response.repository[`issue_${num}`];
         if (data) {
           relationships.set(num, {
-            parent: data.parentIssue?.number ?? null,
+            parent: data.parent?.number ?? null,
             children: (data.subIssues?.nodes ?? []).map((n: any) => n.number),
           });
         }

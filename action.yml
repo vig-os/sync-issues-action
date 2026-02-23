@@ -42,9 +42,9 @@ inputs:
     required: false
     default: 'false'
   sync-sub-issues:
-    description: 'Whether to sync sub-issue relationships (requires GitHub sub-issues API)'
+    description: 'Whether to sync sub-issue relationships via GraphQL'
     required: false
-    default: 'false'
+    default: 'true'
 
 outputs:
   issues-count:
