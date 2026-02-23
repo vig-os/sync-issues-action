@@ -1,18 +1,18 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-23T10:22:12Z
-updated: 2026-02-23T10:22:12Z
+updated: 2026-02-23T10:35:09Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/18
-comments: 0
+comments: 1
 labels: bug, area:ci
 assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-23T10:22:29.769Z
+synced: 2026-02-23T10:35:22.331Z
 ---
 
 # [Issue 18]: [[BUG] Prepare-release workflow fails: App token missing PR permissions + CHANGELOG regex truncation](https://github.com/vig-os/sync-issues-action/issues/18)
@@ -99,3 +99,74 @@ gh api repos/vig-os/sync-issues-action/git/refs/heads/release/0.2.0 --method DEL
 ## Changelog Category
 
 Fixed
+---
+
+# [Comment #1]() by [c-vigo]()
+
+_Posted on February 23, 2026 at 10:23 AM_
+
+## Implementation Plan
+
+### Root Cause
+
+The workflow logs show:
+
+```
+pull request create failed: GraphQL: Resource not accessible by integration (createPullRequest)
+```
+
+The GitHub App token (from `APP_SYNC_ISSUES`) is used for the `gh pr create` call, but the App lacks `pull_requests:write` permission. Earlier steps (branch creation, commit) only need `contents:write` and succeed.
+
+### Fix 1: PR Creation Permissions (primary failure)
+
+In `.github/workflows/prepare-release.yml`, the "Create draft PR to main" step (line 220) uses `GH_TOKEN: ${{ steps.app-token.outputs.token }}`. Change it to use `github.token`, which inherits the job-level `pull-requests: write` permission.
+
+```yaml
+# Line 223 — change from:
+GH_TOKEN: ${{ steps.app-token.outputs.token }}
+# to:
+GH_TOKEN: ${{ github.token }}
+```
+
+The App token is still used (correctly) for branch creation and commit steps that need to bypass branch protection. Only the PR creation step changes.
+
+**Alternative**: Add `Pull requests: Read & write` to the GitHub App's permissions in Settings > GitHub Apps > APP_SYNC_ISSUES > Permissions. This would let the existing code work as-is, but the `github.token` approach is simpler and avoids coupling PR creation to App config.
+
+### Fix 2: CHANGELOG Regex Truncation Bug (data loss)
+
+In `.github/prepare_changelog.py` line 38, the `extract_unreleased_content` function uses:
+
+```python
+pattern = rf"### {section}\s*\n((?:(?!###|##).)*)"
+```
+
+The `(?!###|##)` lookahead checks at **every character position**, so inline `` `##` `` or `` `###` `` inside markdown text is treated as a section boundary. This truncates the `### Fixed` section because the first entry contains:
+
+```
+promoted the Comments section header from `##` to `#` and individual comment entry headers from `###` to `##`
+```
+
+The prepared CHANGELOG (committed to `release/0.2.0`) lost 5 of 6 Fixed entries.
+
+**Fix**: Use a line-anchored pattern with `re.MULTILINE | re.DOTALL`:
+
+```python
+pattern = rf"^### {section}\s*\n(.*?)(?=^### |^## |\Z)"
+match = re.search(pattern, unreleased_text, re.MULTILINE | re.DOTALL)
+```
+
+This only matches `###` or `##` at the **start of a line** (actual heading markers), ignoring inline occurrences within text.
+
+### Cleanup Before Re-running
+
+The failed run left a `release/0.2.0` branch on the remote (with a truncated CHANGELOG commit). Must be deleted before re-running since the validate job checks the branch doesn't exist. No PR was created, so no PR cleanup needed.
+
+```bash
+gh api repos/vig-os/sync-issues-action/git/refs/heads/release/0.2.0 --method DELETE
+```
+
+### Summary of Changes
+
+- `.github/workflows/prepare-release.yml` — Use `github.token` for PR creation step
+- `.github/prepare_changelog.py` — Fix regex to anchor `##`/`###` matching to line starts
+
