@@ -8,11 +8,15 @@
 #   - release.yml test job (on finalized code, before tagging)
 #
 # Jobs (all run in parallel):
-#   sync-issues-only  — verify issues-count > 0 and output files exist
+#   sync-issues-only  — verify issues-count > 0, output files, frontmatter, github-token
 #   sync-prs-only     — verify prs-count > 0 and output files exist
 #   force-update      — no-op baseline (zero mods) then force (non-zero mods)
 #   include-closed    — verify closed items count >= open-only count
 #   sub-issues        — verify parent/children frontmatter on issues 13/15
+#   sub-issues-off    — verify parent/children are "none" when sync-sub-issues=false
+#   updated-since     — verify future-dated filter produces zero results
+#   state-file        — verify state file creation and ISO8601 content
+#   default-mode      — verify both issues and PRs synced together
 #
 # Refs: https://github.com/vig-os/sync-issues-action/issues/13
 #       https://github.com/vig-os/sync-issues-action/issues/15
@@ -61,6 +65,7 @@ jobs:
           PRS_COUNT: ${{ steps.sync-issues.outputs.prs-count }}
           MODIFIED_FILES: ${{ steps.sync-issues.outputs.modified-files }}
           LAST_SYNCED: ${{ steps.sync-issues.outputs.last-synced-at }}
+          GITHUB_TOKEN_OUT: ${{ steps.sync-issues.outputs.github-token }}
         run: |
           set -euo pipefail
           echo "Issues count: $ISSUES_COUNT"
@@ -83,6 +88,12 @@ jobs:
             exit 1
           fi
 
+          if [ -z "$GITHUB_TOKEN_OUT" ]; then
+            echo "ERROR: github-token output is empty"
+            exit 1
+          fi
+          echo "OK: github-token output is set"
+
           if [ ! -d "test-output/issues-only/issues" ]; then
             echo "ERROR: Output directory test-output/issues-only/issues does not exist"
             exit 1
@@ -94,6 +105,35 @@ jobs:
             exit 1
           fi
           echo "OK: $FILE_COUNT issue files generated"
+
+      - name: Verify — markdown content structure
+        run: |
+          set -euo pipefail
+
+          SAMPLE=$(find test-output/issues-only/issues -name "*.md" | head -1)
+          echo "Inspecting: $SAMPLE"
+
+          for key in type state created updated author url labels synced; do
+            if ! grep -q "^${key}: " "$SAMPLE"; then
+              echo "ERROR: frontmatter key '$key' missing from $SAMPLE"
+              exit 1
+            fi
+          done
+          echo "OK: all expected frontmatter keys present"
+
+          if ! head -1 "$SAMPLE" | grep -q '^---$'; then
+            echo "ERROR: file does not start with frontmatter delimiter"
+            exit 1
+          fi
+
+          for f in test-output/issues-only/issues/*.md; do
+            BASENAME=$(basename "$f")
+            if ! echo "$BASENAME" | grep -qE '^issue-[0-9]+\.md$'; then
+              echo "ERROR: unexpected filename $BASENAME (expected issue-N.md)"
+              exit 1
+            fi
+          done
+          echo "OK: all files follow issue-N.md naming convention"
 
   sync-prs-only:
     name: Sync PRs only
@@ -122,10 +162,14 @@ jobs:
         env:
           ISSUES_COUNT: ${{ steps.sync-prs.outputs.issues-count }}
           PRS_COUNT: ${{ steps.sync-prs.outputs.prs-count }}
+          MODIFIED_FILES: ${{ steps.sync-prs.outputs.modified-files }}
+          LAST_SYNCED: ${{ steps.sync-prs.outputs.last-synced-at }}
         run: |
           set -euo pipefail
           echo "Issues count: $ISSUES_COUNT"
           echo "PRs count: $PRS_COUNT"
+          echo "Modified files: $MODIFIED_FILES"
+          echo "Last synced: $LAST_SYNCED"
 
           if [ "$ISSUES_COUNT" != "0" ] && [ -n "$ISSUES_COUNT" ]; then
             echo "ERROR: Expected issues-count == 0 when sync-issues is false, got $ISSUES_COUNT"
@@ -134,6 +178,16 @@ jobs:
 
           if [ -z "$PRS_COUNT" ] || [ "$PRS_COUNT" -eq 0 ]; then
             echo "ERROR: Expected prs-count > 0"
+            exit 1
+          fi
+
+          if [ -z "$LAST_SYNCED" ]; then
+            echo "ERROR: last-synced-at output is empty"
+            exit 1
+          fi
+
+          if [ -z "$MODIFIED_FILES" ]; then
+            echo "ERROR: modified-files output is empty on first sync"
             exit 1
           fi
 
@@ -255,11 +309,16 @@ jobs:
           echo "Open-only count: $OPEN_COUNT"
           echo "With-closed count: $CLOSED_COUNT"
 
+          if [ -z "$OPEN_COUNT" ] || [ "$OPEN_COUNT" -eq 0 ]; then
+            echo "ERROR: Expected open-only issues-count > 0 (repo must have open issues)"
+            exit 1
+          fi
+
           if [ "$CLOSED_COUNT" -lt "$OPEN_COUNT" ]; then
             echo "ERROR: include-closed count ($CLOSED_COUNT) should be >= open-only count ($OPEN_COUNT)"
             exit 1
           fi
-          echo "OK: include-closed count >= open-only count"
+          echo "OK: include-closed count ($CLOSED_COUNT) >= open-only count ($OPEN_COUNT)"
 
   sub-issues:
     name: Sub-issue relationships
@@ -298,7 +357,7 @@ jobs:
           if grep -q '^parent: 13$' "$ISSUE_15"; then
             echo "OK: issue-15 has parent: 13"
           elif grep -q '^parent: none$' "$ISSUE_15"; then
-            echo "WARN: sub-issues API unavailable (parent: none) — graceful fallback worked"
+            echo "::warning::sub-issues API unavailable (parent: none on issue-15) — graceful fallback worked"
           else
             echo "ERROR: issue-15 has unexpected parent field"
             grep '^parent:' "$ISSUE_15"
@@ -314,9 +373,200 @@ jobs:
           if grep -q '^children:.*15' "$ISSUE_13"; then
             echo "OK: issue-13 lists 15 as child"
           elif grep -q '^children: none$' "$ISSUE_13"; then
-            echo "WARN: sub-issues API unavailable (children: none) — graceful fallback worked"
+            echo "::warning::sub-issues API unavailable (children: none on issue-13) — graceful fallback worked"
           else
             echo "ERROR: issue-13 has unexpected children field"
             grep '^children:' "$ISSUE_13"
             exit 1
           fi
+
+  sub-issues-off:
+    name: Sub-issues disabled
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Test — sync with sub-issues disabled
+        uses: ./
+        with:
+          output-dir: test-output/sub-issues-off
+          sync-issues: 'true'
+          sync-prs: 'false'
+          sync-sub-issues: 'false'
+          include-closed: 'false'
+
+      - name: Verify — parent/children are "none" when disabled
+        run: |
+          set -euo pipefail
+
+          ISSUE_15="test-output/sub-issues-off/issues/issue-15.md"
+          if [ ! -f "$ISSUE_15" ]; then
+            echo "ERROR: $ISSUE_15 not found"
+            exit 1
+          fi
+
+          if ! grep -q '^parent: none$' "$ISSUE_15"; then
+            echo "ERROR: Expected parent: none when sync-sub-issues=false"
+            grep '^parent:' "$ISSUE_15"
+            exit 1
+          fi
+          echo "OK: issue-15 has parent: none (sub-issues disabled)"
+
+          if ! grep -q '^children: none$' "$ISSUE_15"; then
+            echo "ERROR: Expected children: none when sync-sub-issues=false"
+            grep '^children:' "$ISSUE_15"
+            exit 1
+          fi
+          echo "OK: issue-15 has children: none (sub-issues disabled)"
+
+  updated-since:
+    name: Updated-since filter
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Test — future-dated updated-since (expect zero results)
+        id: sync-future
+        uses: ./
+        with:
+          output-dir: test-output/updated-since-future
+          sync-issues: 'true'
+          sync-prs: 'false'
+          updated-since: '2099-01-01T00:00:00Z'
+
+      - name: Verify — future date produced zero issues
+        env:
+          ISSUES_COUNT: ${{ steps.sync-future.outputs.issues-count }}
+          MODIFIED_FILES: ${{ steps.sync-future.outputs.modified-files }}
+        run: |
+          set -euo pipefail
+          echo "Issues count: $ISSUES_COUNT"
+          echo "Modified files: '$MODIFIED_FILES'"
+
+          if [ -n "$ISSUES_COUNT" ] && [ "$ISSUES_COUNT" -ne 0 ]; then
+            echo "ERROR: Expected issues-count == 0 with future updated-since, got $ISSUES_COUNT"
+            exit 1
+          fi
+
+          if [ -n "$MODIFIED_FILES" ]; then
+            echo "ERROR: Expected empty modified-files with future updated-since"
+            exit 1
+          fi
+          echo "OK: future-dated updated-since correctly produced zero results"
+
+  state-file:
+    name: State file persistence
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Test — sync with state-file
+        id: sync-state
+        uses: ./
+        with:
+          output-dir: test-output/state-file
+          sync-issues: 'true'
+          sync-prs: 'false'
+          state-file: test-output/state-file/.sync-state
+
+      - name: Verify — state file exists with ISO8601 timestamp
+        env:
+          LAST_SYNCED: ${{ steps.sync-state.outputs.last-synced-at }}
+        run: |
+          set -euo pipefail
+
+          STATE_PATH="test-output/state-file/.sync-state"
+          if [ ! -f "$STATE_PATH" ]; then
+            echo "ERROR: state file $STATE_PATH not found"
+            exit 1
+          fi
+
+          CONTENT=$(cat "$STATE_PATH")
+          echo "State file content: $CONTENT"
+
+          if ! echo "$CONTENT" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}'; then
+            echo "ERROR: state file does not contain a valid ISO8601 timestamp"
+            exit 1
+          fi
+          echo "OK: state file contains valid ISO8601 timestamp"
+
+          if [ "$CONTENT" != "$LAST_SYNCED" ]; then
+            echo "ERROR: state file content ($CONTENT) does not match last-synced-at output ($LAST_SYNCED)"
+            exit 1
+          fi
+          echo "OK: state file matches last-synced-at output"
+
+  default-mode:
+    name: Default mode (issues + PRs)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Test — sync both issues and PRs (defaults)
+        id: sync-both
+        uses: ./
+        with:
+          output-dir: test-output/default-mode
+
+      - name: Verify — both issues and PRs synced
+        env:
+          ISSUES_COUNT: ${{ steps.sync-both.outputs.issues-count }}
+          PRS_COUNT: ${{ steps.sync-both.outputs.prs-count }}
+        run: |
+          set -euo pipefail
+          echo "Issues count: $ISSUES_COUNT"
+          echo "PRs count: $PRS_COUNT"
+
+          if [ -z "$ISSUES_COUNT" ] || [ "$ISSUES_COUNT" -eq 0 ]; then
+            echo "ERROR: Expected issues-count > 0 in default mode"
+            exit 1
+          fi
+
+          if [ -z "$PRS_COUNT" ] || [ "$PRS_COUNT" -eq 0 ]; then
+            echo "ERROR: Expected prs-count > 0 in default mode"
+            exit 1
+          fi
+
+          if [ ! -d "test-output/default-mode/issues" ]; then
+            echo "ERROR: issues/ directory missing in default mode"
+            exit 1
+          fi
+
+          if [ ! -d "test-output/default-mode/pull-requests" ]; then
+            echo "ERROR: pull-requests/ directory missing in default mode"
+            exit 1
+          fi
+          echo "OK: both issues ($ISSUES_COUNT) and PRs ($PRS_COUNT) synced in default mode"
