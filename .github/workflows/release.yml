@@ -301,6 +301,10 @@ jobs:
     name: Integration Test (Finalized)
     needs: [validate, finalize]
     uses: ./.github/workflows/integration-test.yml
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
     with:
       ref: ${{ needs.finalize.outputs.finalize_sha }}
 
