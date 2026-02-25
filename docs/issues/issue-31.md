@@ -1,8 +1,8 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-25T11:47:08Z
-updated: 2026-02-25T11:47:08Z
+updated: 2026-02-25T11:54:44Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/31
@@ -12,7 +12,7 @@ assignees: c-vigo
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-25T11:47:23.212Z
+synced: 2026-02-25T11:54:59.593Z
 ---
 
 # [Issue 31]: [[BUG] Release workflow validate-only fails on reusable workflow permissions](https://github.com/vig-os/sync-issues-action/issues/31)
