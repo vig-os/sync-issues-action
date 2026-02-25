@@ -1,8 +1,8 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-25T11:29:32Z
-updated: 2026-02-25T11:29:32Z
+updated: 2026-02-25T11:46:07Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/29
@@ -12,7 +12,7 @@ assignees: c-vigo
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-25T11:29:51.112Z
+synced: 2026-02-25T11:46:23.560Z
 ---
 
 # [Issue 29]: [[CHORE] Clarify weekly CodeQL schedule rationale in workflow comments](https://github.com/vig-os/sync-issues-action/issues/29)
