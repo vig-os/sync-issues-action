@@ -5,7 +5,7 @@
 # Triggers:
 #   - Pull requests to dev, release/**, and main
 #   - Pushes to main (post-merge analysis)
-#   - Weekly schedule (catch newly disclosed patterns)
+#   - Weekly schedule (re-run with updated CodeQL rules/engines even when repo code is unchanged)
 
 name: CodeQL
 
