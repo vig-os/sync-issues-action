@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - TBD
+## Unreleased
 
 ### Added
 
@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Corrected heading hierarchy in `formatPRAsMarkdown`: promoted the Comments section header from `##` to `#` and individual comment entry headers from `###` to `##`
+- **Release workflow avoids immutable-release upload failures**
+  - Generates `checksums-sha256.txt` before creating the GitHub release and attaches it during `gh release create` instead of uploading afterward
+  - Hardens floating-tag SHA handling by resolving tags via `git/matching-refs`, validating SHA format, and skipping invalid rollback SHAs
 - **`--force-update` does not re-sync issues (only PRs)** ([#10](https://github.com/vig-os/sync-issues-action/issues/10))
   - Added `force-update` action input that bypasses the `hasContentChanged` content-comparison gate
   - When active, all fetched items are re-written (with updated `synced:` frontmatter) even if body content is unchanged
