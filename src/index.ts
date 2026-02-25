@@ -212,7 +212,7 @@ async function syncIssuesToMarkdown(
   includeClosed: boolean,
   updatedSince?: string,
   forceUpdate = false,
-  syncSubIssues = false
+  syncSubIssues = true
 ): Promise<{ count: number; files: string[] }> {
   const state = includeClosed ? 'all' : 'open';
   let page = 1;
@@ -398,7 +398,7 @@ async function fetchComments(
   return comments;
 }
 
-const GRAPHQL_BATCH_SIZE = 50;
+export const GRAPHQL_BATCH_SIZE = 50;
 
 export async function fetchIssueRelationships(
   octokit: ReturnType<typeof github.getOctokit>,
@@ -412,26 +412,26 @@ export async function fetchIssueRelationships(
     return relationships;
   }
 
-  try {
-    for (let i = 0; i < issueNumbers.length; i += GRAPHQL_BATCH_SIZE) {
-      const batch = issueNumbers.slice(i, i + GRAPHQL_BATCH_SIZE);
+  for (let i = 0; i < issueNumbers.length; i += GRAPHQL_BATCH_SIZE) {
+    const batch = issueNumbers.slice(i, i + GRAPHQL_BATCH_SIZE);
 
-      const issueFields = batch
-        .map(
-          (num) =>
-            `issue_${num}: issue(number: ${num}) {
-              parent { number }
-              subIssues(first: 100) { nodes { number } }
-            }`
-        )
-        .join('\n');
+    const issueFields = batch
+      .map(
+        (num) =>
+          `issue_${num}: issue(number: ${num}) {
+            parent { number }
+            subIssues(first: 100) { nodes { number } }
+          }`
+      )
+      .join('\n');
 
-      const query = `query($owner: String!, $repo: String!) {
-        repository(owner: $owner, name: $repo) {
-          ${issueFields}
-        }
-      }`;
+    const query = `query($owner: String!, $repo: String!) {
+      repository(owner: $owner, name: $repo) {
+        ${issueFields}
+      }
+    }`;
 
+    try {
       const response: any = await octokit.graphql(query, {
         owner,
         repo,
@@ -446,17 +446,19 @@ export async function fetchIssueRelationships(
           });
         }
       }
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    if (message.includes("doesn't exist on type")) {
-      core.info(
-        'Sub-issues API is not available for this repository. Skipping relationship sync.'
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown error';
+      if (message.includes("doesn't exist on type")) {
+        core.info(
+          'Sub-issues API is not available for this repository. Skipping relationship sync.'
+        );
+        break;
+      }
+      core.warning(
+        `Failed to fetch sub-issue relationships (batch ${Math.floor(i / GRAPHQL_BATCH_SIZE) + 1}): ${message}`
       );
-    } else {
-      core.warning(`Failed to fetch sub-issue relationships: ${message}`);
     }
-    return new Map();
   }
 
   return relationships;

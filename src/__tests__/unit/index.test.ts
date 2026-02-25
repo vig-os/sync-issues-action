@@ -10,6 +10,7 @@ import {
   formatPRAsMarkdown,
   shiftHeadersToMinLevel,
   fetchIssueRelationships,
+  GRAPHQL_BATCH_SIZE,
   run,
 } from '../../index';
 
@@ -1051,7 +1052,7 @@ describe('Sync Issues Action', () => {
       expect(mockOctokit.graphql).not.toHaveBeenCalled();
     });
 
-    it('should return empty map and warn on GraphQL error', async () => {
+    it('should warn on GraphQL error and return empty results for that batch', async () => {
       mockOctokit.graphql.mockRejectedValueOnce(new Error('GraphQL rate limit'));
 
       const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', [1, 2]);
@@ -1088,6 +1089,66 @@ describe('Sync Issues Action', () => {
         expect.stringContaining('Server error')
       );
       expect(core.info).not.toHaveBeenCalled();
+    });
+
+    it('should return partial results when a later batch fails', async () => {
+      const batch1Issues = Array.from({ length: GRAPHQL_BATCH_SIZE }, (_, i) => i + 1);
+      const batch2Issues = [GRAPHQL_BATCH_SIZE + 1, GRAPHQL_BATCH_SIZE + 2];
+      const allIssues = [...batch1Issues, ...batch2Issues];
+
+      const batch1Response: Record<string, any> = {};
+      for (const num of batch1Issues) {
+        batch1Response[`issue_${num}`] = {
+          parent: null,
+          subIssues: { nodes: [] },
+        };
+      }
+
+      mockOctokit.graphql
+        .mockResolvedValueOnce({ repository: batch1Response })
+        .mockRejectedValueOnce(new Error('Transient network error'));
+
+      const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', allIssues);
+
+      expect(result.size).toBe(GRAPHQL_BATCH_SIZE);
+      for (const num of batch1Issues) {
+        expect(result.get(num)).toEqual({ parent: null, children: [] });
+      }
+      expect(result.has(GRAPHQL_BATCH_SIZE + 1)).toBe(false);
+      expect(result.has(GRAPHQL_BATCH_SIZE + 2)).toBe(false);
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining('Transient network error')
+      );
+    });
+
+    it('should break and return partial results on schema error in later batch', async () => {
+      const batch1Issues = Array.from({ length: GRAPHQL_BATCH_SIZE }, (_, i) => i + 1);
+      const batch2Issues = [GRAPHQL_BATCH_SIZE + 1];
+      const allIssues = [...batch1Issues, ...batch2Issues];
+
+      const batch1Response: Record<string, any> = {};
+      for (const num of batch1Issues) {
+        batch1Response[`issue_${num}`] = {
+          parent: { number: 999 },
+          subIssues: { nodes: [] },
+        };
+      }
+
+      mockOctokit.graphql
+        .mockResolvedValueOnce({ repository: batch1Response })
+        .mockRejectedValueOnce(
+          new Error("Field 'parent' doesn't exist on type 'Issue'")
+        );
+
+      const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', allIssues);
+
+      expect(result.size).toBe(GRAPHQL_BATCH_SIZE);
+      expect(result.get(1)).toEqual({ parent: 999, children: [] });
+      expect(result.has(GRAPHQL_BATCH_SIZE + 1)).toBe(false);
+      expect(core.info).toHaveBeenCalledWith(
+        'Sub-issues API is not available for this repository. Skipping relationship sync.'
+      );
+      expect(core.warning).not.toHaveBeenCalled();
     });
   });
 
