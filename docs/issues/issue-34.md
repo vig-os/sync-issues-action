@@ -1,8 +1,8 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-25T17:51:03Z
-updated: 2026-02-25T17:51:03Z
+updated: 2026-02-25T19:30:58Z
 author: vig-os-release-app[bot]
 author_url: https://github.com/vig-os-release-app[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/34
@@ -12,7 +12,7 @@ assignees: none
 milestone: none
 projects: none
 relationship: none
-synced: 2026-02-25T17:51:17.830Z
+synced: 2026-02-25T19:31:11.909Z
 ---
 
 # [Issue 34]: [Release 0.2.0 failed — automatic rollback](https://github.com/vig-os/sync-issues-action/issues/34)
