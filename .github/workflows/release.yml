@@ -18,8 +18,9 @@
 #   1. Validate  — Check all prerequisites
 #   2. Finalize  — Bump package.json, set release date in CHANGELOG, commit, push
 #   3. Test      — Build verification and full test suite on finalized code
-#   4. Release   — Create tag (vX.Y.Z), GitHub Release, and floating tags (vX, vX.Y)
-#   5. Rollback  — Revert changes and create issue on failure
+#   4. Release   — Create tag (vX.Y.Z), GitHub Release
+#   5. Update floating tags — Job after release: update vX, vX.Y (with on-failure restore)
+#   6. Rollback  — Revert changes and create issue on failure (no floating-tag restore)
 #
 # Trigger:
 #   - Manual workflow_dispatch with version input
@@ -67,8 +68,6 @@ jobs:
       pr_number: ${{ steps.pr.outputs.pr_number }}
       release_date: ${{ steps.vars.outputs.release_date }}
       pre_finalize_sha: ${{ steps.pre_sha.outputs.pre_finalize_sha }}
-      floating_major_sha: ${{ steps.floating-shas.outputs.floating_major_sha }}
-      floating_minor_sha: ${{ steps.floating-shas.outputs.floating_minor_sha }}
 
     steps:
       - name: Validate and prepare variables
@@ -120,32 +119,6 @@ jobs:
             echo "ERROR: Tag v$VERSION already exists"
             exit 1
           fi
-
-      - name: Capture existing floating tag SHAs
-        id: floating-shas
-        env:
-          VERSION: ${{ steps.vars.outputs.version }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          FLOAT_MAJOR="v${VERSION%%.*}"
-          FLOAT_MINOR="v${VERSION%.*}"
-
-          get_tag_sha() {
-            local TAG="$1"
-            local SHA
-            SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$TAG" \
-              --jq '.[0].object.sha // empty' 2>/dev/null || true)
-            if echo "$SHA" | grep -qE '^[0-9a-f]{40}$'; then
-              echo "$SHA"
-            fi
-          }
-
-          MAJOR_SHA=$(get_tag_sha "$FLOAT_MAJOR")
-          MINOR_SHA=$(get_tag_sha "$FLOAT_MINOR")
-          echo "floating_major_sha=$MAJOR_SHA" >> $GITHUB_OUTPUT
-          echo "floating_minor_sha=$MINOR_SHA" >> $GITHUB_OUTPUT
-          echo "Captured floating tag SHAs: $FLOAT_MAJOR=$MAJOR_SHA $FLOAT_MINOR=$MINOR_SHA"
 
       - name: Find and verify PR
         id: pr
@@ -389,23 +362,84 @@ jobs:
             --verify-tag
           echo "GitHub Release v$VERSION created with checksums-sha256.txt attached"
 
-      - name: Update floating version tags
-        id: floating-tags
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f  # v3
+        with:
+          subject-path: dist/index.js
+
+      - name: Summary
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          echo "Release published successfully"
+          echo ""
+          echo "  Version: $VERSION"
+          echo "  Tag:     v$VERSION"
+          echo "  Release: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
+          echo ""
+          echo "Floating tags (v${VERSION%%.*}, v${VERSION%.*}) will be updated in the next job."
+          echo ""
+          echo "Phase 3 (post-release.yml) will:"
+          echo "  1. Merge the release PR to main"
+          echo "  2. Sync dev with main"
+
+  update-floating-tags:
+    name: Update Floating Tags
+    needs: [validate, finalize, release]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Capture existing floating tag SHAs
+        id: capture
         env:
           VERSION: ${{ needs.validate.outputs.version }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -euo pipefail
-          COMMIT_SHA=$(git rev-parse HEAD)
           FLOAT_MAJOR="v${VERSION%%.*}"
           FLOAT_MINOR="v${VERSION%.*}"
 
           get_tag_sha() {
             local TAG="$1"
             local SHA
-            SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$TAG" \
-              --jq '.[0].object.sha // empty' 2>/dev/null || true)
-            if echo "$SHA" | grep -qE '^[0-9a-f]{40}$'; then
+            SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" \
+              --jq '.object.sha' 2>/dev/null || true)
+            if [ -n "$SHA" ] && echo "$SHA" | grep -qE '^[0-9a-f]{40}$'; then
+              echo "$SHA"
+            fi
+          }
+
+          MAJOR_SHA=$(get_tag_sha "$FLOAT_MAJOR")
+          MINOR_SHA=$(get_tag_sha "$FLOAT_MINOR")
+          echo "floating_major_sha=$MAJOR_SHA" >> $GITHUB_OUTPUT
+          echo "floating_minor_sha=$MINOR_SHA" >> $GITHUB_OUTPUT
+          echo "Captured floating tag SHAs: $FLOAT_MAJOR=$MAJOR_SHA $FLOAT_MINOR=$MINOR_SHA"
+
+      - name: Update floating version tags
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          COMMIT_SHA: ${{ needs.finalize.outputs.finalize_sha }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          FLOAT_MAJOR="v${VERSION%%.*}"
+          FLOAT_MINOR="v${VERSION%.*}"
+
+          get_tag_sha() {
+            local TAG="$1"
+            local SHA
+            SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" \
+              --jq '.object.sha' 2>/dev/null || true)
+            if [ -n "$SHA" ] && echo "$SHA" | grep -qE '^[0-9a-f]{40}$'; then
               echo "$SHA"
             fi
           }
@@ -428,25 +462,37 @@ jobs:
           upsert_tag "$FLOAT_MAJOR" "$COMMIT_SHA"
           upsert_tag "$FLOAT_MINOR" "$COMMIT_SHA"
 
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f  # v3
-        with:
-          subject-path: dist/index.js
-
-      - name: Summary
+      - name: Restore floating version tags on failure
+        if: failure()
+        continue-on-error: true
         env:
           VERSION: ${{ needs.validate.outputs.version }}
+          PREV_MAJOR_SHA: ${{ steps.capture.outputs.floating_major_sha }}
+          PREV_MINOR_SHA: ${{ steps.capture.outputs.floating_minor_sha }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          echo "Release published successfully"
-          echo ""
-          echo "  Version: $VERSION"
-          echo "  Tag:     v$VERSION"
-          echo "  Floating: v${VERSION%%.*}, v${VERSION%.*}"
-          echo "  Release: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
-          echo ""
-          echo "Phase 3 (post-release.yml) will:"
-          echo "  1. Merge the release PR to main"
-          echo "  2. Sync dev with main"
+          FLOAT_MAJOR="v${VERSION%%.*}"
+          FLOAT_MINOR="v${VERSION%.*}"
+
+          restore_or_delete() {
+            local TAG="$1" PREV_SHA="$2"
+            if [ -n "$PREV_SHA" ] && echo "$PREV_SHA" | grep -qE '^[0-9a-f]{40}$'; then
+              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
+                --method PATCH -f sha="$PREV_SHA" -F force=true 2>/dev/null \
+                && echo "Restored $TAG → $PREV_SHA" \
+                || echo "Warning: Could not restore $TAG"
+            elif [ -n "$PREV_SHA" ]; then
+              echo "Warning: Invalid previous SHA for $TAG ($PREV_SHA), skipping restore/delete"
+            else
+              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
+                --method DELETE 2>/dev/null \
+                && echo "Deleted floating tag $TAG" \
+                || echo "No floating tag $TAG to delete"
+            fi
+          }
+
+          restore_or_delete "$FLOAT_MAJOR" "$PREV_MAJOR_SHA"
+          restore_or_delete "$FLOAT_MINOR" "$PREV_MINOR_SHA"
 
   dry-run-preview:
     name: Dry-Run Preview
@@ -565,37 +611,6 @@ jobs:
           else
             echo "Tag does not exist (not created yet)"
           fi
-
-      - name: Restore floating version tags
-        continue-on-error: true
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          PREV_MAJOR_SHA: ${{ needs.validate.outputs.floating_major_sha }}
-          PREV_MINOR_SHA: ${{ needs.validate.outputs.floating_minor_sha }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          FLOAT_MAJOR="v${VERSION%%.*}"
-          FLOAT_MINOR="v${VERSION%.*}"
-
-          restore_or_delete() {
-            local TAG="$1" PREV_SHA="$2"
-            if [ -n "$PREV_SHA" ] && echo "$PREV_SHA" | grep -qE '^[0-9a-f]{40}$'; then
-              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
-                --method PATCH -f sha="$PREV_SHA" -F force=true 2>/dev/null \
-                && echo "Restored $TAG → $PREV_SHA" \
-                || echo "Warning: Could not restore $TAG"
-            elif [ -n "$PREV_SHA" ]; then
-              echo "Warning: Invalid previous SHA for $TAG ($PREV_SHA), skipping restore/delete"
-            else
-              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
-                --method DELETE 2>/dev/null \
-                && echo "Deleted floating tag $TAG" \
-                || echo "No floating tag $TAG to delete"
-            fi
-          }
-
-          restore_or_delete "$FLOAT_MAJOR" "$PREV_MAJOR_SHA"
-          restore_or_delete "$FLOAT_MINOR" "$PREV_MINOR_SHA"
 
       - name: Create failure issue
         env:
