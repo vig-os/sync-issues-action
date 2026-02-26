@@ -1,3 +1,4 @@
+import * as github from '@actions/github';
 interface Comment {
     id: number;
     body: string;
@@ -79,8 +80,14 @@ interface ReviewComment {
     original_line?: number | null;
     original_commit_id?: string | null;
 }
+interface IssueRelationship {
+    parent: number | null;
+    children: number[];
+}
 declare function run(): Promise<void>;
-export declare function formatIssueAsMarkdown(issue: Issue, comments?: Comment[]): string;
+export declare const GRAPHQL_BATCH_SIZE = 50;
+export declare function fetchIssueRelationships(octokit: ReturnType<typeof github.getOctokit>, owner: string, repo: string, issueNumbers: number[]): Promise<Map<number, IssueRelationship>>;
+export declare function formatIssueAsMarkdown(issue: Issue, comments?: Comment[], relationship?: IssueRelationship): string;
 export declare function formatPRAsMarkdown(pr: PullRequest, comments?: Comment[], reviewComments?: ReviewComment[], commits?: Array<{
     sha: string;
     commit: {
@@ -105,5 +112,10 @@ export declare function formatPRAsMarkdown(pr: PullRequest, comments?: Comment[]
     }>;
 }>): string;
 export declare function formatDate(dateString: string): string;
+/**
+ * Shifts all markdown headers so the shallowest header in the content is at `minLevel`.
+ * If the shallowest header already meets or exceeds `minLevel`, the content is returned unchanged.
+ * Headers are capped at the maximum markdown level of 6.
+ */
+export declare function shiftHeadersToMinLevel(content: string, minLevel: number): string;
 export { run };
-//# sourceMappingURL=index.d.ts.map

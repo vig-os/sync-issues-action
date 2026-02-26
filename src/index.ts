@@ -66,6 +66,11 @@ interface ReviewThread {
   replies: ReviewComment[];
 }
 
+interface IssueRelationship {
+  parent: number | null;
+  children: number[];
+}
+
 async function run(): Promise<void> {
   try {
     // Get token from input (defaults to github.token via action.yml)
@@ -115,11 +120,15 @@ async function run(): Promise<void> {
     const syncIssuesInput = core.getInput('sync-issues') || 'true';
     const syncPRsInput = core.getInput('sync-prs') || 'true';
     const includeClosedInput = core.getInput('include-closed') || 'false';
+    const forceUpdateInput = core.getInput('force-update') || 'false';
+    const syncSubIssuesInput = core.getInput('sync-sub-issues') || 'true';
 
     // Convert to boolean (getBooleanInput is strict and throws if input is missing)
     const syncIssues = syncIssuesInput.toLowerCase() === 'true';
     const syncPRs = syncPRsInput.toLowerCase() === 'true';
     const includeClosed = includeClosedInput.toLowerCase() === 'true';
+    const forceUpdate = forceUpdateInput.toLowerCase() === 'true';
+    const syncSubIssues = syncSubIssuesInput.toLowerCase() === 'true';
     const updatedSince = resolveUpdatedSince(updatedSinceInput, stateFilePath);
 
     const octokit = github.getOctokit(tokenToUse);
@@ -150,7 +159,9 @@ async function run(): Promise<void> {
         repo,
         issuesDir,
         includeClosed,
-        updatedSince
+        updatedSince,
+        forceUpdate,
+        syncSubIssues
       );
       issuesCount = issuesResult.count;
       modifiedFiles.push(...issuesResult.files);
@@ -167,7 +178,8 @@ async function run(): Promise<void> {
         repo,
         prsDir,
         includeClosed,
-        updatedSince
+        updatedSince,
+        forceUpdate
       );
       prsCount = prsResult.count;
       modifiedFiles.push(...prsResult.files);
@@ -198,14 +210,15 @@ async function syncIssuesToMarkdown(
   repo: string,
   outputDir: string,
   includeClosed: boolean,
-  updatedSince?: string
+  updatedSince?: string,
+  forceUpdate = false,
+  syncSubIssues = true
 ): Promise<{ count: number; files: string[] }> {
   const state = includeClosed ? 'all' : 'open';
   let page = 1;
   const perPage = 100;
   let hasMore = true;
-  let issuesCount = 0;
-  const files: string[] = [];
+  const allIssues: Array<{ number: number; pull_request?: unknown }> = [];
 
   while (hasMore) {
     const { data: issues } = await octokit.rest.issues.listForRepo({
@@ -217,43 +230,46 @@ async function syncIssuesToMarkdown(
       ...(updatedSince ? { since: updatedSince } : {}),
     });
 
-    // Filter out pull requests (issues API returns both)
     const actualIssues = issues.filter((issue) => !issue.pull_request);
-    issuesCount += actualIssues.length;
-
-    for (const issue of actualIssues) {
-      const filename = `issue-${issue.number}.md`;
-      const filepath = path.join(outputDir, filename);
-
-      // Fetch full issue details to get all metadata
-      const { data: fullIssue } = await octokit.rest.issues.get({
-        owner,
-        repo,
-        issue_number: issue.number,
-      });
-
-      // Fetch comments for this issue
-      const comments = await fetchComments(octokit, owner, repo, issue.number);
-
-      const content = formatIssueAsMarkdown(fullIssue as Issue, comments);
-
-      // Only write if content has actually changed (excluding synced timestamp)
-      if (hasContentChanged(content, filepath)) {
-        fs.writeFileSync(filepath, content, 'utf-8');
-        files.push(filepath);
-        core.info(
-          `Synced issue #${issue.number} with ${comments.length} comment(s) to ${filepath}`
-        );
-      } else {
-        core.info(`Issue #${issue.number} unchanged, skipping write to ${filepath}`);
-      }
-    }
+    allIssues.push(...actualIssues);
 
     hasMore = issues.length === perPage;
     page++;
   }
 
-  return { count: issuesCount, files };
+  const issueNumbers = allIssues.map((issue) => issue.number);
+  const relationships = syncSubIssues
+    ? await fetchIssueRelationships(octokit, owner, repo, issueNumbers)
+    : new Map<number, IssueRelationship>();
+
+  const files: string[] = [];
+  for (const issue of allIssues) {
+    const filename = `issue-${issue.number}.md`;
+    const filepath = path.join(outputDir, filename);
+
+    const { data: fullIssue } = await octokit.rest.issues.get({
+      owner,
+      repo,
+      issue_number: issue.number,
+    });
+
+    const comments = await fetchComments(octokit, owner, repo, issue.number);
+    const relationship = relationships.get(issue.number);
+
+    const content = formatIssueAsMarkdown(fullIssue as Issue, comments, relationship);
+
+    if (forceUpdate || hasContentChanged(content, filepath)) {
+      fs.writeFileSync(filepath, content, 'utf-8');
+      files.push(filepath);
+      core.info(
+        `Synced issue #${issue.number} with ${comments.length} comment(s) to ${filepath}`
+      );
+    } else {
+      core.info(`Issue #${issue.number} unchanged, skipping write to ${filepath}`);
+    }
+  }
+
+  return { count: allIssues.length, files };
 }
 
 async function syncPRsToMarkdown(
@@ -262,7 +278,8 @@ async function syncPRsToMarkdown(
   repo: string,
   outputDir: string,
   includeClosed: boolean,
-  updatedSince?: string
+  updatedSince?: string,
+  forceUpdate = false
 ): Promise<{ count: number; files: string[] }> {
   const state = includeClosed ? 'all' : 'open';
   let page = 1;
@@ -321,9 +338,7 @@ async function syncPRsToMarkdown(
 
       const content = formatPRAsMarkdown(fullPR as PullRequest, comments, reviewComments, commits);
 
-      // Only write if content has actually changed (excluding synced timestamp)
-      // For closed PRs, commits section will be included, so if commits weren't there before, content will change
-      if (hasContentChanged(content, filepath)) {
+      if (forceUpdate || hasContentChanged(content, filepath)) {
         fs.writeFileSync(filepath, content, 'utf-8');
         files.push(filepath);
         const commitInfo = commits.length > 0 ? ` with ${commits.length} commit(s)` : '';
@@ -381,6 +396,72 @@ async function fetchComments(
   }
 
   return comments;
+}
+
+export const GRAPHQL_BATCH_SIZE = 50;
+
+export async function fetchIssueRelationships(
+  octokit: ReturnType<typeof github.getOctokit>,
+  owner: string,
+  repo: string,
+  issueNumbers: number[]
+): Promise<Map<number, IssueRelationship>> {
+  const relationships = new Map<number, IssueRelationship>();
+
+  if (issueNumbers.length === 0) {
+    return relationships;
+  }
+
+  for (let i = 0; i < issueNumbers.length; i += GRAPHQL_BATCH_SIZE) {
+    const batch = issueNumbers.slice(i, i + GRAPHQL_BATCH_SIZE);
+
+    const issueFields = batch
+      .map(
+        (num) =>
+          `issue_${num}: issue(number: ${num}) {
+            parent { number }
+            subIssues(first: 100) { nodes { number } }
+          }`
+      )
+      .join('\n');
+
+    const query = `query($owner: String!, $repo: String!) {
+      repository(owner: $owner, name: $repo) {
+        ${issueFields}
+      }
+    }`;
+
+    try {
+      const response: any = await octokit.graphql(query, {
+        owner,
+        repo,
+      });
+
+      for (const num of batch) {
+        const data = response.repository[`issue_${num}`];
+        if (data) {
+          relationships.set(num, {
+            parent: data.parent?.number ?? null,
+            children: (data.subIssues?.nodes ?? []).map((n: any) => n.number),
+          });
+        }
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown error';
+      if (message.includes("doesn't exist on type")) {
+        core.info(
+          'Sub-issues API is not available for this repository. Skipping relationship sync.'
+        );
+        break;
+      }
+      core.warning(
+        `Failed to fetch sub-issue relationships (batch ${Math.floor(i / GRAPHQL_BATCH_SIZE) + 1}): ${message}`
+      );
+    }
+  }
+
+  return relationships;
 }
 
 async function fetchPRCommits(
@@ -613,7 +694,11 @@ function hasContentChanged(newContent: string, existingFilePath: string): boolea
   }
 }
 
-export function formatIssueAsMarkdown(issue: Issue, comments: Comment[] = []): string {
+export function formatIssueAsMarkdown(
+  issue: Issue,
+  comments: Comment[] = [],
+  relationship?: IssueRelationship
+): string {
   const labels =
     issue.labels && issue.labels.length > 0
       ? issue.labels.map((label) => label.name).join(', ')
@@ -623,6 +708,9 @@ export function formatIssueAsMarkdown(issue: Issue, comments: Comment[] = []): s
       ? issue.assignees.map((assignee) => assignee.login).join(', ')
       : 'none';
   const milestone = issue.milestone ? issue.milestone.title : 'none';
+  const parentField = relationship?.parent != null ? String(relationship.parent) : 'none';
+  const childrenField =
+    relationship?.children?.length ? relationship.children.join(', ') : 'none';
   const syncedAt = new Date().toISOString();
 
   // Build YAML frontmatter
@@ -640,7 +728,8 @@ export function formatIssueAsMarkdown(issue: Issue, comments: Comment[] = []): s
     `assignees: ${assignees}`,
     `milestone: ${milestone}`,
     `projects: none`,
-    `relationship: none`,
+    `parent: ${parentField}`,
+    `children: ${childrenField}`,
     `synced: ${syncedAt}`,
     '---',
   ];
@@ -704,7 +793,6 @@ export function formatPRAsMarkdown(
     `assignees: ${assignees}`,
     `milestone: ${milestone}`,
     `projects: none`,
-    `relationship: none`,
   ];
 
   if (pr.merged_at) {
@@ -716,11 +804,12 @@ export function formatPRAsMarkdown(
 
   let commentsSection = '';
   if (comments.length > 0) {
-    commentsSection += `\n\n---\n---\n\n## Comments (${comments.length})\n\n`;
+    commentsSection += `\n\n---\n---\n\n# Comments (${comments.length})\n\n`;
     comments.forEach((comment, index) => {
-      commentsSection += `### [Comment #${index + 1}](${comment.html_url}) by [@${comment.user.login}](${comment.user.html_url})\n\n`;
+      commentsSection += `## [Comment #${index + 1}](${comment.html_url}) by [@${comment.user.login}](${comment.user.html_url})\n\n`;
       commentsSection += `_Posted on ${formatDate(comment.created_at)}_\n\n`;
-      commentsSection += `${comment.body}\n\n---\n\n`;
+      const commentBody = shiftHeadersToMinLevel(comment.body, 3);
+      commentsSection += `${commentBody}\n\n---\n\n`;
     });
   }
 
@@ -851,6 +940,26 @@ function incrementHeadersIfNeeded(content: string): string {
     }
     // Otherwise, increment by one level
     return hashes + '# ';
+  });
+}
+
+/**
+ * Shifts all markdown headers so the shallowest header in the content is at `minLevel`.
+ * If the shallowest header already meets or exceeds `minLevel`, the content is returned unchanged.
+ * Headers are capped at the maximum markdown level of 6.
+ */
+export function shiftHeadersToMinLevel(content: string, minLevel: number): string {
+  if (!content) return content;
+
+  const headerMatches = content.match(/^#{1,6} /gm);
+  if (!headerMatches) return content;
+
+  const minCurrentLevel = Math.min(...headerMatches.map((h) => h.length - 1));
+  if (minCurrentLevel >= minLevel) return content;
+
+  const shift = minLevel - minCurrentLevel;
+  return content.replace(/^(#{1,6}) /gm, (_match, hashes: string) => {
+    return '#'.repeat(Math.min(hashes.length + shift, 6)) + ' ';
   });
 }
 

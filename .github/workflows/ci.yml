@@ -1,25 +1,198 @@
 # CI Workflow
 #
-# This workflow placeholder is registered with GitHub to enable CI checks.
-# It serves as a pre-merge gate for pull requests targeting dev, main, and release branches.
-# Full implementation details are managed separately.
+# Runs automated code quality checks and tests on pull requests.
+# Customized for the sync-issues-action project.
+#
+# Jobs:
+#   1. lint              — Pre-commit hooks (yamllint, pymarkdown, shellcheck, typos, etc.)
+#   2. build             — ncc bundle + verify dist/ is committed and up-to-date
+#   3. test              — Jest unit tests with coverage
+#   4. integration-test  — End-to-end action test (reusable workflow)
+#   5. dependency-review — Dependency vulnerability check (PRs only)
+#   6. summary           — Aggregate results for branch protection
+#
+# Triggers:
+#   - Pull requests to dev, release/**, and main (runs all checks)
+#   - Manual workflow_dispatch (select specific suite to run)
+#
 
 name: CI
 
-"on":
+on:  # yamllint disable-line rule:truthy
   pull_request:
-  push:
     branches:
       - dev
+      - 'release/**'
       - main
-      - release/**
+  workflow_dispatch:
+    inputs:
+      test-suite:
+        description: 'Test suite to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - lint
+          - build
+          - test
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
+  issues: read
+  pull-requests: write
 
 jobs:
-  ci:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      inputs.test-suite == 'all' ||
+      inputs.test-suite == 'lint'
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up environment
+        uses: ./.github/actions/setup-env
+        with:
+          install-uv: 'true'
+
+      - name: Run pre-commit hooks
+        run: uvx pre-commit run --all-files --show-diff-on-failure
+
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      inputs.test-suite == 'all' ||
+      inputs.test-suite == 'build'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up environment
+        uses: ./.github/actions/setup-env
+
+      - name: Build and verify dist
+        uses: ./.github/actions/build-dist
+
+  test:
+    name: Tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      inputs.test-suite == 'all' ||
+      inputs.test-suite == 'test'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up environment
+        uses: ./.github/actions/setup-env
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+          if-no-files-found: ignore
+
+  integration-test:
+    name: Integration Test
+    uses: ./.github/workflows/integration-test.yml
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      inputs.test-suite == 'all' ||
+      inputs.test-suite == 'test'
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Review dependencies for vulnerabilities
+        uses: actions/dependency-review-action@3c4e3dcb1aa7874d2c16be7d79418e9b7efd6261  # v4
+        with:
+          fail-on-severity: high
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: [lint, build, test, integration-test, dependency-review]
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          echo "CI Results Summary"
+          echo "==================="
+          echo ""
+          echo "Lint:              ${{ needs.lint.result }}"
+          echo "Build:             ${{ needs.build.result }}"
+          echo "Test:              ${{ needs.test.result }}"
+          echo "Integration Test:  ${{ needs.integration-test.result }}"
+          echo "Dependency Review: ${{ needs.dependency-review.result }}"
+          echo ""
+
+          FAILED=false
+
+          if [ "${{ needs.lint.result }}" = "failure" ]; then
+            echo "ERROR: Lint checks failed"
+            FAILED=true
+          fi
+
+          if [ "${{ needs.build.result }}" = "failure" ]; then
+            echo "ERROR: Build failed"
+            FAILED=true
+          fi
+
+          if [ "${{ needs.test.result }}" = "failure" ]; then
+            echo "ERROR: Tests failed"
+            FAILED=true
+          fi
+
+          if [ "${{ needs.integration-test.result }}" = "failure" ]; then
+            echo "ERROR: Integration tests failed"
+            FAILED=true
+          fi
+
+          if [ "${{ needs.dependency-review.result }}" = "failure" ]; then
+            echo "ERROR: Dependency review failed"
+            FAILED=true
+          fi
+
+          if [ "$FAILED" = "true" ]; then
+            echo ""
+            echo "One or more checks failed"
+            exit 1
+          fi
+
+          echo ""
+          echo "All executed checks passed"

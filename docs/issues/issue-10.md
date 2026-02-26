@@ -88,4 +88,3 @@ Add a `force-update` boolean input to the action. When active, skip the `hasCont
 - [x] Task 4: Read `force-update` input, thread `forceUpdate` flag into `syncIssuesToMarkdown` and `syncPRsToMarkdown`, bypass `hasContentChanged` when true — `src/index.ts` — verify: `npx jest`
 - [x] Task 5: Pass `force-update` workflow dispatch input to the action — `.github/workflows/sync-issues.yml` — verify: input present in `with:` block
 - [x] Task 6: Run full test suite — verify: `npx jest` (89 passed, 0 failed)
-

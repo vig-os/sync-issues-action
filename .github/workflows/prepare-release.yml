@@ -1,13 +1,24 @@
-# Prepare Release Branch for Testing and Validation
+# Prepare Release Workflow
 #
-# Workflow that creates and prepares a release branch for testing:
-# 1. Validate: Check inputs and prerequisites (version format, no existing branch/tag, CHANGELOG ready)
-# 2. Prepare: Create release branch, prepare CHANGELOG, commit, push, create draft PR
+# Automates Phase 1 of the release process: creates and prepares a release
+# branch for testing and validation.
 #
-# This replaces the local prepare-release.sh script, providing:
-# - Consistent CI environment (not dependent on developer tools)
-# - Audit trail of all actions via GitHub Actions logs
-# - CI triggering on new release branch (via GitHub App token)
+# Responsibilities:
+#   1. Validate  — Check inputs and prerequisites (version format, no existing
+#                  branch/tag, CHANGELOG ready, on dev branch)
+#   2. Prepare   — Create release branch, prepare CHANGELOG, commit, push,
+#                  create draft PR to main
+#
+# Version bumping (package.json) is handled by release.yml during finalization.
+#
+# CHANGELOG management uses .github/prepare_changelog.py, a standalone Python 3
+# CLI with zero external dependencies. This script is temporary and will
+# eventually be published as an external tool (GitHub Action, pip package, etc.).
+#
+# Trigger:
+#   - Manual workflow_dispatch with version input
+#
+# Refs: https://github.com/vig-os/sync-issues-action/issues/13
 
 name: Prepare Release
 
@@ -15,7 +26,7 @@ on:  # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
       version:
-        description: 'Semantic version to prepare (e.g., 1.2.3)'
+        description: 'Semantic version to prepare (e.g., 1.2.0)'
         required: true
         type: string
       dry-run:
@@ -26,13 +37,17 @@ on:  # yamllint disable-line rule:truthy
       git-user-name:
         description: 'Git user name for commits'
         required: false
-        default: 'vigOS Release Bot'
+        default: 'github-actions[bot]'
         type: string
       git-user-email:
         description: 'Git user email for commits'
         required: false
-        default: 'release@vig-os.local'
+        default: '41898282+github-actions[bot]@users.noreply.github.com'
         type: string
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: read          # safe default; prepare job escalates as needed
@@ -59,18 +74,13 @@ jobs:
           INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
           set -euo pipefail
+          source .github/release_helpers.sh
+          validate_version "$INPUT_VERSION"
+
           VERSION="$INPUT_VERSION"
-
-          # Validate semantic version format
-          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "ERROR: Invalid version format '$VERSION'"
-            echo "Version must follow semantic versioning format: MAJOR.MINOR.PATCH (e.g., 1.2.3)"
-            exit 1
-          fi
-
           RELEASE_BRANCH="release/$VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_branch=$RELEASE_BRANCH" >> "$GITHUB_OUTPUT"
           echo "✓ Version format validated: $VERSION"
 
       - name: Verify release branch does not exist
@@ -98,22 +108,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          if git tag -l | grep -q "^$VERSION$"; then
-            echo "ERROR: Tag $VERSION already exists"
+          if git tag -l | grep -q "^v${VERSION}$"; then
+            echo "ERROR: Tag v$VERSION already exists"
             exit 1
           fi
 
-          echo "✓ Tag does not exist: $VERSION"
-
-      - name: Set up environment
-        uses: ./.github/actions/setup-env
-        with:
-          sync-dependencies: 'true'
+          echo "✓ Tag does not exist: v$VERSION"
 
       - name: Verify CHANGELOG has Unreleased section with content
         run: |
           set -euo pipefail
-          uv run prepare-changelog validate CHANGELOG.md
+          python3 .github/prepare_changelog.py validate CHANGELOG.md
 
       - name: Verify dev branch is checked out
         run: |
@@ -145,16 +150,16 @@ jobs:
     timeout-minutes: 15
     if: ${{ github.event.inputs.dry-run != 'true' }}
     permissions:
-      contents: read          # checkout dev branch
-      pull-requests: write    # create draft PR
+      contents: write       # create branch via API, commit via commit-action
+      pull-requests: write  # create draft PR
 
     steps:
       - name: Generate GitHub App Token
         id: app-token
         uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
         with:
-          app-id: ${{ secrets.APP_SYNC_ISSUES_ID }}
-          private-key: ${{ secrets.APP_SYNC_ISSUES_PRIVATE_KEY }}
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Checkout dev branch
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -162,18 +167,13 @@ jobs:
           ref: dev
           fetch-depth: 0
 
-      - name: Set up environment
-        uses: ./.github/actions/setup-env
-        with:
-          sync-dependencies: 'true'
-
       - name: Prepare CHANGELOG
         env:
           VERSION: ${{ needs.validate.outputs.version }}
         run: |
           set -euo pipefail
           echo "Preparing CHANGELOG for version $VERSION..."
-          uv run prepare-changelog prepare "$VERSION" CHANGELOG.md
+          python3 .github/prepare_changelog.py prepare "$VERSION" CHANGELOG.md
           echo "✓ CHANGELOG prepared"
 
       - name: Extract CHANGELOG content for PR body
@@ -183,10 +183,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Extract the version section from CHANGELOG (between ## [VERSION] and next ## [)
-          CHANGELOG_CONTENT=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d')
+          CHANGELOG_CONTENT=$(python3 .github/prepare_changelog.py extract-notes "$VERSION" CHANGELOG.md)
 
-          # Use heredoc delimiter for multiline output
           {
             echo "changelog<<CHANGELOGEOF"
             echo "$CHANGELOG_CONTENT"
@@ -229,45 +227,44 @@ jobs:
         run: |
           set -euo pipefail
 
-          PR_BODY="## Release v$VERSION
+          PR_BODY="## Release $VERSION
 
-          This PR prepares release v$VERSION for merge to main.
+          This PR prepares release $VERSION for merge to main.
 
           ### Release Content
 
           $CHANGELOG_CONTENT
 
           ### Testing Checklist
-          - [ ] All tests pass (\`just test\`)
+          - [ ] All tests pass (\`npm run test:coverage\`)
           - [ ] Manual testing complete
           - [ ] No critical bugs found
           - [ ] Ready for release
 
           ### When Ready to Release
-          Run: \`just finalize-release $VERSION\`
+          Run the **Release** workflow (\`workflow_dispatch\`) with version \`$VERSION\`.
 
           This will:
+          - Bump package.json version
           - Set release date in CHANGELOG
-          - Update documentation
-          - Create commit and push
-          - Build and test container images for all architectures
-          - Create release tag and publish to GHCR
+          - Run full test suite on finalized code
+          - Create release tag (v$VERSION) and GitHub Release
+          - Attest build provenance
 
           ### Related
-          - Release automation: #48
+          - Release automation: #13
           "
 
           PR_URL=$(gh pr create \
             --base main \
             --head "$RELEASE_BRANCH" \
-            --title "Release v$VERSION" \
+            --title "Release $VERSION" \
             --body "$PR_BODY" \
             --draft)
 
-          # Extract PR number from URL (format: https://github.com/owner/repo/pull/123)
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
           echo "✓ Draft PR created: $PR_URL (#$PR_NUMBER)"
 
       - name: Summary
@@ -287,4 +284,48 @@ jobs:
           echo "  3. Fix any issues via bugfix PRs to $RELEASE_BRANCH"
           echo "  4. Mark PR as ready for review (gh pr ready <PR_NUMBER>)"
           echo "  5. Get PR approval from reviewer"
-          echo "  6. Run: just finalize-release $VERSION"
+          echo "  6. Run the Release workflow with version $VERSION"
+
+  dry-run-preview:
+    name: Dry-Run Preview
+    needs: validate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    if: ${{ github.event.inputs.dry-run == 'true' }}
+
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: dev
+
+      - name: Prepare CHANGELOG (local only)
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          cp CHANGELOG.md CHANGELOG.md.bak
+          python3 .github/prepare_changelog.py prepare "$VERSION" CHANGELOG.md
+
+      - name: Show CHANGELOG diff
+        run: diff -u CHANGELOG.md.bak CHANGELOG.md || true
+
+      - name: Show release notes preview
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          echo "=== Release notes for $VERSION ==="
+          echo ""
+          python3 .github/prepare_changelog.py extract-notes "$VERSION" CHANGELOG.md
+
+      - name: Summary
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_BRANCH: ${{ needs.validate.outputs.release_branch }}
+        run: |
+          echo "✓ Dry-run preview complete (no changes pushed)"
+          echo ""
+          echo "  Version: $VERSION"
+          echo "  Branch (would create): $RELEASE_BRANCH"
+          echo "  PR (would create): draft → main"

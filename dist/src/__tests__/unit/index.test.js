@@ -384,6 +384,77 @@ describe('Sync Issues Action', () => {
             const betweenComments = markdown.substring(comment1Index, comment2Index);
             expect(betweenComments).toContain('---');
         });
+        it('should include parent field when issue has a parent', () => {
+            const issue = {
+                number: 20,
+                title: 'Child Issue',
+                body: 'I am a sub-issue',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/issues/20',
+            };
+            const relationship = { parent: 67, children: [] };
+            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, [], relationship);
+            expect(markdown).toContain('parent: 67');
+            expect(markdown).toContain('children: none');
+            expect(markdown).not.toContain('relationship:');
+        });
+        it('should include children field when issue has sub-issues', () => {
+            const issue = {
+                number: 30,
+                title: 'Parent Issue',
+                body: 'I have sub-issues',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/issues/30',
+            };
+            const relationship = { parent: null, children: [61, 63, 80] };
+            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, [], relationship);
+            expect(markdown).toContain('parent: none');
+            expect(markdown).toContain('children: 61, 63, 80');
+            expect(markdown).not.toContain('relationship:');
+        });
+        it('should include both parent and children when issue is nested', () => {
+            const issue = {
+                number: 40,
+                title: 'Nested Issue',
+                body: 'I am both parent and child',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/issues/40',
+            };
+            const relationship = { parent: 10, children: [61, 63] };
+            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, [], relationship);
+            expect(markdown).toContain('parent: 10');
+            expect(markdown).toContain('children: 61, 63');
+            expect(markdown).not.toContain('relationship:');
+        });
+        it('should default to none for both fields when no relationship provided', () => {
+            const issue = {
+                number: 50,
+                title: 'Standalone Issue',
+                body: 'No relationships',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/issues/50',
+            };
+            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            expect(markdown).toContain('parent: none');
+            expect(markdown).toContain('children: none');
+            expect(markdown).not.toContain('relationship:');
+        });
     });
     describe('formatPRAsMarkdown', () => {
         it('should format open PR correctly', () => {
@@ -676,6 +747,309 @@ describe('Sync Issues Action', () => {
             expect(markdown).toContain('comments: 2');
             expect(markdown).toContain('```diff');
             expect(markdown).toContain('@@ -40,7 +42,7 @@ function demo() {');
+        });
+        it('should use level-1 header for Comments section', () => {
+            const pr = {
+                number: 20,
+                title: 'PR with comments section',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/20',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: 'Simple comment',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/20#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('# Comments (1)');
+            expect(markdown).not.toMatch(/^## Comments/m);
+        });
+        it('should use level-2 header for individual comment entries', () => {
+            const pr = {
+                number: 21,
+                title: 'PR with comment entries',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/21',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: 'A comment',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/21#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('## [Comment #1]');
+            expect(markdown).not.toMatch(/^### \[Comment #1\]/m);
+        });
+        it('should shift comment body headers starting with ## so top-level becomes ###', () => {
+            const pr = {
+                number: 22,
+                title: 'PR with header comment',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/22',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: '## Idea: Tracking\n\nSome text\n\n### How it would work\n\n- bullet',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/22#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('### Idea: Tracking');
+            expect(markdown).toContain('#### How it would work');
+            expect(markdown).not.toMatch(/^## Idea/m);
+            expect(markdown).not.toMatch(/^### How it would work$/m);
+        });
+        it('should shift comment body headers starting with # so top-level becomes ###', () => {
+            const pr = {
+                number: 23,
+                title: 'PR with h1 comment',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/23',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: '# Big Title\n\n## Subtitle\n\nContent',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/23#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('### Big Title');
+            expect(markdown).toContain('#### Subtitle');
+        });
+        it('should not shift comment body headers already at or below min level', () => {
+            const pr = {
+                number: 24,
+                title: 'PR with deep headers',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/24',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: '### Already deep\n\n#### Even deeper\n\nContent',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/24#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('### Already deep');
+            expect(markdown).toContain('#### Even deeper');
+        });
+        it('should cap shifted headers at max level 6 in comment bodies', () => {
+            const pr = {
+                number: 25,
+                title: 'PR with max level headers',
+                body: 'PR body',
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-15T10:30:00Z',
+                updated_at: '2024-01-16T10:30:00Z',
+                merged_at: null,
+                user: { login: 'testuser' },
+                html_url: 'https://github.com/test/repo/pull/25',
+                head: { ref: 'feature-branch' },
+                base: { ref: 'main' },
+            };
+            const comments = [
+                {
+                    id: 1,
+                    body: '## Title\n\n### Sub\n\n##### Deep\n\n###### Max',
+                    user: { login: 'commenter', html_url: 'https://github.com/commenter' },
+                    created_at: '2024-01-16T10:30:00Z',
+                    updated_at: '2024-01-16T10:30:00Z',
+                    html_url: 'https://github.com/test/repo/pull/25#issuecomment-1',
+                },
+            ];
+            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            expect(markdown).toContain('### Title');
+            expect(markdown).toContain('#### Sub');
+            expect(markdown).toContain('###### Deep');
+            expect(markdown).toContain('###### Max');
+        });
+    });
+    describe('fetchIssueRelationships', () => {
+        const mockOctokit = github.getOctokit('fake-token');
+        beforeEach(() => {
+            jest.clearAllMocks();
+        });
+        it('should return correct map from GraphQL response', async () => {
+            mockOctokit.graphql.mockResolvedValueOnce({
+                repository: {
+                    issue_5: {
+                        parent: { number: 2 },
+                        subIssues: { nodes: [{ number: 10 }, { number: 11 }] },
+                    },
+                    issue_7: {
+                        parent: null,
+                        subIssues: { nodes: [] },
+                    },
+                },
+            });
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [5, 7]);
+            expect(result.get(5)).toEqual({ parent: 2, children: [10, 11] });
+            expect(result.get(7)).toEqual({ parent: null, children: [] });
+            expect(mockOctokit.graphql).toHaveBeenCalledTimes(1);
+        });
+        it('should return empty map for empty issue list', async () => {
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', []);
+            expect(result.size).toBe(0);
+            expect(mockOctokit.graphql).not.toHaveBeenCalled();
+        });
+        it('should warn on GraphQL error and return empty results for that batch', async () => {
+            mockOctokit.graphql.mockRejectedValueOnce(new Error('GraphQL rate limit'));
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [1, 2]);
+            expect(result.size).toBe(0);
+            expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('GraphQL rate limit'));
+        });
+        it('should emit info instead of warning on schema error', async () => {
+            mockOctokit.graphql.mockRejectedValueOnce(new Error("Request failed due to following response errors:\n - Field 'parent' doesn't exist on type 'Issue'"));
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [1, 2]);
+            expect(result.size).toBe(0);
+            expect(core.info).toHaveBeenCalledWith('Sub-issues API is not available for this repository. Skipping relationship sync.');
+            expect(core.warning).not.toHaveBeenCalled();
+        });
+        it('should still warn on non-schema errors when sub-issues enabled', async () => {
+            mockOctokit.graphql.mockRejectedValueOnce(new Error('Server error'));
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [3]);
+            expect(result.size).toBe(0);
+            expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('Server error'));
+            expect(core.info).not.toHaveBeenCalled();
+        });
+        it('should return partial results when a later batch fails', async () => {
+            const batch1Issues = Array.from({ length: index_1.GRAPHQL_BATCH_SIZE }, (_, i) => i + 1);
+            const batch2Issues = [index_1.GRAPHQL_BATCH_SIZE + 1, index_1.GRAPHQL_BATCH_SIZE + 2];
+            const allIssues = [...batch1Issues, ...batch2Issues];
+            const batch1Response = {};
+            for (const num of batch1Issues) {
+                batch1Response[`issue_${num}`] = {
+                    parent: null,
+                    subIssues: { nodes: [] },
+                };
+            }
+            mockOctokit.graphql
+                .mockResolvedValueOnce({ repository: batch1Response })
+                .mockRejectedValueOnce(new Error('Transient network error'));
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', allIssues);
+            expect(result.size).toBe(index_1.GRAPHQL_BATCH_SIZE);
+            for (const num of batch1Issues) {
+                expect(result.get(num)).toEqual({ parent: null, children: [] });
+            }
+            expect(result.has(index_1.GRAPHQL_BATCH_SIZE + 1)).toBe(false);
+            expect(result.has(index_1.GRAPHQL_BATCH_SIZE + 2)).toBe(false);
+            expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('Transient network error'));
+        });
+        it('should break and return partial results on schema error in later batch', async () => {
+            const batch1Issues = Array.from({ length: index_1.GRAPHQL_BATCH_SIZE }, (_, i) => i + 1);
+            const batch2Issues = [index_1.GRAPHQL_BATCH_SIZE + 1];
+            const allIssues = [...batch1Issues, ...batch2Issues];
+            const batch1Response = {};
+            for (const num of batch1Issues) {
+                batch1Response[`issue_${num}`] = {
+                    parent: { number: 999 },
+                    subIssues: { nodes: [] },
+                };
+            }
+            mockOctokit.graphql
+                .mockResolvedValueOnce({ repository: batch1Response })
+                .mockRejectedValueOnce(new Error("Field 'parent' doesn't exist on type 'Issue'"));
+            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', allIssues);
+            expect(result.size).toBe(index_1.GRAPHQL_BATCH_SIZE);
+            expect(result.get(1)).toEqual({ parent: 999, children: [] });
+            expect(result.has(index_1.GRAPHQL_BATCH_SIZE + 1)).toBe(false);
+            expect(core.info).toHaveBeenCalledWith('Sub-issues API is not available for this repository. Skipping relationship sync.');
+            expect(core.warning).not.toHaveBeenCalled();
+        });
+    });
+    describe('shiftHeadersToMinLevel', () => {
+        it('should return empty/falsy content unchanged', () => {
+            expect((0, index_1.shiftHeadersToMinLevel)('', 3)).toBe('');
+        });
+        it('should return content with no headers unchanged', () => {
+            const content = 'Just some text\nwith no headers';
+            expect((0, index_1.shiftHeadersToMinLevel)(content, 3)).toBe(content);
+        });
+        it('should shift headers when min current level is below target', () => {
+            const content = '## Title\n\n### Sub\n\nText';
+            const result = (0, index_1.shiftHeadersToMinLevel)(content, 3);
+            expect(result).toBe('### Title\n\n#### Sub\n\nText');
+        });
+        it('should not shift when min current level already meets target', () => {
+            const content = '### Title\n\n#### Sub';
+            expect((0, index_1.shiftHeadersToMinLevel)(content, 3)).toBe(content);
+        });
+        it('should not shift when min current level exceeds target', () => {
+            const content = '#### Title\n\n##### Sub';
+            expect((0, index_1.shiftHeadersToMinLevel)(content, 3)).toBe(content);
+        });
+        it('should cap shifted headers at level 6', () => {
+            const content = '# Title\n\n##### Deep';
+            const result = (0, index_1.shiftHeadersToMinLevel)(content, 3);
+            expect(result).toBe('### Title\n\n###### Deep');
+        });
+        it('should not exceed 6 hashes even when shift is large', () => {
+            const content = '# Title\n\n###### Max';
+            const result = (0, index_1.shiftHeadersToMinLevel)(content, 4);
+            expect(result).toBe('#### Title\n\n###### Max');
         });
     });
     describe('Input Parameters', () => {
@@ -1235,6 +1609,109 @@ describe('Sync Issues Action', () => {
                 expect(mockWriteFileSync).toHaveBeenCalledWith('/tmp/state/last.txt', expect.any(String), 'utf-8');
             });
         });
+        describe('force-update input', () => {
+            it('should re-write issue files even when body is unchanged', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    if (name === 'force-update')
+                        return 'true';
+                    return '';
+                });
+                const issue = {
+                    number: 1,
+                    title: 'Issue 1',
+                    body: 'Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    user: { login: 'user1' },
+                    html_url: 'https://example.com/issue/1',
+                    milestone: null,
+                };
+                const newContent = (0, index_1.formatIssueAsMarkdown)(issue, []);
+                const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
+                mockExistsSync.mockReturnValue(true);
+                mockReadFileSync.mockReturnValue(existingContent);
+                mockWriteFileSync.mockImplementation(() => undefined);
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+                            get: jest.fn().mockResolvedValue({ data: issue }),
+                            listComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                        pulls: {
+                            list: jest.fn(),
+                            get: jest.fn(),
+                            listReviewComments: jest.fn(),
+                        },
+                    },
+                    graphql: jest.fn().mockResolvedValue({ repository: {} }),
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                expect(mockWriteFileSync).toHaveBeenCalled();
+                expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 1);
+                expect(mockSetOutput).toHaveBeenCalledWith('modified-files', expect.stringContaining('issue-1.md'));
+            });
+            it('should re-write PR files even when body is unchanged', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-issues')
+                        return 'false';
+                    if (name === 'force-update')
+                        return 'true';
+                    return '';
+                });
+                const pr = {
+                    number: 10,
+                    title: 'PR 10',
+                    body: 'PR Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    merged_at: null,
+                    user: { login: 'pr-user' },
+                    html_url: 'https://example.com/pr/10',
+                    head: { ref: 'feature' },
+                    base: { ref: 'main' },
+                };
+                const newContent = (0, index_1.formatPRAsMarkdown)(pr, [], []);
+                const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
+                mockExistsSync.mockReturnValue(true);
+                mockReadFileSync.mockReturnValue(existingContent);
+                mockWriteFileSync.mockImplementation(() => undefined);
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn(),
+                            get: jest.fn(),
+                            listComments: jest.fn(),
+                        },
+                        pulls: {
+                            list: jest.fn().mockResolvedValue({ data: [pr] }),
+                            get: jest.fn().mockResolvedValue({ data: pr }),
+                            listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+                            listCommits: jest.fn(),
+                        },
+                        repos: {
+                            getCommit: jest.fn(),
+                        },
+                    },
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                expect(mockWriteFileSync).toHaveBeenCalled();
+                expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
+                expect(mockSetOutput).toHaveBeenCalledWith('modified-files', expect.stringContaining('pr-10.md'));
+            });
+        });
         describe('app-id and app-private-key inputs', () => {
             it('should throw error when only app-id provided', async () => {
                 mockGetInput.mockImplementation((name) => {
@@ -1571,6 +2048,153 @@ describe('Sync Issues Action', () => {
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 0);
                 expect(mockOctokit.rest.issues.listForRepo).not.toHaveBeenCalled();
                 expect(mockOctokit.rest.pulls.list).not.toHaveBeenCalled();
+            });
+        });
+        describe('sub-issue relationships', () => {
+            it('should skip sub-issue fetch when sync-sub-issues is false', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    if (name === 'sync-sub-issues')
+                        return 'false';
+                    return '';
+                });
+                const issue = {
+                    number: 5,
+                    title: 'Test Issue',
+                    body: 'Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    user: { login: 'user1' },
+                    html_url: 'https://example.com/issue/5',
+                    milestone: null,
+                };
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+                            get: jest.fn().mockResolvedValue({ data: issue }),
+                            listComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                        pulls: {
+                            list: jest.fn(),
+                            get: jest.fn(),
+                            listReviewComments: jest.fn(),
+                        },
+                    },
+                    graphql: jest.fn(),
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                expect(mockOctokit.graphql).not.toHaveBeenCalled();
+                const writeCall = mockWriteFileSync.mock.calls.find((call) => String(call[0]).includes('issue-5.md'));
+                expect(writeCall).toBeDefined();
+                const content = writeCall[1];
+                expect(content).toContain('parent: none');
+                expect(content).toContain('children: none');
+            });
+            it('should fetch sub-issues by default when sync-sub-issues is not set', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    return '';
+                });
+                const issue = {
+                    number: 3,
+                    title: 'Test Issue',
+                    body: 'Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    user: { login: 'user1' },
+                    html_url: 'https://example.com/issue/3',
+                    milestone: null,
+                };
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+                            get: jest.fn().mockResolvedValue({ data: issue }),
+                            listComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                        pulls: {
+                            list: jest.fn(),
+                            get: jest.fn(),
+                            listReviewComments: jest.fn(),
+                        },
+                    },
+                    graphql: jest.fn().mockResolvedValue({
+                        repository: {
+                            issue_3: {
+                                parent: { number: 1 },
+                                subIssues: { nodes: [] },
+                            },
+                        },
+                    }),
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                expect(mockOctokit.graphql).toHaveBeenCalled();
+            });
+            it('should write parent and children from GraphQL into issue frontmatter', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    if (name === 'sync-sub-issues')
+                        return 'true';
+                    return '';
+                });
+                const issue = {
+                    number: 5,
+                    title: 'Child Issue',
+                    body: 'Body',
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    user: { login: 'user1' },
+                    html_url: 'https://example.com/issue/5',
+                    milestone: null,
+                };
+                const mockOctokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn().mockResolvedValue({ data: [issue] }),
+                            get: jest.fn().mockResolvedValue({ data: issue }),
+                            listComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                        pulls: {
+                            list: jest.fn(),
+                            get: jest.fn(),
+                            listReviewComments: jest.fn(),
+                        },
+                    },
+                    graphql: jest.fn().mockResolvedValue({
+                        repository: {
+                            issue_5: {
+                                parent: { number: 2 },
+                                subIssues: { nodes: [{ number: 10 }, { number: 11 }] },
+                            },
+                        },
+                    }),
+                };
+                setMockOctokit(mockOctokit);
+                await (0, index_1.run)();
+                const writeCall = mockWriteFileSync.mock.calls.find((call) => String(call[0]).includes('issue-5.md'));
+                expect(writeCall).toBeDefined();
+                const content = writeCall[1];
+                expect(content).toContain('parent: 2');
+                expect(content).toContain('children: 10, 11');
+                expect(content).not.toContain('relationship:');
             });
         });
         describe('pagination', () => {
@@ -2204,4 +2828,3 @@ describe('Sync Issues Action', () => {
         });
     });
 });
-//# sourceMappingURL=index.test.js.map

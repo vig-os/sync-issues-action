@@ -37,6 +37,14 @@ inputs:
   state-file:
     description: 'Optional path to store last sync timestamp (use with cache)'
     required: false
+  force-update:
+    description: 'Re-write all synced files even if content is unchanged'
+    required: false
+    default: 'false'
+  sync-sub-issues:
+    description: 'Whether to sync sub-issue relationships via GraphQL'
+    required: false
+    default: 'true'
 
 outputs:
   issues-count:
