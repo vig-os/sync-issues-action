@@ -48,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - When active, all fetched items are re-written (with updated `synced:` frontmatter) even if body content is unchanged
   - Updated `sync-issues.yml` workflow to pass the `force-update` dispatch input to the action
 - Added `shiftHeadersToMinLevel` helper to re-level headers inside comment bodies so the shallowest header maps to `###`, preventing collisions with outer document structure
+- **Post-Release sync respects branch protection on dev** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
+  - Sync pushes to a short-lived branch and opens a PR into dev instead of pushing directly (satisfies "changes via PR" and avoids unsigned-commit rejection)
+  - Workflow creates the PR and prints its number; no auto-merge
+  - New `workflow_dispatch` input `reset-changelog` to optionally reset CHANGELOG when re-running after a failed run
 - Fixed default `GITHUB_REPOSITORY` in `test-local.sh` from non-existent `vig-os/actions` to `vig-os/sync-issues-action`
 - Removed broken fallback command in `test-local.sh` that passed a file path where a directory is required
 

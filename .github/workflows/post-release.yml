@@ -16,6 +16,7 @@
 # condition below correctly skips runs where the PR was closed without merging.
 #
 # Refs: https://github.com/vig-os/sync-issues-action/issues/13
+# Refs: https://github.com/vig-os/sync-issues-action/issues/52 (sync via PR for branch protection)
 
 name: Post-Release
 
@@ -35,6 +36,11 @@ on:  # yamllint disable-line rule:truthy
         required: false
         default: '41898282+github-actions[bot]@users.noreply.github.com'
         type: string
+      reset-changelog:
+        description: 'Reset CHANGELOG Unreleased section (for re-run after release)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read       # safe default; sync-dev job escalates as needed
@@ -45,8 +51,9 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     permissions:
-      contents: write    # push merge commit to dev
-      actions: write     # allow downstream workflow triggers
+      contents: write       # push to sync branch
+      pull-requests: write  # create and merge PR into dev (branch protection)
+      actions: write        # allow downstream workflow triggers
     if: >-
       ${{ github.event_name == 'workflow_dispatch'
        || github.event.pull_request.merged == true }}
@@ -96,38 +103,76 @@ jobs:
 
       - name: Reset CHANGELOG for next cycle
         id: reset-changelog
-        if: startsWith(github.event.pull_request.head.ref, 'release/')
+        if: >-
+          (github.event_name == 'pull_request' && startsWith(github.event.pull_request.head.ref, 'release/'))
+          || (github.event_name == 'workflow_dispatch' && inputs.reset-changelog == true)
         run: |
           set -euo pipefail
           python3 .github/prepare_changelog.py reset CHANGELOG.md
           echo "CHANGELOG Unreleased section reset"
           echo "reset=true" >> $GITHUB_OUTPUT
 
-      - name: Commit and push changes
+      - name: Commit and push to sync branch
+        id: sync-push
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          SYNC_BRANCH: "sync/dev-from-main-${{ github.run_id }}"
         run: |
           set -euo pipefail
 
           git add -A
           if git diff --cached --quiet; then
             echo "No changes to commit (dev already in sync)"
+            echo "pushed=false" >> $GITHUB_OUTPUT
           else
             COMMIT_MSG="chore: sync dev with main after merge"
-            if [ -n "$PR_NUMBER" ]; then
+            if [ -n "${PR_NUMBER:-}" ]; then
               COMMIT_MSG=$(printf '%s\n\nRefs: #%s' "$COMMIT_MSG" "$PR_NUMBER")
             fi
             git commit -m "$COMMIT_MSG"
-            git push origin dev
-            echo "Changes committed and pushed to dev"
+            git checkout -b "$SYNC_BRANCH"
+            git push -u origin "$SYNC_BRANCH"
+            echo "pushed=true" >> $GITHUB_OUTPUT
+            echo "branch=$SYNC_BRANCH" >> $GITHUB_OUTPUT
+            echo "Changes committed and pushed to $SYNC_BRANCH"
           fi
+
+      - name: Create PR into dev
+        id: create-pr
+        if: steps.sync-push.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SYNC_BRANCH: ${{ steps.sync-push.outputs.branch }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          BODY="Syncs \`dev\` with \`main\` after merge (post-release workflow)."
+          if [ -n "${PR_NUMBER:-}" ]; then
+            BODY="$BODY
+
+          Refs: #${PR_NUMBER}"
+          fi
+
+          PR_URL=$(gh pr create \
+            --base dev \
+            --head "$SYNC_BRANCH" \
+            --title "chore: sync dev with main after merge" \
+            --body "$BODY")
+          PR_NO=$(echo "$PR_URL" | sed -n 's|.*/pull/\([0-9]*\)|\1|p')
+          echo "number=$PR_NO" >> $GITHUB_OUTPUT
+          echo "PR #$PR_NO: $PR_URL"
 
       - name: Summary
         env:
           EVENT_NAME: ${{ github.event_name }}
           CHANGELOG_RESET: ${{ steps.reset-changelog.outcome }}
+          SYNC_PUSHED: ${{ steps.sync-push.outputs.pushed }}
+          PR_NUMBER: ${{ steps.create-pr.outputs.number }}
         run: |
           echo "Post-release sync complete"
           echo ""
           echo "Trigger: $EVENT_NAME"
           echo "CHANGELOG reset: $CHANGELOG_RESET"
+          echo "Sync branch pushed: $SYNC_PUSHED"
+          echo "PR number: $PR_NUMBER"
