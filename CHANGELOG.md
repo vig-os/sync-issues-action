@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Sync workflow: configurable output-dir and commit-msg** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
+  - New workflow inputs `output-dir` (default `docs`) and `commit-msg` (default `chore: sync issues and PRs`) for dispatch runs
+
 ### Changed
+
+- **Sync workflow: safe defaults and pinned action ref** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
+  - Checkout and commit step use `target-branch || 'dev'` and `commit-msg` input so defaults apply when inputs are omitted
+  - Workflow uses pinned action ref (v0.2.2) instead of local checkout
+  - Cache delete step uses `github.token`; `force-update` no longer passed to action (only `updated-since` used)
 
 ### Deprecated
 
