@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Sync workflow: configurable output-dir and commit-msg** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
+  - New workflow inputs `output-dir` (default `docs`) and `commit-msg` (default `chore: sync issues and PRs`) for dispatch runs
+
+### Changed
+
+- **Sync workflow: safe defaults and pinned action ref** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
+  - Checkout and commit step use `target-branch || 'dev'` and `commit-msg` input so defaults apply when inputs are omitted
+  - Workflow uses pinned action ref (v0.2.2) instead of local checkout
+  - Cache delete step uses `github.token`; `force-update` no longer passed to action (only `updated-since` used)
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.2.2](https://github.com/vig-os/sync-issues-action/releases/tag/v0.2.2) - 2026-02-26
+
+### Added
+
 - Exported `shiftHeadersToMinLevel` utility function for independent unit testing
 - **Sync sub-issue relationships into frontmatter** ([#8](https://github.com/vig-os/sync-issues-action/issues/8), [#15](https://github.com/vig-os/sync-issues-action/issues/15))
   - Fetch `parent` and `subIssues` via GraphQL batch query for all synced issues
@@ -48,10 +70,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - When active, all fetched items are re-written (with updated `synced:` frontmatter) even if body content is unchanged
   - Updated `sync-issues.yml` workflow to pass the `force-update` dispatch input to the action
 - Added `shiftHeadersToMinLevel` helper to re-level headers inside comment bodies so the shallowest header maps to `###`, preventing collisions with outer document structure
-- **Post-Release sync respects branch protection on dev** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
-  - Sync pushes to a short-lived branch and opens a PR into dev instead of pushing directly (satisfies "changes via PR" and avoids unsigned-commit rejection)
-  - Workflow creates the PR and prints its number; no auto-merge
-  - New `workflow_dispatch` input `reset-changelog` to optionally reset CHANGELOG when re-running after a failed run
 - Fixed default `GITHUB_REPOSITORY` in `test-local.sh` from non-existent `vig-os/actions` to `vig-os/sync-issues-action`
 - Removed broken fallback command in `test-local.sh` that passed a file path where a directory is required
 
