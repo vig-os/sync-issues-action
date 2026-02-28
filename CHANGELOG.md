@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Post-release replaced by PR-based main-to-dev sync** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
+  - Remove `post-release.yml` workflow; add `sync-main-to-dev.yml` that opens a PR to sync `main` into `dev`, satisfying branch protection on both branches
+
 ## [0.2.2] - 2026-02-26
 
 ### Added
