@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ESLint toolchain upgrade** ([#72](https://github.com/vig-os/sync-issues-action/issues/72))
   - Upgrade `eslint` to v10 and `@typescript-eslint/*` packages to v8
   - Migrate from legacy `.eslintrc.json` to flat config via `eslint.config.mjs`
+- **Dependabot dependency updates**
+  - GitHub Actions: bump `actions/checkout` from v4 to v6 ([#51](https://github.com/vig-os/sync-issues-action/pull/51))
+  - GitHub Actions: bump grouped minor/patch updates ([#64](https://github.com/vig-os/sync-issues-action/pull/64))
+  - GitHub Actions: bump `actions/attest-build-provenance` from v3.2.0 to v4.1.0 ([#65](https://github.com/vig-os/sync-issues-action/pull/65))
+  - GitHub Actions: bump `actions/upload-artifact` from v4.6.2 to v7.0.0 ([#66](https://github.com/vig-os/sync-issues-action/pull/66))
+  - GitHub Actions: bump pinned `vig-os/sync-issues-action` SHA ([#68](https://github.com/vig-os/sync-issues-action/pull/68))
+  - npm dev dependencies: bump grouped minor/patch updates ([#61](https://github.com/vig-os/sync-issues-action/pull/61))
+  - npm dev dependencies: bump `@types/node` from v20.19.25 to v25.3.3 ([#69](https://github.com/vig-os/sync-issues-action/pull/69))
 
 ### Deprecated
 
