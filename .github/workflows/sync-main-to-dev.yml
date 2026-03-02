@@ -151,9 +151,8 @@ jobs:
         run: |
           set -euo pipefail
           OPEN=$(gh pr list --base dev --state open --limit 200 \
-            --search '"sync dev with main" in:title' \
-            --json headRefName,title \
-            --jq '[.[] | select((.headRefName | startswith("chore/sync-main-to-dev-")) or (.title | test("sync dev with main"; "i"))] | length')
+            --json headRefName \
+            --jq '[.[] | select(.headRefName | startswith("chore/sync-main-to-dev-"))] | length')
           echo "count=${OPEN}" >> "$GITHUB_OUTPUT"
           if [ "${OPEN}" != "0" ]; then
             echo "An open sync PR already exists — skipping."
