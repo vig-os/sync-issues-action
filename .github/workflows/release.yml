@@ -6,7 +6,7 @@
 # This is Phase 2 of the release process:
 #   Phase 1 — prepare-release.yml (branch, version bump, CHANGELOG heading, PR)
 #   Phase 2 — release.yml (this file: validate, finalize, test, tag, publish)
-#   Phase 3 — post-release.yml (PR merge, dev sync)
+#   Phase 3 — sync-main-to-dev.yml (PR-based dev sync)
 #
 # Prerequisites:
 #   - A release branch (release/X.Y.Z) exists
@@ -379,9 +379,9 @@ jobs:
           echo ""
           echo "Floating tags (v${VERSION%%.*}, v${VERSION%.*}) will be updated in the next job."
           echo ""
-          echo "Phase 3 (post-release.yml) will:"
-          echo "  1. Merge the release PR to main"
-          echo "  2. Sync dev with main"
+          echo "Phase 3 (sync-main-to-dev.yml) will:"
+          echo "  1. Open a PR to sync main into dev"
+          echo "  2. Require normal protected-branch merge to complete sync"
 
   update-floating-tags:
     name: Update Floating Tags

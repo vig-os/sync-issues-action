@@ -12,8 +12,8 @@
 #         - open PR (auto-mergeable, or labelled "merge-conflict" with
 #           resolution instructions when conflicts exist)
 #
-# Auth: GitHub App token (COMMIT_APP_ID / COMMIT_APP_PRIVATE_KEY) so that
-# branch creation and PR operations produce signed, protection-compliant commits.
+# Auth: GitHub App token (COMMIT_APP_ID / COMMIT_APP_PRIVATE_KEY) so branch
+# creation and PR operations run under app identity and respect protections.
 #
 # Triggers: push to main · workflow_dispatch
 #
@@ -63,7 +63,15 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin main dev
-          BEHIND=$(git rev-list --count origin/main ^origin/dev 2>/dev/null || echo "0")
+          if ! git show-ref --verify --quiet refs/remotes/origin/main; then
+            echo "Error: remote branch 'origin/main' not found after fetch."
+            exit 1
+          fi
+          if ! git show-ref --verify --quiet refs/remotes/origin/dev; then
+            echo "Error: remote branch 'origin/dev' not found after fetch."
+            exit 1
+          fi
+          BEHIND=$(git rev-list --count origin/main ^origin/dev)
           if [ "${BEHIND}" = "0" ]; then
             echo "up_to_date=true" >> "$GITHUB_OUTPUT"
             echo "Dev is already up to date with main. Nothing to do."
@@ -83,6 +91,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      issues: write
 
     steps:
       - name: Generate GitHub App Token
@@ -158,8 +167,8 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           CONFLICT: ${{ steps.merge-check.outputs.conflict }}
-          INPUT_TITLE: "${{ github.event.inputs.pr-title || 'chore: sync dev with main' }}"
-          INPUT_BODY: "${{ github.event.inputs.pr-body || 'Syncs `dev` with `main` (sync-main-to-dev workflow).' }}"
+          INPUT_TITLE: "${{ github.event.inputs['pr-title'] || 'chore: sync dev with main' }}"
+          INPUT_BODY: "${{ github.event.inputs['pr-body'] || 'Syncs `dev` with `main` (sync-main-to-dev workflow).' }}"
         run: |
           set -euo pipefail
 
@@ -171,12 +180,12 @@ jobs:
           ### How to resolve
 
           ```bash
-          git fetch origin
+          git fetch origin SYNC_BRANCH_PLACEHOLDER:SYNC_BRANCH_PLACEHOLDER
           git checkout SYNC_BRANCH_PLACEHOLDER
           git merge origin/dev
           # resolve conflicts
           git commit -S
-          git push
+          git push origin SYNC_BRANCH_PLACEHOLDER
           ```
 
           Once pushed, this PR will update and become mergeable.
@@ -194,5 +203,6 @@ jobs:
 
           if [ "${CONFLICT}" = "true" ]; then
             gh label create "merge-conflict" --color "B60205" --force 2>/dev/null || true
-            gh pr edit "${SYNC_BRANCH}" --add-label "merge-conflict"
+            gh pr edit "${SYNC_BRANCH}" --add-label "merge-conflict" || \
+              echo "Warning: failed to add merge-conflict label."
           fi
