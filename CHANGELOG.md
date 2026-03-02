@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Remove `post-release.yml` workflow; add `sync-main-to-dev.yml` that opens a PR to sync `main` into `dev`, satisfying branch protection on both branches
   - Harden sync checks by failing clearly when `origin/main` or `origin/dev` is missing instead of silently treating branches as up to date
   - Fix `workflow_dispatch` hyphenated input access and conflict path robustness (`issues: write`, safer conflict label handling, clearer manual resolution commands)
-  - Reduce duplicate/no-op sync PR risk by re-checking ahead/behind state inside the `sync` job and tightening existing-sync-PR detection (search + explicit list limit); clarify `COMMIT_APP_*` as the dedicated git/API app secret set
+  - Reduce duplicate/no-op sync PR risk by re-checking ahead/behind state inside the `sync` job and tightening existing-sync-PR detection (search + explicit list limit)
+  - Split auth into explicit app tokens by responsibility: `COMMIT_APP_*` for checkout/ref operations and `RELEASE_APP_*` for PR/label operations requiring broader scopes
 
 ## [0.2.2] - 2026-02-26
 

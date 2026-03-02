@@ -12,8 +12,9 @@
 #         - open PR (auto-mergeable, or labelled "merge-conflict" with
 #           resolution instructions when conflicts exist)
 #
-# Auth: GitHub App token (COMMIT_APP_ID / COMMIT_APP_PRIVATE_KEY), a dedicated
-# secret set for git/API operations requiring app identity and signing.
+# Auth: Two GitHub App tokens:
+#   - COMMIT_APP_* for git/ref operations (least-privilege commit identity)
+#   - RELEASE_APP_* for PR/label operations that require pull-request scopes
 #
 # Triggers: push to main · workflow_dispatch
 #
@@ -94,19 +95,26 @@ jobs:
       issues: write
 
     steps:
-      - name: Generate GitHub App Token
-        id: app-token
+      - name: Generate Commit App Token
+        id: commit-app-token
         uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
         with:
           app-id: ${{ secrets.COMMIT_APP_ID }}
           private-key: ${{ secrets.COMMIT_APP_PRIVATE_KEY }}
+
+      - name: Generate Release App Token
+        id: release-app-token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Checkout dev
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           ref: dev
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ steps.commit-app-token.outputs.token }}
 
       - name: Re-check if dev is still behind main
         id: recheck
@@ -147,7 +155,7 @@ jobs:
         if: steps.recheck.outputs.up_to_date != 'true'
         id: existing-pr
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ steps.release-app-token.outputs.token }}
         run: |
           set -euo pipefail
           OPEN=$(gh pr list --base dev --state open --limit 200 \
@@ -161,7 +169,7 @@ jobs:
       - name: Clean up stale sync branches
         if: steps.recheck.outputs.up_to_date != 'true'
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ steps.release-app-token.outputs.token }}
         run: |
           set -euo pipefail
           REFS=$(gh api --paginate "repos/${{ github.repository }}/git/matching-refs/heads/chore/sync-main-to-dev-" \
@@ -178,7 +186,7 @@ jobs:
       - name: Create sync branch from main
         if: steps.existing-pr.outputs.count == '0'
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ steps.commit-app-token.outputs.token }}
         run: |
           set -euo pipefail
           MAIN_SHA=$(git rev-parse origin/main)
@@ -190,7 +198,7 @@ jobs:
       - name: Create PR
         if: steps.existing-pr.outputs.count == '0'
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ steps.release-app-token.outputs.token }}
           CONFLICT: ${{ steps.merge-check.outputs.conflict }}
           INPUT_TITLE: "${{ github.event.inputs['pr-title'] || 'chore: sync dev with main' }}"
           INPUT_BODY: "${{ github.event.inputs['pr-body'] || 'Syncs `dev` with `main` (sync-main-to-dev workflow).' }}"
