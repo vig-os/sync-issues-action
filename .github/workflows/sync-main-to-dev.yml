@@ -169,13 +169,13 @@ jobs:
       - name: Clean up stale sync branches
         if: steps.recheck.outputs.up_to_date != 'true'
         env:
-          GH_TOKEN: ${{ steps.release-app-token.outputs.token }}
+          GH_TOKEN: ${{ steps.commit-app-token.outputs.token }}
         run: |
           set -euo pipefail
           REFS=$(gh api --paginate "repos/${{ github.repository }}/git/matching-refs/heads/chore/sync-main-to-dev-" \
             --jq '.[].ref' | sed 's|refs/heads/||') || true
           for branch in ${REFS}; do
-            HAS_PR=$(gh pr list --base dev --head "${branch}" \
+            HAS_PR=$(GH_TOKEN="${{ steps.release-app-token.outputs.token }}" gh pr list --base dev --head "${branch}" \
               --state open --json number --jq 'length')
             if [ "${HAS_PR}" = "0" ]; then
               gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${branch}" 2>/dev/null || true
