@@ -80,7 +80,7 @@ def create_new_changelog(version, old_sections, rest_of_changelog):
     # Version section with TBD date
     # NOTE: No Unreleased section here. The release branch should not have one.
     # reset_unreleased() creates a fresh Unreleased section after the release
-    # is merged back to dev via post-release.yml.
+    # is synced back to dev.
     lines.append(f"## [{version}] - TBD\n")
     lines.append("\n")
 
