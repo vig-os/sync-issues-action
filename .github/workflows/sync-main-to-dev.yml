@@ -12,8 +12,8 @@
 #         - open PR (auto-mergeable, or labelled "merge-conflict" with
 #           resolution instructions when conflicts exist)
 #
-# Auth: GitHub App token (COMMIT_APP_ID / COMMIT_APP_PRIVATE_KEY) so branch
-# creation and PR operations run under app identity and respect protections.
+# Auth: GitHub App token (COMMIT_APP_ID / COMMIT_APP_PRIVATE_KEY), a dedicated
+# secret set for git/API operations requiring app identity and signing.
 #
 # Triggers: push to main · workflow_dispatch
 #
@@ -108,7 +108,30 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
+      - name: Re-check if dev is still behind main
+        id: recheck
+        run: |
+          set -euo pipefail
+          git fetch origin main dev
+          if ! git show-ref --verify --quiet refs/remotes/origin/main; then
+            echo "Error: remote branch 'origin/main' not found after fetch."
+            exit 1
+          fi
+          if ! git show-ref --verify --quiet refs/remotes/origin/dev; then
+            echo "Error: remote branch 'origin/dev' not found after fetch."
+            exit 1
+          fi
+          BEHIND=$(git rev-list --count origin/main ^origin/dev)
+          if [ "${BEHIND}" = "0" ]; then
+            echo "up_to_date=true" >> "$GITHUB_OUTPUT"
+            echo "Dev is now up to date with main. Skipping sync."
+          else
+            echo "up_to_date=false" >> "$GITHUB_OUTPUT"
+            echo "Dev is still behind main by ${BEHIND} commit(s). Continuing."
+          fi
+
       - name: Detect merge conflicts
+        if: steps.recheck.outputs.up_to_date != 'true'
         id: merge-check
         run: |
           set -euo pipefail
@@ -121,20 +144,23 @@ jobs:
           git merge --abort 2>/dev/null || true
 
       - name: Check for existing open sync PR
+        if: steps.recheck.outputs.up_to_date != 'true'
         id: existing-pr
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -euo pipefail
-          OPEN=$(gh pr list --base dev --state open \
-            --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("chore/sync-main-to-dev-"))] | length')
+          OPEN=$(gh pr list --base dev --state open --limit 200 \
+            --search '"sync dev with main" in:title' \
+            --json headRefName,title \
+            --jq '[.[] | select((.headRefName | startswith("chore/sync-main-to-dev-")) or (.title | test("sync dev with main"; "i"))] | length')
           echo "count=${OPEN}" >> "$GITHUB_OUTPUT"
           if [ "${OPEN}" != "0" ]; then
             echo "An open sync PR already exists — skipping."
           fi
 
       - name: Clean up stale sync branches
+        if: steps.recheck.outputs.up_to_date != 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
