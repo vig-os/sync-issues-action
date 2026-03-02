@@ -164,7 +164,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -euo pipefail
-          REFS=$(gh api "repos/${{ github.repository }}/git/matching-refs/heads/chore/sync-main-to-dev-" \
+          REFS=$(gh api --paginate "repos/${{ github.repository }}/git/matching-refs/heads/chore/sync-main-to-dev-" \
             --jq '.[].ref' | sed 's|refs/heads/||') || true
           for branch in ${REFS}; do
             HAS_PR=$(gh pr list --base dev --head "${branch}" \
