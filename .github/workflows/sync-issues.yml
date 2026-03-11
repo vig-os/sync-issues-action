@@ -87,7 +87,7 @@ jobs:
         with:
           app-id: ${{ secrets.COMMIT_APP_ID }}
           app-private-key: ${{ secrets.COMMIT_APP_PRIVATE_KEY }}
-          output-dir: ${{ github.event.inputs.output-dir || 'docs' }}
+          output-dir: 'docs'
           sync-issues: 'true'
           sync-prs: 'true'
           include-closed: 'true'
