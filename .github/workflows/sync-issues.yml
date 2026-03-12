@@ -54,8 +54,8 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
         with:
-          app-id: ${{ secrets.APP_SYNC_ISSUES_ID }}
-          private-key: ${{ secrets.APP_SYNC_ISSUES_PRIVATE_KEY }}
+          app-id: ${{ secrets.COMMIT_APP_ID }}
+          private-key: ${{ secrets.COMMIT_APP_PRIVATE_KEY }}
 
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -65,7 +65,7 @@ jobs:
 
       - name: Restore sync state (last synced timestamp)
         id: restore-state
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           path: .sync-state
           key: sync-issues-state-${{ github.repository }}
@@ -95,8 +95,8 @@ jobs:
         id: sync
         uses: vig-os/sync-issues-action@bad447d330526a7313ffddae084010c39b335fc1  # v0.2.2
         with:
-          app-id: ${{ secrets.APP_SYNC_ISSUES_ID }}
-          app-private-key: ${{ secrets.APP_SYNC_ISSUES_PRIVATE_KEY }}
+          app-id: ${{ secrets.COMMIT_APP_ID }}
+          app-private-key: ${{ secrets.COMMIT_APP_PRIVATE_KEY }}
           output-dir: ${{ github.event.inputs.output-dir || 'docs' }}
           sync-issues: 'true'
           sync-prs: 'true'
@@ -118,7 +118,7 @@ jobs:
 
       - name: Save sync state
         if: always()
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           path: .sync-state
           key: sync-issues-state-${{ github.repository }}
