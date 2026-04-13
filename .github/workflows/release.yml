@@ -225,7 +225,7 @@ jobs:
           python3 .github/prepare_changelog.py finalize "$VERSION" "$RELEASE_DATE" CHANGELOG.md
 
       - name: Commit and push finalization changes via API
-        uses: vig-os/commit-action@c0024cbad0e501764127cccab732c6cd465b4646  # v0.1.5
+        uses: vig-os/commit-action@1bc004353d08d9332a0cb54920b148256220c8e0  # v0.2.0
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
