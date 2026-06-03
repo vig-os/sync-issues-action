@@ -90,7 +90,7 @@ jobs:
           echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
 
       - name: Checkout release branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           ref: release/${{ steps.vars.outputs.version }}
           fetch-depth: 0
@@ -202,7 +202,7 @@ jobs:
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Checkout release branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           ref: release/${{ needs.validate.outputs.version }}
           token: ${{ steps.app-token.outputs.token }}
@@ -225,7 +225,7 @@ jobs:
           python3 .github/prepare_changelog.py finalize "$VERSION" "$RELEASE_DATE" CHANGELOG.md
 
       - name: Commit and push finalization changes via API
-        uses: vig-os/commit-action@c0024cbad0e501764127cccab732c6cd465b4646  # v0.1.5
+        uses: vig-os/commit-action@1bc004353d08d9332a0cb54920b148256220c8e0  # v0.2.0
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -262,7 +262,7 @@ jobs:
 
     steps:
       - name: Checkout finalized commit
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           ref: ${{ needs.finalize.outputs.finalize_sha }}
 
@@ -304,7 +304,7 @@ jobs:
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Checkout finalized commit
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           ref: ${{ needs.finalize.outputs.finalize_sha }}
           token: ${{ steps.app-token.outputs.token }}
@@ -503,7 +503,7 @@ jobs:
 
     steps:
       - name: Checkout release branch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           ref: release/${{ needs.validate.outputs.version }}
 
@@ -560,7 +560,7 @@ jobs:
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
