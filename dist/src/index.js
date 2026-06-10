@@ -37,6 +37,7 @@ exports.GRAPHQL_BATCH_SIZE = void 0;
 exports.formatGitHubError = formatGitHubError;
 exports.isRetryableError = isRetryableError;
 exports.withRetry = withRetry;
+exports.parseNumberFilter = parseNumberFilter;
 exports.fetchIssueRelationships = fetchIssueRelationships;
 exports.formatIssueAsMarkdown = formatIssueAsMarkdown;
 exports.formatPRAsMarkdown = formatPRAsMarkdown;
@@ -128,6 +129,49 @@ async function withRetry(label, fn) {
     }
     throw lastError;
 }
+function parseNumberFilter(input) {
+    const trimmed = input.trim();
+    if (!trimmed) {
+        return undefined;
+    }
+    const numbers = new Set();
+    for (const rawToken of trimmed.split(',')) {
+        const token = rawToken.trim();
+        if (!token) {
+            continue;
+        }
+        if (token.includes('-')) {
+            const parts = token.split('-').map((part) => part.trim());
+            if (parts.length !== 2 || !parts[0] || !parts[1]) {
+                throw new Error(`Invalid number filter token: "${rawToken.trim()}"`);
+            }
+            const start = Number(parts[0]);
+            const end = Number(parts[1]);
+            if (!Number.isInteger(start) ||
+                !Number.isInteger(end) ||
+                start <= 0 ||
+                end <= 0) {
+                throw new Error(`Invalid number filter token: "${rawToken.trim()}"`);
+            }
+            if (start > end) {
+                throw new Error(`Invalid number filter range: "${rawToken.trim()}" (start must be <= end)`);
+            }
+            for (let num = start; num <= end; num++) {
+                numbers.add(num);
+            }
+            continue;
+        }
+        const value = Number(token);
+        if (!Number.isInteger(value) || value <= 0) {
+            throw new Error(`Invalid number filter token: "${rawToken.trim()}"`);
+        }
+        numbers.add(value);
+    }
+    if (numbers.size === 0) {
+        return undefined;
+    }
+    return Array.from(numbers).sort((a, b) => a - b);
+}
 async function run() {
     try {
         // Get token from input (defaults to github.token via action.yml)
@@ -175,6 +219,8 @@ async function run() {
         const forceUpdate = forceUpdateInput.toLowerCase() === 'true';
         const syncSubIssues = syncSubIssuesInput.toLowerCase() === 'true';
         const updatedSince = resolveUpdatedSince(updatedSinceInput, stateFilePath);
+        const issuesFilter = parseNumberFilter(core.getInput('issues-filter') || '');
+        const prsFilter = parseNumberFilter(core.getInput('prs-filter') || '');
         const octokit = github.getOctokit(tokenToUse);
         const context = github.context;
         const owner = context.repo.owner;
@@ -193,7 +239,7 @@ async function run() {
             if (!fs.existsSync(issuesDir)) {
                 fs.mkdirSync(issuesDir, { recursive: true });
             }
-            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince, forceUpdate, syncSubIssues);
+            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince, forceUpdate, syncSubIssues, issuesFilter);
             issuesCount = issuesResult.count;
             modifiedFiles.push(...issuesResult.files);
         }
@@ -202,7 +248,7 @@ async function run() {
             if (!fs.existsSync(prsDir)) {
                 fs.mkdirSync(prsDir, { recursive: true });
             }
-            const prsResult = await syncPRsToMarkdown(octokit, owner, repo, prsDir, includeClosed, updatedSince, forceUpdate);
+            const prsResult = await syncPRsToMarkdown(octokit, owner, repo, prsDir, includeClosed, updatedSince, forceUpdate, prsFilter);
             prsCount = prsResult.count;
             modifiedFiles.push(...prsResult.files);
         }
@@ -225,32 +271,63 @@ async function run() {
         }
     }
 }
-async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = true) {
-    const state = includeClosed ? 'all' : 'open';
-    let page = 1;
-    const perPage = 100;
-    let hasMore = true;
+async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = true, filterNumbers) {
     const allIssues = [];
-    while (hasMore) {
-        let issues;
-        try {
-            ({ data: issues } = await withRetry(`List issues (page ${page})`, () => octokit.rest.issues.listForRepo({
-                owner,
-                repo,
-                state,
-                per_page: perPage,
-                page,
-                ...(updatedSince ? { since: updatedSince } : {}),
-            })));
+    if (filterNumbers) {
+        for (const issueNumber of filterNumbers) {
+            try {
+                const { data: issue } = await withRetry(`Fetch issue #${issueNumber}`, () => octokit.rest.issues.get({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                }));
+                if (issue.pull_request) {
+                    core.warning(`Skipping #${issueNumber}: not an issue (pull request).`);
+                    continue;
+                }
+                if (!includeClosed && issue.state === 'closed') {
+                    core.info(`Skipping issue #${issueNumber}: closed and include-closed is false.`);
+                    continue;
+                }
+                if (updatedSince && !isUpdatedSince(issue.updated_at, updatedSince)) {
+                    core.info(`Skipping issue #${issueNumber}: not updated since ${updatedSince}.`);
+                    continue;
+                }
+                allIssues.push(issue);
+            }
+            catch (error) {
+                core.warning(`Skipping issue #${issueNumber}: ${formatGitHubError(error)}`);
+            }
         }
-        catch (error) {
-            core.warning(`Failed to list issues (page ${page}): ${formatGitHubError(error)}. Stopping issue sync.`);
-            break;
+    }
+    else {
+        const state = includeClosed ? 'all' : 'open';
+        let page = 1;
+        const perPage = 100;
+        let hasMore = true;
+        while (hasMore) {
+            let issues;
+            try {
+                ({ data: issues } = await withRetry(`List issues (page ${page})`, () => octokit.rest.issues.listForRepo({
+                    owner,
+                    repo,
+                    state,
+                    per_page: perPage,
+                    page,
+                    ...(updatedSince ? { since: updatedSince } : {}),
+                })));
+            }
+            catch (error) {
+                core.warning(`Failed to list issues (page ${page}): ${formatGitHubError(error)}. Stopping issue sync.`);
+                break;
+            }
+            const actualIssues = issues.filter((issue) => !issue.pull_request);
+            for (const issue of actualIssues) {
+                allIssues.push(issue);
+            }
+            hasMore = issues.length === perPage;
+            page++;
         }
-        const actualIssues = issues.filter((issue) => !issue.pull_request);
-        allIssues.push(...actualIssues);
-        hasMore = issues.length === perPage;
-        page++;
     }
     const issueNumbers = allIssues.map((issue) => issue.number);
     const relationships = syncSubIssues
@@ -262,11 +339,15 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
         try {
             const filename = `issue-${issue.number}.md`;
             const filepath = path.join(outputDir, filename);
-            const { data: fullIssue } = await withRetry(`Fetch issue #${issue.number}`, () => octokit.rest.issues.get({
-                owner,
-                repo,
-                issue_number: issue.number,
-            }));
+            let fullIssue = issue;
+            if (!filterNumbers) {
+                const { data } = await withRetry(`Fetch issue #${issue.number}`, () => octokit.rest.issues.get({
+                    owner,
+                    repo,
+                    issue_number: issue.number,
+                }));
+                fullIssue = data;
+            }
             const comments = await fetchComments(octokit, owner, repo, issue.number);
             const relationship = relationships.get(issue.number);
             const content = formatIssueAsMarkdown(fullIssue, comments, relationship);
@@ -289,80 +370,110 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
     }
     return { count: allIssues.length - skippedIssues, files };
 }
-async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false) {
-    const state = includeClosed ? 'all' : 'open';
-    let page = 1;
-    const perPage = 100;
-    let hasMore = true;
+async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, filterNumbers) {
     let prsCount = 0;
     const files = [];
     let skippedPRs = 0;
-    while (hasMore) {
-        let prs;
-        try {
-            ({ data: prs } = await withRetry(`List pull requests (page ${page})`, () => octokit.rest.pulls.list({
-                owner,
-                repo,
-                state,
-                per_page: perPage,
-                page,
-                ...(updatedSince
-                    ? {
-                        sort: 'updated',
-                        direction: 'desc',
-                    }
-                    : {}),
-            })));
+    const processPR = async (fullPR) => {
+        const filename = `pr-${fullPR.number}.md`;
+        const filepath = path.join(outputDir, filename);
+        const comments = await fetchComments(octokit, owner, repo, fullPR.number);
+        const reviewComments = await fetchReviewComments(octokit, owner, repo, fullPR.number);
+        let commits = [];
+        if (fullPR.state === 'closed') {
+            commits = await fetchPRCommits(octokit, owner, repo, fullPR.number);
         }
-        catch (error) {
-            core.warning(`Failed to list pull requests (page ${page}): ${formatGitHubError(error)}. Stopping PR sync.`);
-            break;
+        const content = formatPRAsMarkdown(fullPR, comments, reviewComments, commits);
+        if (forceUpdate || hasContentChanged(content, filepath)) {
+            fs.writeFileSync(filepath, content, 'utf-8');
+            files.push(filepath);
+            const commitInfo = commits.length > 0 ? ` with ${commits.length} commit(s)` : '';
+            core.info(`Synced PR #${fullPR.number}${commitInfo} with ${comments.length + reviewComments.length} comment(s) to ${filepath}`);
         }
-        const filteredPRs = updatedSince
-            ? prs.filter((pr) => isUpdatedSince(pr.updated_at, updatedSince))
-            : prs;
-        prsCount += filteredPRs.length;
-        for (const pr of filteredPRs) {
+        else {
+            core.info(`PR #${fullPR.number} unchanged, skipping write to ${filepath}`);
+        }
+    };
+    if (filterNumbers) {
+        for (const prNumber of filterNumbers) {
             try {
-                const filename = `pr-${pr.number}.md`;
-                const filepath = path.join(outputDir, filename);
-                const { data: fullPR } = await withRetry(`Fetch PR #${pr.number}`, () => octokit.rest.pulls.get({
+                const { data: fullPR } = await withRetry(`Fetch PR #${prNumber}`, () => octokit.rest.pulls.get({
                     owner,
                     repo,
-                    pull_number: pr.number,
+                    pull_number: prNumber,
                 }));
-                const comments = await fetchComments(octokit, owner, repo, pr.number);
-                const reviewComments = await fetchReviewComments(octokit, owner, repo, pr.number);
-                let commits = [];
-                if (fullPR.state === 'closed') {
-                    commits = await fetchPRCommits(octokit, owner, repo, pr.number);
+                if (!includeClosed && fullPR.state === 'closed') {
+                    core.info(`Skipping PR #${prNumber}: closed and include-closed is false.`);
+                    continue;
                 }
-                const content = formatPRAsMarkdown(fullPR, comments, reviewComments, commits);
-                if (forceUpdate || hasContentChanged(content, filepath)) {
-                    fs.writeFileSync(filepath, content, 'utf-8');
-                    files.push(filepath);
-                    const commitInfo = commits.length > 0 ? ` with ${commits.length} commit(s)` : '';
-                    core.info(`Synced PR #${pr.number}${commitInfo} with ${comments.length + reviewComments.length} comment(s) to ${filepath}`);
+                if (updatedSince && !isUpdatedSince(fullPR.updated_at, updatedSince)) {
+                    core.info(`Skipping PR #${prNumber}: not updated since ${updatedSince}.`);
+                    continue;
                 }
-                else {
-                    core.info(`PR #${pr.number} unchanged, skipping write to ${filepath}`);
-                }
+                await processPR(fullPR);
+                prsCount++;
             }
             catch (error) {
                 skippedPRs++;
-                prsCount--;
-                core.warning(`Skipping PR #${pr.number}: ${formatGitHubError(error)}`);
+                core.warning(`Skipping PR #${prNumber}: ${formatGitHubError(error)}`);
             }
         }
-        if (updatedSince) {
-            const lastPR = prs[prs.length - 1];
-            const olderThanSince = !lastPR || !isUpdatedSince(lastPR.updated_at, updatedSince);
-            hasMore = prs.length === perPage && !olderThanSince;
+    }
+    else {
+        const state = includeClosed ? 'all' : 'open';
+        let page = 1;
+        const perPage = 100;
+        let hasMore = true;
+        while (hasMore) {
+            let prs;
+            try {
+                ({ data: prs } = await withRetry(`List pull requests (page ${page})`, () => octokit.rest.pulls.list({
+                    owner,
+                    repo,
+                    state,
+                    per_page: perPage,
+                    page,
+                    ...(updatedSince
+                        ? {
+                            sort: 'updated',
+                            direction: 'desc',
+                        }
+                        : {}),
+                })));
+            }
+            catch (error) {
+                core.warning(`Failed to list pull requests (page ${page}): ${formatGitHubError(error)}. Stopping PR sync.`);
+                break;
+            }
+            const filteredPRs = updatedSince
+                ? prs.filter((pr) => isUpdatedSince(pr.updated_at, updatedSince))
+                : prs;
+            prsCount += filteredPRs.length;
+            for (const pr of filteredPRs) {
+                try {
+                    const { data: fullPR } = await withRetry(`Fetch PR #${pr.number}`, () => octokit.rest.pulls.get({
+                        owner,
+                        repo,
+                        pull_number: pr.number,
+                    }));
+                    await processPR(fullPR);
+                }
+                catch (error) {
+                    skippedPRs++;
+                    prsCount--;
+                    core.warning(`Skipping PR #${pr.number}: ${formatGitHubError(error)}`);
+                }
+            }
+            if (updatedSince) {
+                const lastPR = prs[prs.length - 1];
+                const olderThanSince = !lastPR || !isUpdatedSince(lastPR.updated_at, updatedSince);
+                hasMore = prs.length === perPage && !olderThanSince;
+            }
+            else {
+                hasMore = prs.length === perPage;
+            }
+            page++;
         }
-        else {
-            hasMore = prs.length === perPage;
-        }
-        page++;
     }
     if (skippedPRs > 0) {
         core.warning(`Skipped ${skippedPRs} pull request(s) due to API errors.`);

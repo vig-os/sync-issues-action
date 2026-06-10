@@ -34,6 +34,12 @@ inputs:
   updated-since:
     description: 'Only sync items updated after this ISO8601 timestamp'
     required: false
+  issues-filter:
+    description: 'Comma-separated issue numbers and/or inclusive ranges (e.g. 1,5,10-20). When set, only these issues are synced.'
+    required: false
+  prs-filter:
+    description: 'Comma-separated pull request numbers and/or inclusive ranges (e.g. 1,5,10-20). When set, only these pull requests are synced.'
+    required: false
   state-file:
     description: 'Optional path to store last sync timestamp (use with cache)'
     required: false
