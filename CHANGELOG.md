@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Adopt vigOS v0.3.5 devcontainer and realign project tooling to Node** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
+  - Provision Node via `scripts/setup-node.sh` and `just` recipes; run lint, build, and test inside the devcontainer
+  - Adapt release workflows and label taxonomy to the standardized vigOS layout
+  - Drop Python scaffolding and the legacy `setup-env`/`build-dist` composite actions
 - **`just test` runs the full local suite; add `just test-unit` for unit-only runs**
   - `just test` runs unit tests plus integration when a GitHub token is available; integration is skipped with a warning otherwise
   - `just test-unit` replaces the previous unit-only `just test` behavior and accepts Jest filter args
