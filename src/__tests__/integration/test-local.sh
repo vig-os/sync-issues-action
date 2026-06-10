@@ -36,13 +36,17 @@ export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-vig-os/sync-issues-action}"
 # Create a temporary .env file for local-action
 ENV_FILE=$(mktemp)
 OUTPUT_FILE=$(mktemp)
+ISSUES_FILTER="${INPUT_ISSUES_FILTER:-4,8}"
+PRS_FILTER="${INPUT_PRS_FILTER:-1,3}"
 cat > "$ENV_FILE" <<EOF
 INPUT_TOKEN=$GITHUB_TOKEN
 GITHUB_REPOSITORY=$GITHUB_REPOSITORY
 INPUT_OUTPUT-DIR=test_output
 INPUT_SYNC-ISSUES=true
 INPUT_SYNC-PRS=true
-INPUT_INCLUDE-CLOSED=false
+INPUT_INCLUDE-CLOSED=true
+INPUT_ISSUES-FILTER=$ISSUES_FILTER
+INPUT_PRS-FILTER=$PRS_FILTER
 EOF
 
 # Run local-action with entrypoint and capture outputs

@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sync workflow uses commit-scoped app secrets and manual output target**
   - Update `sync-issues.yml` to use `COMMIT_APP_ID`/`COMMIT_APP_PRIVATE_KEY` for both checkout token generation and action app auth inputs
   - Respect `workflow_dispatch` `output-dir` input in the action call, with `'docs'` as the default fallback
+- **Bound integration test runtime to a fixed subset** ([#56](https://github.com/vig-os/sync-issues-action/issues/56))
+  - Integration test workflow and local test scripts now pass `issues-filter`/`prs-filter` so only a small, stable set of issues and PRs is synced
+  - Keeps test duration bounded as the repository's issue/PR count grows
 
 ## [0.2.2] - 2026-02-26
 
