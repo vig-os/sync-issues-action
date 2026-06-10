@@ -1,54 +1,8 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.GRAPHQL_BATCH_SIZE = void 0;
-exports.formatGitHubError = formatGitHubError;
-exports.isRetryableError = isRetryableError;
-exports.withRetry = withRetry;
-exports.parseNumberFilter = parseNumberFilter;
-exports.fetchIssueRelationships = fetchIssueRelationships;
-exports.formatIssueAsMarkdown = formatIssueAsMarkdown;
-exports.formatPRAsMarkdown = formatPRAsMarkdown;
-exports.formatDate = formatDate;
-exports.shiftHeadersToMinLevel = shiftHeadersToMinLevel;
-exports.run = run;
-const core = __importStar(require("@actions/core"));
-const github = __importStar(require("@actions/github"));
-const auth_app_1 = require("@octokit/auth-app");
-const fs = __importStar(require("fs"));
-const path = __importStar(require("path"));
+import * as core from '@actions/core';
+import * as github from '@actions/github';
+import { createAppAuth } from '@octokit/auth-app';
+import * as fs from 'fs';
+import * as path from 'path';
 const MAX_RETRY_ATTEMPTS = 4;
 const INITIAL_RETRY_DELAY_MS = 1000;
 function getErrorStatus(error) {
@@ -60,7 +14,7 @@ function getErrorStatus(error) {
     }
     return undefined;
 }
-function formatGitHubError(error) {
+export function formatGitHubError(error) {
     if (!(error instanceof Error)) {
         return 'Unknown error';
     }
@@ -76,7 +30,7 @@ function formatGitHubError(error) {
     }
     return message;
 }
-function isRetryableError(error) {
+export function isRetryableError(error) {
     const status = getErrorStatus(error);
     if (status !== undefined) {
         if (status >= 500 && status < 600) {
@@ -110,7 +64,7 @@ function isRetryableError(error) {
 async function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
-async function withRetry(label, fn) {
+export async function withRetry(label, fn) {
     let lastError;
     for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
         try {
@@ -129,7 +83,7 @@ async function withRetry(label, fn) {
     }
     throw lastError;
 }
-function parseNumberFilter(input) {
+export function parseNumberFilter(input) {
     const trimmed = input.trim();
     if (!trimmed) {
         return undefined;
@@ -505,14 +459,14 @@ async function fetchComments(octokit, owner, repo, issueNumber) {
     }
     return comments;
 }
-exports.GRAPHQL_BATCH_SIZE = 50;
-async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
+export const GRAPHQL_BATCH_SIZE = 50;
+export async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
     const relationships = new Map();
     if (issueNumbers.length === 0) {
         return relationships;
     }
-    for (let i = 0; i < issueNumbers.length; i += exports.GRAPHQL_BATCH_SIZE) {
-        const batch = issueNumbers.slice(i, i + exports.GRAPHQL_BATCH_SIZE);
+    for (let i = 0; i < issueNumbers.length; i += GRAPHQL_BATCH_SIZE) {
+        const batch = issueNumbers.slice(i, i + GRAPHQL_BATCH_SIZE);
         const issueFields = batch
             .map((num) => `issue_${num}: issue(number: ${num}) {
             parent { number }
@@ -525,7 +479,7 @@ async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
       }
     }`;
         try {
-            const response = await withRetry(`Fetch sub-issue relationships (batch ${Math.floor(i / exports.GRAPHQL_BATCH_SIZE) + 1})`, () => octokit.graphql(query, {
+            const response = await withRetry(`Fetch sub-issue relationships (batch ${Math.floor(i / GRAPHQL_BATCH_SIZE) + 1})`, () => octokit.graphql(query, {
                 owner,
                 repo,
             }));
@@ -545,7 +499,7 @@ async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
                 core.info('Sub-issues API is not available for this repository. Skipping relationship sync.');
                 break;
             }
-            core.warning(`Failed to fetch sub-issue relationships (batch ${Math.floor(i / exports.GRAPHQL_BATCH_SIZE) + 1}): ${message}`);
+            core.warning(`Failed to fetch sub-issue relationships (batch ${Math.floor(i / GRAPHQL_BATCH_SIZE) + 1}): ${message}`);
         }
     }
     return relationships;
@@ -728,7 +682,7 @@ function hasContentChanged(newContent, existingFilePath) {
         return true;
     }
 }
-function formatIssueAsMarkdown(issue, comments = [], relationship) {
+export function formatIssueAsMarkdown(issue, comments = [], relationship) {
     const labels = issue.labels && issue.labels.length > 0
         ? issue.labels.map((label) => label.name).join(', ')
         : 'none';
@@ -777,7 +731,7 @@ function formatIssueAsMarkdown(issue, comments = [], relationship) {
 ${issueBody}
 ${commentsSection}`;
 }
-function formatPRAsMarkdown(pr, comments = [], reviewComments = [], commits = []) {
+export function formatPRAsMarkdown(pr, comments = [], reviewComments = [], commits = []) {
     const labels = pr.labels && pr.labels.length > 0 ? pr.labels.map((label) => label.name).join(', ') : 'none';
     const assignees = pr.assignees && pr.assignees.length > 0
         ? pr.assignees.map((assignee) => assignee.login).join(', ')
@@ -897,7 +851,7 @@ function renderReviewSnippet(comment) {
     // No diff available; skip snippet
     return undefined;
 }
-function formatDate(dateString) {
+export function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleString('en-US', {
         year: 'numeric',
@@ -934,7 +888,7 @@ function incrementHeadersIfNeeded(content) {
  * If the shallowest header already meets or exceeds `minLevel`, the content is returned unchanged.
  * Headers are capped at the maximum markdown level of 6.
  */
-function shiftHeadersToMinLevel(content, minLevel) {
+export function shiftHeadersToMinLevel(content, minLevel) {
     if (!content)
         return content;
     const headerMatches = content.match(/^#{1,6} /gm);
@@ -990,7 +944,7 @@ function isUpdatedSince(updatedAt, updatedSince) {
     return new Date(updatedAt).getTime() >= new Date(updatedSince).getTime();
 }
 async function generateAppInstallationToken(appId, privateKey) {
-    const auth = (0, auth_app_1.createAppAuth)({
+    const auth = createAppAuth({
         appId: appId,
         privateKey: privateKey,
     });
@@ -1020,5 +974,7 @@ async function generateAppInstallationToken(appId, privateKey) {
     });
     return installationAuth.token;
 }
+// Export run for testing
+export { run };
 // Run the action
 run();

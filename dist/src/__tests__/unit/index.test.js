@@ -1,45 +1,10 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
 // Import the functions to test
 // Mocks are set up in setup.ts which runs before this file
-const core = __importStar(require("@actions/core"));
-const github = __importStar(require("@actions/github"));
-const fs = __importStar(require("fs"));
-const path = __importStar(require("path"));
-const index_1 = require("../../index");
+import * as core from '@actions/core';
+import * as github from '@actions/github';
+import * as fs from 'fs';
+import * as path from 'path';
+import { formatDate, formatIssueAsMarkdown, formatPRAsMarkdown, shiftHeadersToMinLevel, fetchIssueRelationships, formatGitHubError, isRetryableError, withRetry, GRAPHQL_BATCH_SIZE, parseNumberFilter, run, } from '../../index';
 describe('Sync Issues Action', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -47,7 +12,7 @@ describe('Sync Issues Action', () => {
     describe('formatDate', () => {
         it('should format date correctly', () => {
             const dateString = '2024-01-15T10:30:00Z';
-            const formatted = (0, index_1.formatDate)(dateString);
+            const formatted = formatDate(dateString);
             expect(formatted).toContain('2024');
             expect(formatted).toContain('January');
         });
@@ -65,7 +30,7 @@ describe('Sync Issues Action', () => {
                 user: { login: 'testuser' },
                 html_url: 'https://github.com/test/repo/issues/1',
             };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            const markdown = formatIssueAsMarkdown(issue, []);
             expect(markdown).toContain('# [Issue 1]:');
             expect(markdown).toContain('[Test Issue](https://github.com/test/repo/issues/1)');
             expect(markdown).toContain('This is a test issue');
@@ -90,7 +55,7 @@ describe('Sync Issues Action', () => {
                 assignees: [{ login: 'assignee1' }, { login: 'assignee2' }],
                 milestone: { title: 'Sprint 1', number: 1 },
             };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            const markdown = formatIssueAsMarkdown(issue, []);
             expect(markdown).toContain('assignees: assignee1, assignee2');
             expect(markdown).toContain('milestone: Sprint 1');
             expect(markdown).toContain('labels: enhancement');
@@ -107,7 +72,7 @@ describe('Sync Issues Action', () => {
                 user: { login: 'testuser' },
                 html_url: 'https://github.com/test/repo/issues/13',
             };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            const markdown = formatIssueAsMarkdown(issue, []);
             expect(markdown).toContain('assignees: none');
             expect(markdown).toContain('milestone: none');
             expect(markdown).toContain('labels: none');
@@ -124,7 +89,7 @@ describe('Sync Issues Action', () => {
                 user: { login: 'testuser' },
                 html_url: 'https://github.com/test/repo/issues/2',
             };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            const markdown = formatIssueAsMarkdown(issue, []);
             expect(markdown).toContain('# [Issue 2]:');
             expect(markdown).toContain('[Closed Issue](https://github.com/test/repo/issues/2)');
             expect(markdown).not.toContain('## Description');
@@ -143,7 +108,7 @@ describe('Sync Issues Action', () => {
                 user: { login: 'testuser' },
                 html_url: 'https://github.com/test/repo/issues/3',
             };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            const markdown = formatIssueAsMarkdown(issue, []);
             expect(markdown).toContain('_No description provided._');
         });
         it('should include comments when provided', () => {
@@ -168,7 +133,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/issues/4#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, comments);
+            const markdown = formatIssueAsMarkdown(issue, comments);
             expect(markdown).not.toContain('## Comments');
             expect(markdown).toContain('# [Comment #1]()');
             expect(markdown).toContain('by [commenter]()');
@@ -192,7 +157,7 @@ describe('Sync Issues Action', () => {
                 user: { login: 'testuser' },
                 html_url: 'https://github.com/test/repo/issues/5',
             };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            const markdown = formatIssueAsMarkdown(issue, []);
             // Headers should be incremented
             expect(markdown).toContain('## Main Title');
             expect(markdown).toContain('### Subtitle');
@@ -217,7 +182,7 @@ describe('Sync Issues Action', () => {
                 user: { login: 'testuser' },
                 html_url: 'https://github.com/test/repo/issues/6',
             };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            const markdown = formatIssueAsMarkdown(issue, []);
             // Headers should remain unchanged
             expect(markdown).toContain('## Subtitle');
             expect(markdown).toContain('### Sub-subtitle');
@@ -247,7 +212,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/issues/7#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, comments);
+            const markdown = formatIssueAsMarkdown(issue, comments);
             // Comment headers should be incremented
             expect(markdown).toContain('## Comment Title');
             expect(markdown).toContain('### Comment Subtitle');
@@ -278,7 +243,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/issues/9#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, comments);
+            const markdown = formatIssueAsMarkdown(issue, comments);
             // Comment headers should remain unchanged
             expect(markdown).toContain('## Comment Subtitle');
             expect(markdown).toContain('### Sub-subtitle');
@@ -298,7 +263,7 @@ describe('Sync Issues Action', () => {
                 user: { login: 'testuser' },
                 html_url: 'https://github.com/test/repo/issues/10',
             };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            const markdown = formatIssueAsMarkdown(issue, []);
             // Headers should be incremented up to level 6
             expect(markdown).toContain('## Main Title');
             expect(markdown).toContain('### Subtitle');
@@ -332,7 +297,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/issues/11#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, comments);
+            const markdown = formatIssueAsMarkdown(issue, comments);
             // Comment headers should be incremented
             expect(markdown).toContain('## Comment Title');
             expect(markdown).toContain('### Subtitle');
@@ -371,7 +336,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/issues/8#issuecomment-2',
                 },
             ];
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, comments);
+            const markdown = formatIssueAsMarkdown(issue, comments);
             expect(markdown).toContain('# [Comment #1]()');
             expect(markdown).toContain('by [user1]()');
             expect(markdown).toContain('First comment');
@@ -397,7 +362,7 @@ describe('Sync Issues Action', () => {
                 html_url: 'https://github.com/test/repo/issues/20',
             };
             const relationship = { parent: 67, children: [] };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, [], relationship);
+            const markdown = formatIssueAsMarkdown(issue, [], relationship);
             expect(markdown).toContain('parent: 67');
             expect(markdown).toContain('children: none');
             expect(markdown).not.toContain('relationship:');
@@ -415,7 +380,7 @@ describe('Sync Issues Action', () => {
                 html_url: 'https://github.com/test/repo/issues/30',
             };
             const relationship = { parent: null, children: [61, 63, 80] };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, [], relationship);
+            const markdown = formatIssueAsMarkdown(issue, [], relationship);
             expect(markdown).toContain('parent: none');
             expect(markdown).toContain('children: 61, 63, 80');
             expect(markdown).not.toContain('relationship:');
@@ -433,7 +398,7 @@ describe('Sync Issues Action', () => {
                 html_url: 'https://github.com/test/repo/issues/40',
             };
             const relationship = { parent: 10, children: [61, 63] };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, [], relationship);
+            const markdown = formatIssueAsMarkdown(issue, [], relationship);
             expect(markdown).toContain('parent: 10');
             expect(markdown).toContain('children: 61, 63');
             expect(markdown).not.toContain('relationship:');
@@ -450,7 +415,7 @@ describe('Sync Issues Action', () => {
                 user: { login: 'testuser' },
                 html_url: 'https://github.com/test/repo/issues/50',
             };
-            const markdown = (0, index_1.formatIssueAsMarkdown)(issue, []);
+            const markdown = formatIssueAsMarkdown(issue, []);
             expect(markdown).toContain('parent: none');
             expect(markdown).toContain('children: none');
             expect(markdown).not.toContain('relationship:');
@@ -472,7 +437,7 @@ describe('Sync Issues Action', () => {
                 head: { ref: 'feature-branch' },
                 base: { ref: 'main' },
             };
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, []);
+            const markdown = formatPRAsMarkdown(pr, []);
             expect(markdown).toContain('# [PR 1]');
             expect(markdown).toContain('Test PR');
             expect(markdown).toContain('feature-branch');
@@ -497,7 +462,7 @@ describe('Sync Issues Action', () => {
                 head: { ref: 'feature-branch' },
                 base: { ref: 'main' },
             };
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, []);
+            const markdown = formatPRAsMarkdown(pr, []);
             expect(markdown).toContain('# [PR 2]');
             expect(markdown).toContain('Merged PR');
             expect(markdown).toContain('state: closed (merged)');
@@ -519,7 +484,7 @@ describe('Sync Issues Action', () => {
                 head: { ref: 'feature-branch' },
                 base: { ref: 'main' },
             };
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, []);
+            const markdown = formatPRAsMarkdown(pr, []);
             expect(markdown).toContain('# [PR 3]');
             expect(markdown).toContain('Closed PR');
             expect(markdown).toContain('state: closed');
@@ -565,7 +530,7 @@ describe('Sync Issues Action', () => {
                     files: [{ filename: 'src/file3.ts' }],
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, [], [], commits);
+            const markdown = formatPRAsMarkdown(pr, [], [], commits);
             expect(markdown).toContain('## Commits');
             expect(markdown).toContain('### Commit 1: [abc1234]');
             expect(markdown).toContain('feat: add new feature');
@@ -591,7 +556,7 @@ describe('Sync Issues Action', () => {
                 head: { ref: 'feature-branch' },
                 base: { ref: 'main' },
             };
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, [], [], []);
+            const markdown = formatPRAsMarkdown(pr, [], [], []);
             expect(markdown).not.toContain('## Commits');
         });
         it('should format commit without author login using commit author name', () => {
@@ -620,7 +585,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/commit/abc1234',
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, [], [], commits);
+            const markdown = formatPRAsMarkdown(pr, [], [], commits);
             expect(markdown).toContain('by [Commit Author]');
             expect(markdown).toContain('https://github.com/Commit Author');
         });
@@ -652,7 +617,7 @@ describe('Sync Issues Action', () => {
                     files: [{ filename: 'file1.ts' }, { filename: 'file2.ts' }, { filename: 'file3.ts' }],
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, [], [], commits);
+            const markdown = formatPRAsMarkdown(pr, [], [], commits);
             expect(markdown).toContain('3 files modified');
             expect(markdown).toContain('(file1.ts, file2.ts, file3.ts)');
         });
@@ -673,7 +638,7 @@ describe('Sync Issues Action', () => {
                 assignees: [{ login: 'assignee1' }, { login: 'assignee2' }],
                 milestone: { title: 'Sprint 1', number: 1 },
             };
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, []);
+            const markdown = formatPRAsMarkdown(pr, []);
             expect(markdown).toContain('assignees: assignee1, assignee2');
             expect(markdown).toContain('milestone: Sprint 1');
             expect(markdown).toContain('labels: bug, urgent');
@@ -693,7 +658,7 @@ describe('Sync Issues Action', () => {
                 head: { ref: 'feature-branch' },
                 base: { ref: 'main' },
             };
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, []);
+            const markdown = formatPRAsMarkdown(pr, []);
             expect(markdown).toContain('assignees: none');
             expect(markdown).toContain('milestone: none');
             expect(markdown).toContain('labels: none');
@@ -737,7 +702,7 @@ describe('Sync Issues Action', () => {
                     in_reply_to_id: 1,
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, [], reviewComments);
+            const markdown = formatPRAsMarkdown(pr, [], reviewComments);
             expect(markdown).toContain('## Review Threads (1)');
             expect(markdown).toContain('Review by [@reviewer](https://github.com/reviewer)');
             expect(markdown).toContain('src/index.ts');
@@ -773,7 +738,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/pull/20#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            const markdown = formatPRAsMarkdown(pr, comments);
             expect(markdown).toContain('# Comments (1)');
             expect(markdown).not.toMatch(/^## Comments/m);
         });
@@ -802,7 +767,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/pull/21#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            const markdown = formatPRAsMarkdown(pr, comments);
             expect(markdown).toContain('## [Comment #1]');
             expect(markdown).not.toMatch(/^### \[Comment #1\]/m);
         });
@@ -831,7 +796,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/pull/22#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            const markdown = formatPRAsMarkdown(pr, comments);
             expect(markdown).toContain('### Idea: Tracking');
             expect(markdown).toContain('#### How it would work');
             expect(markdown).not.toMatch(/^## Idea/m);
@@ -862,7 +827,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/pull/23#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            const markdown = formatPRAsMarkdown(pr, comments);
             expect(markdown).toContain('### Big Title');
             expect(markdown).toContain('#### Subtitle');
         });
@@ -891,7 +856,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/pull/24#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            const markdown = formatPRAsMarkdown(pr, comments);
             expect(markdown).toContain('### Already deep');
             expect(markdown).toContain('#### Even deeper');
         });
@@ -920,7 +885,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://github.com/test/repo/pull/25#issuecomment-1',
                 },
             ];
-            const markdown = (0, index_1.formatPRAsMarkdown)(pr, comments);
+            const markdown = formatPRAsMarkdown(pr, comments);
             expect(markdown).toContain('### Title');
             expect(markdown).toContain('#### Sub');
             expect(markdown).toContain('###### Deep');
@@ -945,39 +910,39 @@ describe('Sync Issues Action', () => {
                     },
                 },
             });
-            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [5, 7]);
+            const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', [5, 7]);
             expect(result.get(5)).toEqual({ parent: 2, children: [10, 11] });
             expect(result.get(7)).toEqual({ parent: null, children: [] });
             expect(mockOctokit.graphql).toHaveBeenCalledTimes(1);
         });
         it('should return empty map for empty issue list', async () => {
-            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', []);
+            const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', []);
             expect(result.size).toBe(0);
             expect(mockOctokit.graphql).not.toHaveBeenCalled();
         });
         it('should warn on GraphQL error and return empty results for that batch', async () => {
             mockOctokit.graphql.mockRejectedValueOnce(new Error('GraphQL rate limit'));
-            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [1, 2]);
+            const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', [1, 2]);
             expect(result.size).toBe(0);
             expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('GraphQL rate limit'));
         });
         it('should emit info instead of warning on schema error', async () => {
             mockOctokit.graphql.mockRejectedValueOnce(new Error("Request failed due to following response errors:\n - Field 'parent' doesn't exist on type 'Issue'"));
-            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [1, 2]);
+            const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', [1, 2]);
             expect(result.size).toBe(0);
             expect(core.info).toHaveBeenCalledWith('Sub-issues API is not available for this repository. Skipping relationship sync.');
             expect(core.warning).not.toHaveBeenCalled();
         });
         it('should still warn on non-schema errors when sub-issues enabled', async () => {
             mockOctokit.graphql.mockRejectedValueOnce(new Error('Server error'));
-            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', [3]);
+            const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', [3]);
             expect(result.size).toBe(0);
             expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('Server error'));
             expect(core.info).not.toHaveBeenCalled();
         });
         it('should return partial results when a later batch fails', async () => {
-            const batch1Issues = Array.from({ length: index_1.GRAPHQL_BATCH_SIZE }, (_, i) => i + 1);
-            const batch2Issues = [index_1.GRAPHQL_BATCH_SIZE + 1, index_1.GRAPHQL_BATCH_SIZE + 2];
+            const batch1Issues = Array.from({ length: GRAPHQL_BATCH_SIZE }, (_, i) => i + 1);
+            const batch2Issues = [GRAPHQL_BATCH_SIZE + 1, GRAPHQL_BATCH_SIZE + 2];
             const allIssues = [...batch1Issues, ...batch2Issues];
             const batch1Response = {};
             for (const num of batch1Issues) {
@@ -989,18 +954,18 @@ describe('Sync Issues Action', () => {
             mockOctokit.graphql
                 .mockResolvedValueOnce({ repository: batch1Response })
                 .mockRejectedValueOnce(new Error('Transient network error'));
-            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', allIssues);
-            expect(result.size).toBe(index_1.GRAPHQL_BATCH_SIZE);
+            const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', allIssues);
+            expect(result.size).toBe(GRAPHQL_BATCH_SIZE);
             for (const num of batch1Issues) {
                 expect(result.get(num)).toEqual({ parent: null, children: [] });
             }
-            expect(result.has(index_1.GRAPHQL_BATCH_SIZE + 1)).toBe(false);
-            expect(result.has(index_1.GRAPHQL_BATCH_SIZE + 2)).toBe(false);
+            expect(result.has(GRAPHQL_BATCH_SIZE + 1)).toBe(false);
+            expect(result.has(GRAPHQL_BATCH_SIZE + 2)).toBe(false);
             expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('Transient network error'));
         });
         it('should break and return partial results on schema error in later batch', async () => {
-            const batch1Issues = Array.from({ length: index_1.GRAPHQL_BATCH_SIZE }, (_, i) => i + 1);
-            const batch2Issues = [index_1.GRAPHQL_BATCH_SIZE + 1];
+            const batch1Issues = Array.from({ length: GRAPHQL_BATCH_SIZE }, (_, i) => i + 1);
+            const batch2Issues = [GRAPHQL_BATCH_SIZE + 1];
             const allIssues = [...batch1Issues, ...batch2Issues];
             const batch1Response = {};
             for (const num of batch1Issues) {
@@ -1012,68 +977,68 @@ describe('Sync Issues Action', () => {
             mockOctokit.graphql
                 .mockResolvedValueOnce({ repository: batch1Response })
                 .mockRejectedValueOnce(new Error("Field 'parent' doesn't exist on type 'Issue'"));
-            const result = await (0, index_1.fetchIssueRelationships)(mockOctokit, 'owner', 'repo', allIssues);
-            expect(result.size).toBe(index_1.GRAPHQL_BATCH_SIZE);
+            const result = await fetchIssueRelationships(mockOctokit, 'owner', 'repo', allIssues);
+            expect(result.size).toBe(GRAPHQL_BATCH_SIZE);
             expect(result.get(1)).toEqual({ parent: 999, children: [] });
-            expect(result.has(index_1.GRAPHQL_BATCH_SIZE + 1)).toBe(false);
+            expect(result.has(GRAPHQL_BATCH_SIZE + 1)).toBe(false);
             expect(core.info).toHaveBeenCalledWith('Sub-issues API is not available for this repository. Skipping relationship sync.');
             expect(core.warning).not.toHaveBeenCalled();
         });
     });
     describe('shiftHeadersToMinLevel', () => {
         it('should return empty/falsy content unchanged', () => {
-            expect((0, index_1.shiftHeadersToMinLevel)('', 3)).toBe('');
+            expect(shiftHeadersToMinLevel('', 3)).toBe('');
         });
         it('should return content with no headers unchanged', () => {
             const content = 'Just some text\nwith no headers';
-            expect((0, index_1.shiftHeadersToMinLevel)(content, 3)).toBe(content);
+            expect(shiftHeadersToMinLevel(content, 3)).toBe(content);
         });
         it('should shift headers when min current level is below target', () => {
             const content = '## Title\n\n### Sub\n\nText';
-            const result = (0, index_1.shiftHeadersToMinLevel)(content, 3);
+            const result = shiftHeadersToMinLevel(content, 3);
             expect(result).toBe('### Title\n\n#### Sub\n\nText');
         });
         it('should not shift when min current level already meets target', () => {
             const content = '### Title\n\n#### Sub';
-            expect((0, index_1.shiftHeadersToMinLevel)(content, 3)).toBe(content);
+            expect(shiftHeadersToMinLevel(content, 3)).toBe(content);
         });
         it('should not shift when min current level exceeds target', () => {
             const content = '#### Title\n\n##### Sub';
-            expect((0, index_1.shiftHeadersToMinLevel)(content, 3)).toBe(content);
+            expect(shiftHeadersToMinLevel(content, 3)).toBe(content);
         });
         it('should cap shifted headers at level 6', () => {
             const content = '# Title\n\n##### Deep';
-            const result = (0, index_1.shiftHeadersToMinLevel)(content, 3);
+            const result = shiftHeadersToMinLevel(content, 3);
             expect(result).toBe('### Title\n\n###### Deep');
         });
         it('should not exceed 6 hashes even when shift is large', () => {
             const content = '# Title\n\n###### Max';
-            const result = (0, index_1.shiftHeadersToMinLevel)(content, 4);
+            const result = shiftHeadersToMinLevel(content, 4);
             expect(result).toBe('#### Title\n\n###### Max');
         });
     });
     describe('parseNumberFilter', () => {
         it('should return undefined for empty input', () => {
-            expect((0, index_1.parseNumberFilter)('')).toBeUndefined();
-            expect((0, index_1.parseNumberFilter)('   ')).toBeUndefined();
+            expect(parseNumberFilter('')).toBeUndefined();
+            expect(parseNumberFilter('   ')).toBeUndefined();
         });
         it('should parse single number', () => {
-            expect((0, index_1.parseNumberFilter)('42')).toEqual([42]);
+            expect(parseNumberFilter('42')).toEqual([42]);
         });
         it('should parse comma-separated numbers and ranges', () => {
-            expect((0, index_1.parseNumberFilter)('1,5,10-12')).toEqual([1, 5, 10, 11, 12]);
+            expect(parseNumberFilter('1,5,10-12')).toEqual([1, 5, 10, 11, 12]);
         });
         it('should handle whitespace around tokens', () => {
-            expect((0, index_1.parseNumberFilter)(' 1 , 5 , 10 - 12 ')).toEqual([1, 5, 10, 11, 12]);
+            expect(parseNumberFilter(' 1 , 5 , 10 - 12 ')).toEqual([1, 5, 10, 11, 12]);
         });
         it('should deduplicate overlapping ranges and numbers', () => {
-            expect((0, index_1.parseNumberFilter)('1,2-3,3,2')).toEqual([1, 2, 3]);
+            expect(parseNumberFilter('1,2-3,3,2')).toEqual([1, 2, 3]);
         });
         it('should throw on invalid token', () => {
-            expect(() => (0, index_1.parseNumberFilter)('1,abc,5')).toThrow(/invalid/i);
+            expect(() => parseNumberFilter('1,abc,5')).toThrow(/invalid/i);
         });
         it('should throw on reversed range', () => {
-            expect(() => (0, index_1.parseNumberFilter)('10-5')).toThrow(/range/i);
+            expect(() => parseNumberFilter('10-5')).toThrow(/range/i);
         });
     });
     describe('Input Parameters', () => {
@@ -1157,7 +1122,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 2);
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 2);
                 expect(mockSetOutput).toHaveBeenCalledWith('last-synced-at', expect.any(String));
@@ -1179,7 +1144,7 @@ describe('Sync Issues Action', () => {
                     return '';
                 });
                 delete process.env.GITHUB_TOKEN;
-                await (0, index_1.run)();
+                await run();
                 expect(mockGetInput).toHaveBeenCalledWith('token');
                 expect(mockSetFailed).toHaveBeenCalledWith(expect.stringContaining('GitHub token is required'));
             });
@@ -1205,7 +1170,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockGetInput).toHaveBeenCalledWith('token');
                 expect(mockGetOctokit).toHaveBeenCalledWith('test-token-123');
             });
@@ -1234,7 +1199,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockGetInput).toHaveBeenCalledWith('output-dir');
                 expect(mockExistsSync).toHaveBeenCalledWith('synced-issues');
                 expect(mockMkdirSync).toHaveBeenCalledWith('synced-issues', { recursive: true });
@@ -1262,7 +1227,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockExistsSync).toHaveBeenCalledWith('/custom/output/path');
                 expect(mockMkdirSync).toHaveBeenCalledWith('/custom/output/path', { recursive: true });
             });
@@ -1290,7 +1255,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockExistsSync).toHaveBeenCalledWith('/existing/path');
                 expect(mockMkdirSync).not.toHaveBeenCalledWith('/existing/path', expect.anything());
             });
@@ -1319,7 +1284,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockInfo).toHaveBeenCalledWith('Syncing issues...');
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalled();
             });
@@ -1345,7 +1310,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockInfo).toHaveBeenCalledWith('Syncing issues...');
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalled();
             });
@@ -1371,7 +1336,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockInfo).not.toHaveBeenCalledWith('Syncing issues...');
                 expect(mockOctokit.rest.issues.listForRepo).not.toHaveBeenCalled();
             });
@@ -1397,7 +1362,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockInfo).toHaveBeenCalledWith('Syncing issues...');
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalled();
             });
@@ -1425,7 +1390,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockInfo).toHaveBeenCalledWith('Syncing pull requests...');
                 expect(mockOctokit.rest.pulls.list).toHaveBeenCalled();
             });
@@ -1451,7 +1416,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockInfo).toHaveBeenCalledWith('Syncing pull requests...');
                 expect(mockOctokit.rest.pulls.list).toHaveBeenCalled();
             });
@@ -1477,7 +1442,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockInfo).not.toHaveBeenCalledWith('Syncing pull requests...');
                 expect(mockOctokit.rest.pulls.list).not.toHaveBeenCalled();
             });
@@ -1505,7 +1470,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledWith(expect.objectContaining({ state: 'open' }));
                 expect(mockOctokit.rest.pulls.list).toHaveBeenCalledWith(expect.objectContaining({ state: 'open' }));
             });
@@ -1531,7 +1496,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledWith(expect.objectContaining({ state: 'all' }));
                 expect(mockOctokit.rest.pulls.list).toHaveBeenCalledWith(expect.objectContaining({ state: 'all' }));
             });
@@ -1557,7 +1522,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledWith(expect.objectContaining({ state: 'open' }));
                 expect(mockOctokit.rest.pulls.list).toHaveBeenCalledWith(expect.objectContaining({ state: 'open' }));
             });
@@ -1591,7 +1556,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledWith(expect.objectContaining({ since: '2024-02-01T00:00:00Z' }));
                 expect(mockOctokit.rest.pulls.list).toHaveBeenCalledWith(expect.objectContaining({ sort: 'updated', direction: 'desc' }));
                 // PR with older updated_at should be skipped
@@ -1626,7 +1591,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockReadFileSync).toHaveBeenCalledWith('/tmp/state/last.txt', 'utf-8');
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledWith(expect.objectContaining({ since: '2024-01-01T00:00:00Z' }));
                 expect(mockSetOutput).toHaveBeenCalledWith('last-synced-at', expect.any(String));
@@ -1656,7 +1621,7 @@ describe('Sync Issues Action', () => {
                     html_url: 'https://example.com/issue/1',
                     milestone: null,
                 };
-                const newContent = (0, index_1.formatIssueAsMarkdown)(issue, []);
+                const newContent = formatIssueAsMarkdown(issue, []);
                 const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
                 mockExistsSync.mockReturnValue(true);
                 mockReadFileSync.mockReturnValue(existingContent);
@@ -1677,7 +1642,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn().mockResolvedValue({ repository: {} }),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockWriteFileSync).toHaveBeenCalled();
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 1);
                 expect(mockSetOutput).toHaveBeenCalledWith('modified-files', expect.stringContaining('issue-1.md'));
@@ -1706,7 +1671,7 @@ describe('Sync Issues Action', () => {
                     head: { ref: 'feature' },
                     base: { ref: 'main' },
                 };
-                const newContent = (0, index_1.formatPRAsMarkdown)(pr, [], []);
+                const newContent = formatPRAsMarkdown(pr, [], []);
                 const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
                 mockExistsSync.mockReturnValue(true);
                 mockReadFileSync.mockReturnValue(existingContent);
@@ -1730,7 +1695,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockWriteFileSync).toHaveBeenCalled();
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
                 expect(mockSetOutput).toHaveBeenCalledWith('modified-files', expect.stringContaining('pr-10.md'));
@@ -1745,7 +1710,7 @@ describe('Sync Issues Action', () => {
                         return '12345';
                     return '';
                 });
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetFailed).toHaveBeenCalledWith(expect.stringContaining('GitHub App authentication requires both app-id and app-private-key'));
             });
             it('should throw error when only app-private-key provided', async () => {
@@ -1756,7 +1721,7 @@ describe('Sync Issues Action', () => {
                         return 'MOCK_PRIVATE_KEY_FOR_TESTING_ONLY';
                     return '';
                 });
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetFailed).toHaveBeenCalledWith(expect.stringContaining('GitHub App authentication requires both app-id and app-private-key'));
             });
             it('should output empty app-token when app credentials not provided', async () => {
@@ -1780,7 +1745,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('app-token', '');
                 expect(mockSetOutput).toHaveBeenCalledWith('github-token', 'test-token');
             });
@@ -1812,7 +1777,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('app-token', 'mock-installation-token');
                 expect(mockSetOutput).toHaveBeenCalledWith('github-token', 'test-token');
             });
@@ -1839,7 +1804,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('modified-files', '');
             });
             it('should output modified-files when only issues synced', async () => {
@@ -1877,7 +1842,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('modified-files', 'synced-issues/issues/issue-1.md');
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 1);
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 0);
@@ -1903,7 +1868,7 @@ describe('Sync Issues Action', () => {
                     milestone: null,
                 };
                 // Build existing content that differs only by the synced timestamp
-                const newContent = (0, index_1.formatIssueAsMarkdown)(issue, []);
+                const newContent = formatIssueAsMarkdown(issue, []);
                 const existingContent = newContent.replace(/synced: .+/, 'synced: 2000-01-01T00:00:00Z');
                 mockExistsSync.mockReturnValue(true);
                 mockReadFileSync.mockReturnValue(existingContent);
@@ -1923,7 +1888,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 // No write because content (excluding synced) is unchanged
                 expect(mockWriteFileSync).not.toHaveBeenCalled();
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 1);
@@ -1971,7 +1936,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('modified-files', 'synced-issues/pull-requests/pr-10.md');
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
@@ -2030,7 +1995,7 @@ describe('Sync Issues Action', () => {
                 setMockOctokit(mockOctokit);
                 mockExistsSync.mockReturnValue(false);
                 mockPathJoin.mockImplementation((...args) => args.join('/'));
-                await (0, index_1.run)();
+                await run();
                 // Should still write the file with basic commit info (fallback)
                 expect(mockWriteFileSync).toHaveBeenCalled();
                 // The warning is logged via core.debug, not core.warning for individual commit failures
@@ -2066,7 +2031,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('modified-files', '');
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 0);
@@ -2113,7 +2078,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn(),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.graphql).not.toHaveBeenCalled();
                 const writeCall = mockWriteFileSync.mock.calls.find((call) => String(call[0]).includes('issue-5.md'));
                 expect(writeCall).toBeDefined();
@@ -2164,7 +2129,7 @@ describe('Sync Issues Action', () => {
                     }),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.graphql).toHaveBeenCalled();
             });
             it('should write parent and children from GraphQL into issue frontmatter', async () => {
@@ -2212,7 +2177,7 @@ describe('Sync Issues Action', () => {
                     }),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 const writeCall = mockWriteFileSync.mock.calls.find((call) => String(call[0]).includes('issue-5.md'));
                 expect(writeCall).toBeDefined();
                 const content = writeCall[1];
@@ -2271,7 +2236,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledTimes(2);
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenNthCalledWith(1, expect.objectContaining({ page: 1, per_page: 100 }));
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenNthCalledWith(2, expect.objectContaining({ page: 2, per_page: 100 }));
@@ -2342,7 +2307,7 @@ describe('Sync Issues Action', () => {
                 setMockOctokit(mockOctokit);
                 mockExistsSync.mockReturnValue(false);
                 mockPathJoin.mockImplementation((...args) => args.join('/'));
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.pulls.listCommits).toHaveBeenCalledWith({
                     owner: 'test-owner',
                     repo: 'test-repo',
@@ -2399,7 +2364,7 @@ describe('Sync Issues Action', () => {
                 setMockOctokit(mockOctokit);
                 mockExistsSync.mockReturnValue(false);
                 mockPathJoin.mockImplementation((...args) => args.join('/'));
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.pulls.listCommits).not.toHaveBeenCalled();
                 expect(mockOctokit.rest.repos.getCommit).not.toHaveBeenCalled();
             });
@@ -2458,7 +2423,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.pulls.list).toHaveBeenCalledTimes(2);
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 101);
             });
@@ -2492,7 +2457,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('app-token', '');
                 expect(mockSetOutput).toHaveBeenCalledWith('github-token', 'test-token');
                 expect(mockWarning).toHaveBeenCalledWith(expect.stringContaining('Falling back to provided token'));
@@ -2536,7 +2501,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 1);
                 expect(mockSetOutput).toHaveBeenCalledWith('modified-files', 'synced-issues/issues/issue-1.md');
                 // Should log warning but continue
@@ -2582,7 +2547,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
                 expect(mockSetOutput).toHaveBeenCalledWith('modified-files', 'synced-issues/pull-requests/pr-10.md');
                 expect(mockWarning).toHaveBeenCalledWith(expect.stringContaining('Failed to fetch review comments'));
@@ -2623,7 +2588,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockWarning).toHaveBeenCalledWith(expect.stringContaining('Could not read state file'));
                 // Should continue without updated-since filter
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledWith(expect.not.objectContaining({ since: expect.anything() }));
@@ -2657,7 +2622,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockWarning).toHaveBeenCalledWith(expect.stringContaining('Failed to persist last sync timestamp'));
                 // Should still complete successfully
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
@@ -2691,7 +2656,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 // Should not use updated-since when state file is empty
                 expect(mockOctokit.rest.issues.listForRepo).toHaveBeenCalledWith(expect.not.objectContaining({ since: expect.anything() }));
             });
@@ -2734,7 +2699,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('modified-files', 'custom/docs/issues/issue-1.md');
             });
         });
@@ -2794,7 +2759,7 @@ describe('Sync Issues Action', () => {
                     },
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.issues.listComments).toHaveBeenCalledTimes(2);
                 expect(mockOctokit.rest.issues.listComments).toHaveBeenNthCalledWith(1, expect.objectContaining({ page: 1, per_page: 100 }));
                 expect(mockOctokit.rest.issues.listComments).toHaveBeenNthCalledWith(2, expect.objectContaining({ page: 2, per_page: 100 }));
@@ -2804,12 +2769,12 @@ describe('Sync Issues Action', () => {
         describe('retry helpers', () => {
             it('formatGitHubError sanitizes Unicorn HTML responses', () => {
                 const error = Object.assign(new Error('<!DOCTYPE html><title>Unicorn! &middot; GitHub</title>'), { status: 502 });
-                expect((0, index_1.formatGitHubError)(error)).toBe('GitHub returned a 502 server error');
+                expect(formatGitHubError(error)).toBe('GitHub returned a 502 server error');
             });
             it('isRetryableError returns true for 5xx and 429 responses', () => {
-                expect((0, index_1.isRetryableError)(Object.assign(new Error('Server error'), { status: 502 }))).toBe(true);
-                expect((0, index_1.isRetryableError)(Object.assign(new Error('Rate limited'), { status: 429 }))).toBe(true);
-                expect((0, index_1.isRetryableError)(Object.assign(new Error('Not found'), { status: 404 }))).toBe(false);
+                expect(isRetryableError(Object.assign(new Error('Server error'), { status: 502 }))).toBe(true);
+                expect(isRetryableError(Object.assign(new Error('Rate limited'), { status: 429 }))).toBe(true);
+                expect(isRetryableError(Object.assign(new Error('Not found'), { status: 404 }))).toBe(false);
             });
             it('withRetry succeeds after a transient 5xx', async () => {
                 jest.useFakeTimers();
@@ -2817,7 +2782,7 @@ describe('Sync Issues Action', () => {
                     .fn()
                     .mockRejectedValueOnce(Object.assign(new Error('Server error'), { status: 502 }))
                     .mockResolvedValueOnce('ok');
-                const promise = (0, index_1.withRetry)('test operation', fn);
+                const promise = withRetry('test operation', fn);
                 await jest.runAllTimersAsync();
                 await expect(promise).resolves.toBe('ok');
                 expect(fn).toHaveBeenCalledTimes(2);
@@ -2886,7 +2851,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn().mockResolvedValue({ repository: {} }),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.issues.listForRepo).not.toHaveBeenCalled();
                 expect(mockOctokit.rest.issues.get).toHaveBeenCalledTimes(2);
                 expect(mockOctokit.rest.issues.get).toHaveBeenCalledWith(expect.objectContaining({ issue_number: 1 }));
@@ -2927,7 +2892,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn(),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockOctokit.rest.pulls.list).not.toHaveBeenCalled();
                 expect(mockOctokit.rest.pulls.get).toHaveBeenCalledTimes(2);
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 2);
@@ -2958,7 +2923,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn().mockResolvedValue({ repository: {} }),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockWarning).toHaveBeenCalledWith('Skipping #5: not an issue (pull request).');
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
             });
@@ -2990,7 +2955,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn().mockResolvedValue({ repository: {} }),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockInfo).toHaveBeenCalledWith('Skipping issue #7: closed and include-closed is false.');
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
             });
@@ -3022,7 +2987,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn().mockResolvedValue({ repository: {} }),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 1);
             });
             it('should skip filtered issues not updated since updated-since', async () => {
@@ -3053,7 +3018,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn().mockResolvedValue({ repository: {} }),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockInfo).toHaveBeenCalledWith('Skipping issue #8: not updated since 2024-02-01T00:00:00Z.');
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
             });
@@ -3083,7 +3048,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn().mockResolvedValue({ repository: {} }),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetFailed).not.toHaveBeenCalled();
                 expect(mockWarning).toHaveBeenCalledWith('Skipping issue #99: Not Found');
                 expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
@@ -3096,7 +3061,7 @@ describe('Sync Issues Action', () => {
                         return '1,abc';
                     return '';
                 });
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetFailed).toHaveBeenCalledWith(expect.stringMatching(/invalid/i));
             });
         });
@@ -3145,7 +3110,7 @@ describe('Sync Issues Action', () => {
                 };
                 setMockOctokit(mockOctokit);
                 jest.useFakeTimers();
-                const runPromise = (0, index_1.run)();
+                const runPromise = run();
                 await jest.runAllTimersAsync();
                 await runPromise;
                 jest.useRealTimers();
@@ -3185,7 +3150,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn(),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetFailed).not.toHaveBeenCalled();
                 expect(mockWarning).toHaveBeenCalledWith('Skipping PR #11: Not Found');
                 expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
@@ -3214,7 +3179,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn(),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetFailed).not.toHaveBeenCalled();
                 expect(mockWarning).toHaveBeenCalledWith('Failed to list issues (page 1): API Error. Stopping issue sync.');
             });
@@ -3239,7 +3204,7 @@ describe('Sync Issues Action', () => {
                     graphql: jest.fn(),
                 };
                 setMockOctokit(mockOctokit);
-                await (0, index_1.run)();
+                await run();
                 expect(mockSetFailed).not.toHaveBeenCalled();
                 expect(mockWarning).toHaveBeenCalledWith('Failed to list issues (page 1): Unknown error. Stopping issue sync.');
             });
