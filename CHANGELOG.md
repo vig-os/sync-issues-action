@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- **Retry transient GitHub 5xx errors and skip failing items during sync** ([#96](https://github.com/vig-os/sync-issues-action/issues/96))
+  - Add `withRetry` helper with exponential backoff for 5xx, rate-limit, and network errors
+  - Sanitize GitHub "Unicorn!" HTML error pages into concise messages
+  - Skip individual issues/PRs that fail persistently instead of aborting the entire sync run
+
 ### Changed
 
 - **Post-release replaced by PR-based main-to-dev sync** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
