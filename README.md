@@ -165,7 +165,7 @@ After the first `just sync`, `npm` is on `PATH` in new shells (via `~/.bashrc`).
 | `just test` | Jest unit tests |
 | `just test-cov` | Jest with coverage |
 | `just build` | `tsc` + `ncc` bundle |
-| `just verify-dist` | Rebuild `dist/` and fail if out of sync with source |
+| `just verify-dist` | Rebuild bundle and fail if `dist/index.js` / `dist/licenses.txt` are out of sync |
 | `just precommit` | Run all pre-commit hooks |
 
 ### Workflow

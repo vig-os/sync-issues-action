@@ -11,7 +11,7 @@ same provisioning as local development:
 ```yaml
 - run: ./scripts/setup-node.sh   # lint job: Node for ESLint/Prettier hooks
 - run: just sync                 # build/test: Node + npm ci
-- run: just verify-dist          # build: ncc bundle + dist drift check
+- run: just verify-dist          # build: ncc bundle + dist/index.js drift check
 - run: just test-cov              # test: Jest with coverage
 ```
 

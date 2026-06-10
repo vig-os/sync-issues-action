@@ -225,7 +225,10 @@ justfile.local
 
 # Action output
 node_modules/
-dist/__tests__
+# Action bundle (ncc output only; tsc emit under dist/src/ is local build noise)
+dist/*
+!dist/index.js
+!dist/licenses.txt
 dist/*.tsbuildinfo
 *.log
 .DS_Store

@@ -83,11 +83,11 @@ build:
     {{node}} npm run build
     {{node}} npm run package
 
-# Verify dist/ matches source (fails if out of sync)
+# Verify shipped bundle matches source (fails if out of sync)
 [group('build')]
 verify-dist:
     {{node}} npm run package
-    @git diff --exit-code dist/ || (echo "dist/ is out of sync. Run 'just build' and commit." && exit 1)
+    @git diff --exit-code dist/index.js dist/licenses.txt || (echo "dist bundle is out of sync. Run 'just build' and commit dist/index.js and dist/licenses.txt." && exit 1)
 
 # Clean build artifacts
 [group('build')]

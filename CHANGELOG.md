@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Upgrade GitHub Actions toolkit to ESM-only releases** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
   - Adopt `@actions/github` v9 (Octokit v7) and `@actions/core` v3 for current toolkit HTTP client and type support
   - Update TypeScript module resolution and Jest module mocks for ESM toolkit packages
+- **Stop committing tsc emit under dist/** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
+  - Only `dist/index.js` and `dist/licenses.txt` are tracked; `verify-dist` checks those files only
 - **Post-release replaced by PR-based main-to-dev sync** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
   - Remove `post-release.yml` workflow; add `sync-main-to-dev.yml` that opens a PR to sync `main` into `dev`, satisfying branch protection on both branches
   - Harden sync checks by failing clearly when `origin/main` or `origin/dev` is missing instead of silently treating branches as up to date
