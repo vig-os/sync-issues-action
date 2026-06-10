@@ -42,9 +42,22 @@ precommit:
 # TESTING
 # -------------------------------------------------------------------------------
 
+# Run the full local suite (unit + integration; integration skipped without a token)
+[group('test')]
+test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just test-unit
+    if [ -n "${GITHUB_TOKEN:-}" ] || gh auth token >/dev/null 2>&1; then
+        just test-integration
+    else
+        echo "[warn] Skipping integration tests: no GITHUB_TOKEN and 'gh auth token' unavailable."
+        echo "       Run 'gh auth login' then 'just test-integration' to include them."
+    fi
+
 # Run unit tests
 [group('test')]
-test *args:
+test-unit *args:
     {{node}} npm test -- {{args}}
 
 # Run unit tests with coverage

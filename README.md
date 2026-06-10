@@ -162,7 +162,8 @@ After the first `just sync`, `npm` is on `PATH` in new shells (via `~/.bashrc`).
 | `just sync` | Install/sync Node + npm dependencies |
 | `just lint` | ESLint |
 | `just format` | Prettier |
-| `just test` | Jest unit tests |
+| `just test` | Unit tests + integration (integration auto-skips without a GitHub token) |
+| `just test-unit` | Jest unit tests (accepts a path/filter) |
 | `just test-cov` | Jest with coverage |
 | `just build` | `tsc` + `ncc` bundle |
 | `just verify-dist` | Rebuild bundle and fail if `dist/index.js` / `dist/licenses.txt` are out of sync |
