@@ -41,6 +41,8 @@ main() {
   #   export INPUT_SYNC_ISSUES="true"
   #   export INPUT_SYNC_PRS="true"
   #   export INPUT_INCLUDE_CLOSED="false"
+  #   export INPUT_ISSUES_FILTER="4,8"
+  #   export INPUT_PRS_FILTER="1,3"
   #   export GITHUB_REPOSITORY="my-org/my-repo"
   #   etc.
 
@@ -92,6 +94,10 @@ main() {
   SYNC_PRS=$(printf '%s' "${INPUT_SYNC_PRS:-true}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
   local INCLUDE_CLOSED
   INCLUDE_CLOSED=$(printf '%s' "${INPUT_INCLUDE_CLOSED:-true}" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+  local ISSUES_FILTER
+  ISSUES_FILTER=$(printf '%s' "${INPUT_ISSUES_FILTER:-4,8}" | tr -d '[:space:]')
+  local PRS_FILTER
+  PRS_FILTER=$(printf '%s' "${INPUT_PRS_FILTER:-1,3}" | tr -d '[:space:]')
 
   # Ensure they're valid boolean values (exactly "true" or "false")
   [ "$SYNC_ISSUES" != "true" ] && [ "$SYNC_ISSUES" != "false" ] && SYNC_ISSUES="true"
@@ -114,6 +120,8 @@ main() {
   echo "  SYNC_ISSUES: $SYNC_ISSUES"
   echo "  SYNC_PRS: $SYNC_PRS"
   echo "  INCLUDE_CLOSED: $INCLUDE_CLOSED"
+  echo "  ISSUES_FILTER: $ISSUES_FILTER"
+  echo "  PRS_FILTER: $PRS_FILTER"
   echo ""
 
   # Run the action with environment variables set correctly
@@ -128,6 +136,8 @@ main() {
     "INPUT_SYNC-ISSUES=$SYNC_ISSUES" \
     "INPUT_SYNC-PRS=$SYNC_PRS" \
     "INPUT_INCLUDE-CLOSED=$INCLUDE_CLOSED" \
+    "INPUT_ISSUES-FILTER=$ISSUES_FILTER" \
+    "INPUT_PRS-FILTER=$PRS_FILTER" \
     node dist/index.js
 
   local EXIT_CODE=$?
