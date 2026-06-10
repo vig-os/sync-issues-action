@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **Sync specific issues/PRs by number or range** ([#55](https://github.com/vig-os/sync-issues-action/issues/55))
+  - New optional `issues-filter` and `prs-filter` inputs accept comma-separated numbers and inclusive ranges (e.g. `1,5,10-20`)
+  - When set, the action fetches only the requested items directly instead of paginating through all issues or pull requests
+
 ### Fixed
 
 - **Retry transient GitHub 5xx errors and skip failing items during sync** ([#96](https://github.com/vig-os/sync-issues-action/issues/96))

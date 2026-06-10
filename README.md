@@ -52,6 +52,8 @@ A GitHub Action that syncs all issues and pull requests from a repository to mar
 | `sync-prs` | Whether to sync pull requests | No | `true` |
 | `include-closed` | Include closed issues/PRs | No | `false` |
 | `updated-since` | Only sync items updated after this ISO8601 timestamp | No | - |
+| `issues-filter` | Comma-separated issue numbers and/or inclusive ranges (e.g. `1,5,10-20`). When set, only these issues are synced | No | - |
+| `prs-filter` | Comma-separated pull request numbers and/or inclusive ranges (e.g. `1,5,10-20`). When set, only these pull requests are synced | No | - |
 | `state-file` | Optional path to store last sync timestamp (use with cache) | No | - |
 | `force-update` | Re-write all synced files even if content is unchanged | No | `false` |
 | `sync-sub-issues` | Sync sub-issue relationships (`parent`/`children`) via GraphQL | No | `true` |
