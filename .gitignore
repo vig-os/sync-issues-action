@@ -214,6 +214,12 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# Personal justfile recipes
+justfile.local
+
+# Project-local Node.js install (scripts/setup-node.sh)
+.node/
+
 # Pre-commit cache
 .pre-commit-cache/
 

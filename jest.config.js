@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  modulePathIgnorePatterns: ['<rootDir>/.venv/'],
   testMatch: ['**/__tests__/unit/**/*.test.ts'],
   setupFiles: ['<rootDir>/src/__tests__/setup.ts'],
   transform: {

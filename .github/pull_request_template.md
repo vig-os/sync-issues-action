@@ -31,14 +31,14 @@
      If no changelog update is needed, write "No changelog needed" and explain why.
      Example:
      ### Added
-     - **Force-update sync** ([#10](https://github.com/vig-os/sync-issues-action/issues/10))
-       - Allow forcing a full re-sync of all issues and PRs
+     - **SSH agent forwarding** ([#42](https://github.com/vig-os/devcontainer/issues/42))
+       - Forward host SSH agent into devcontainer for seamless git authentication
 -->
 
 ## Testing
 
 <!-- Describe the tests you ran and how to verify your changes -->
-- [ ] Tests pass locally (`npm test`)
+- [ ] Tests pass locally (`just test`)
 - [ ] Manual testing performed (describe below)
 
 ### Manual Testing Details
@@ -51,7 +51,7 @@
 - [ ] My code follows the project's style guidelines
 - [ ] I have performed a self-review of my code
 - [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have updated the documentation accordingly
+- [ ] I have updated the documentation accordingly (edit `docs/templates/`, then run `just docs`)
 - [ ] I have updated `CHANGELOG.md` in the `[Unreleased]` section (and pasted the entry above)
 - [ ] My changes generate no new warnings or errors
 - [ ] I have added tests that prove my fix is effective or that my feature works
@@ -68,4 +68,5 @@ Refs:
 Please include GitHub issue references in the "Refs:" line above (e.g., `Refs: #42`).
 Every change must be traceable to an issue, per project rules.
 If not related to a specific issue, explain why (chore/documentation only).
+See [commit-messages.mdc](../../rules/commit-messages.mdc) for more details.
 -->

@@ -7,17 +7,22 @@
 # Pipeline:
 #   check - (early exit if dev already contains all main commits)
 #   sync  - clean up stale sync branches
-#         - trial merge to detect conflicts
-#         - create chore/sync-main-to-dev-<run>-<attempt> branch via API
-#         - open PR (auto-mergeable, or labelled "merge-conflict" with
-#           resolution instructions when conflicts exist)
+#         - merge-tree (in-memory) merge to detect conflicts
+#         - create chore/sync-main-to-dev-<run>-<attempt> branch via git push
+#         - open PR; enable auto-merge when clean, or label "merge-conflict" with
+#           resolution instructions when conflicts exist
 #
 # Auth: Two GitHub App tokens:
-#   - COMMIT_APP_* for git/ref operations (least-privilege commit identity)
-#   - RELEASE_APP_* for PR/label operations that require pull-request scopes
+# - COMMIT_APP_* for git/ref operations (least-privilege commit identity)
+# - RELEASE_APP_* for PR/label operations that require pull-request scopes
+#
+# NOTE: This workspace workflow is intentionally decoupled from upstream
+# `.github/workflows/sync-main-to-dev.yml` and maintained separately.
+#
+# With the new CHANGELOG flow, dev already has ## Unreleased (created during
+# prepare-release), so no CHANGELOG reset is needed here.
 #
 # Triggers: push to main · workflow_dispatch
-#
 
 name: Sync main to dev
 
@@ -25,45 +30,61 @@ on:  # yamllint disable-line rule:truthy
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      pr-title:
-        description: 'PR title'
-        required: false
-        default: 'chore: sync dev with main'
-        type: string
-      pr-body:
-        description: 'PR body'
-        required: false
-        default: 'Syncs `dev` with `main` (sync-main-to-dev workflow).'
-        type: string
 
 concurrency:
   group: sync-main-to-dev
   cancel-in-progress: false
 
-# Restrict then allow: workflow default is minimal; sync job adds write where needed.
 permissions:
   contents: read
 
 jobs:
+  resolve-image:
+    name: Resolve image tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      image-tag: ${{ steps.resolve.outputs.image-tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          sparse-checkout: |
+            .vig-os
+            .github/actions/resolve-image
+          sparse-checkout-cone-mode: false
+
+      - name: Resolve container image
+        id: resolve
+        uses: ./.github/actions/resolve-image
+
   check:
     name: Check if dev is up to date
-    runs-on: ubuntu-22.04
+    needs: [resolve-image]
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
     timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash
     outputs:
       up_to_date: ${{ steps.check.outputs.up_to_date }}
 
     steps:
       - name: Checkout and fetch
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           fetch-depth: 0
+
+      - name: Fix git safe.directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Check if dev is up to date with main
         id: check
         run: |
           set -euo pipefail
-          git fetch origin main dev
+          retry --retries 3 --backoff 3 --max-backoff 20 -- git fetch origin main dev
           if ! git show-ref --verify --quiet refs/remotes/origin/main; then
             echo "Error: remote branch 'origin/main' not found after fetch."
             exit 1
@@ -83,10 +104,15 @@ jobs:
 
   sync:
     name: Merge main into dev via PR
-    needs: check
+    needs: [resolve-image, check]
     if: needs.check.outputs.up_to_date != 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
     timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
     env:
       SYNC_BRANCH: chore/sync-main-to-dev-${{ github.run_number }}-${{ github.run_attempt }}
     permissions:
@@ -97,31 +123,26 @@ jobs:
     steps:
       - name: Generate Commit App Token
         id: commit-app-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
         with:
           app-id: ${{ secrets.COMMIT_APP_ID }}
           private-key: ${{ secrets.COMMIT_APP_PRIVATE_KEY }}
 
       - name: Checkout dev
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           ref: dev
           fetch-depth: 0
           token: ${{ steps.commit-app-token.outputs.token }}
 
+      - name: Fix git safe.directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Re-check if dev is still behind main
         id: recheck
         run: |
           set -euo pipefail
-          git fetch origin main dev
-          if ! git show-ref --verify --quiet refs/remotes/origin/main; then
-            echo "Error: remote branch 'origin/main' not found after fetch."
-            exit 1
-          fi
-          if ! git show-ref --verify --quiet refs/remotes/origin/dev; then
-            echo "Error: remote branch 'origin/dev' not found after fetch."
-            exit 1
-          fi
+          retry --retries 3 --backoff 3 --max-backoff 20 -- git fetch origin main dev
           BEHIND=$(git rev-list --count origin/main ^origin/dev)
           if [ "${BEHIND}" = "0" ]; then
             echo "up_to_date=true" >> "$GITHUB_OUTPUT"
@@ -134,23 +155,10 @@ jobs:
       - name: Generate Release App Token
         if: steps.recheck.outputs.up_to_date != 'true'
         id: release-app-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
-      - name: Detect merge conflicts
-        if: steps.recheck.outputs.up_to_date != 'true'
-        id: merge-check
-        run: |
-          set -euo pipefail
-          git fetch origin main
-          if git merge --no-commit --no-ff origin/main 2>/dev/null; then
-            echo "conflict=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "conflict=true" >> "$GITHUB_OUTPUT"
-          fi
-          git merge --abort 2>/dev/null || true
 
       - name: Check for existing open sync PR
         if: steps.recheck.outputs.up_to_date != 'true'
@@ -159,7 +167,8 @@ jobs:
           GH_TOKEN: ${{ steps.release-app-token.outputs.token }}
         run: |
           set -euo pipefail
-          OPEN=$(gh pr list --base dev --state open --limit 200 \
+          OPEN=$(retry --retries 3 --backoff 5 --max-backoff 30 -- \
+            gh pr list --base dev --state open --limit 200 \
             --json headRefName \
             --jq '[.[] | select(.headRefName | startswith("chore/sync-main-to-dev-"))] | length')
           echo "count=${OPEN}" >> "$GITHUB_OUTPUT"
@@ -173,70 +182,113 @@ jobs:
           GH_TOKEN: ${{ steps.commit-app-token.outputs.token }}
         run: |
           set -euo pipefail
-          REFS=$(gh api --paginate "repos/${{ github.repository }}/git/matching-refs/heads/chore/sync-main-to-dev-" \
+          REFS=$(retry --retries 3 --backoff 5 --max-backoff 30 -- \
+            gh api --paginate "repos/${{ github.repository }}/git/matching-refs/heads/chore/sync-main-to-dev-" \
             --jq '.[].ref' | sed 's|refs/heads/||') || true
           for branch in ${REFS}; do
-            HAS_PR=$(GH_TOKEN="${{ steps.release-app-token.outputs.token }}" gh pr list --base dev --head "${branch}" \
+            HAS_PR=$(GH_TOKEN="${{ steps.release-app-token.outputs.token }}" retry --retries 3 --backoff 5 --max-backoff 30 -- \
+              gh pr list --base dev --head "${branch}" \
               --state open --json number --jq 'length')
             if [ "${HAS_PR}" = "0" ]; then
-              gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${branch}" 2>/dev/null || true
+              retry --retries 3 --backoff 5 --max-backoff 30 -- \
+                gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${branch}" 2>/dev/null || true
               echo "Deleted stale sync branch: ${branch}"
             fi
           done
 
+      - name: Detect merge conflicts
+        if: steps.recheck.outputs.up_to_date != 'true' && steps.existing-pr.outputs.count == '0'
+        id: merge-check
+        run: |
+          set -euo pipefail
+          retry --retries 3 --backoff 3 --max-backoff 20 -- git fetch origin main dev
+          if merge_out="$(git merge-tree --write-tree origin/dev origin/main 2>&1)"; then
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+            echo "Merge-tree check: no conflicts between origin/dev and origin/main."
+          else
+            merge_rc=$?
+            if [ "${merge_rc}" -eq 1 ]; then
+              echo "conflict=true" >> "$GITHUB_OUTPUT"
+              echo "::warning::Merge conflicts detected between origin/dev and origin/main."
+              echo "${merge_out}"
+            else
+              echo "::error::git merge-tree failed with exit code ${merge_rc}"
+              echo "${merge_out}"
+              exit "${merge_rc}"
+            fi
+          fi
+
       - name: Create sync branch from main
-        if: steps.existing-pr.outputs.count == '0'
-        env:
-          GH_TOKEN: ${{ steps.commit-app-token.outputs.token }}
+        if: steps.existing-pr.outputs.count == '0' && steps.recheck.outputs.up_to_date != 'true'
         run: |
           set -euo pipefail
           MAIN_SHA=$(git rev-parse origin/main)
-          gh api "repos/${{ github.repository }}/git/refs" \
-            -f ref="refs/heads/${SYNC_BRANCH}" \
-            -f sha="${MAIN_SHA}"
-          echo "Sync branch ${SYNC_BRANCH} created from main at ${MAIN_SHA}"
+          git checkout -b "${SYNC_BRANCH}" origin/main
+          retry --retries 3 --backoff 5 --max-backoff 30 -- \
+            git push origin "${SYNC_BRANCH}"
+          echo "Sync branch ${SYNC_BRANCH} pushed from main at ${MAIN_SHA}"
 
       - name: Create PR
-        if: steps.existing-pr.outputs.count == '0'
+        if: steps.existing-pr.outputs.count == '0' && steps.recheck.outputs.up_to_date != 'true'
+        id: create-pr
         env:
           GH_TOKEN: ${{ steps.release-app-token.outputs.token }}
           CONFLICT: ${{ steps.merge-check.outputs.conflict }}
-          INPUT_TITLE: "${{ github.event.inputs['pr-title'] || 'chore: sync dev with main' }}"
-          INPUT_BODY: "${{ github.event.inputs['pr-body'] || 'Syncs `dev` with `main` (sync-main-to-dev workflow).' }}"
         run: |
           set -euo pipefail
 
           if [ "${CONFLICT}" = "true" ]; then
             TITLE="chore: sync dev with main (conflicts)"
-            BODY=$(cat <<'BODY_EOF'
-          Automated sync of `main` to `dev` found **merge conflicts** that require manual resolution.
+            BODY=$(cat <<BODY_EOF
+          Automated sync of \`main\` to \`dev\` found **merge conflicts** that require manual resolution.
 
           ### How to resolve
 
-          ```bash
-          git fetch origin SYNC_BRANCH_PLACEHOLDER:SYNC_BRANCH_PLACEHOLDER
-          git checkout SYNC_BRANCH_PLACEHOLDER
+          \`\`\`bash
+          git fetch origin ${SYNC_BRANCH}:${SYNC_BRANCH}
+          git checkout ${SYNC_BRANCH}
           git merge origin/dev
           # resolve conflicts
           git commit -S
-          git push origin SYNC_BRANCH_PLACEHOLDER
-          ```
+          git push origin ${SYNC_BRANCH}
+          \`\`\`
 
           Once pushed, this PR will update and become mergeable.
           BODY_EOF
           )
-            BODY="${BODY//SYNC_BRANCH_PLACEHOLDER/${SYNC_BRANCH}}"
           else
-            TITLE="${INPUT_TITLE}"
-            BODY="${INPUT_BODY}"
+            TITLE="chore: sync dev with main"
+            BODY="Syncs \`dev\` with \`main\` (sync-main-to-dev workflow)."
           fi
 
-          PR_URL=$(gh pr create --base dev --head "${SYNC_BRANCH}" \
-            --title "${TITLE}" --body "${BODY}")
+          EXISTING_PR_URL=$(retry --retries 3 --backoff 5 --max-backoff 30 -- \
+            gh pr list --base dev --head "${SYNC_BRANCH}" --state open --json url --jq '.[0].url // empty')
+          if [ -n "${EXISTING_PR_URL}" ]; then
+            PR_URL="${EXISTING_PR_URL}"
+          else
+            PR_URL=$(retry --retries 3 --backoff 5 --max-backoff 30 -- \
+              gh pr create --base dev --head "${SYNC_BRANCH}" \
+                --title "${TITLE}" --body "${BODY}")
+          fi
+          echo "pr_url=${PR_URL}" >> "$GITHUB_OUTPUT"
           echo "Created PR: ${PR_URL}"
 
           if [ "${CONFLICT}" = "true" ]; then
             gh label create "merge-conflict" --color "B60205" --force 2>/dev/null || true
-            gh pr edit "${SYNC_BRANCH}" --add-label "merge-conflict" || \
+            retry --retries 3 --backoff 5 --max-backoff 30 -- \
+              gh pr edit "${SYNC_BRANCH}" --add-label "merge-conflict" || \
               echo "Warning: failed to add merge-conflict label."
           fi
+
+      - name: Enable auto-merge
+        if: >-
+          steps.create-pr.outputs.pr_url != ''
+          && steps.merge-check.outputs.conflict != 'true'
+        env:
+          GH_TOKEN: ${{ steps.release-app-token.outputs.token }}
+          PR_URL: ${{ steps.create-pr.outputs.pr_url }}
+        run: |
+          set -euo pipefail
+          retry --retries 2 --backoff 5 --max-backoff 20 -- \
+            gh pr merge "${PR_URL}" --auto --merge || \
+            echo "Warning: could not enable auto-merge (may require branch protection settings)"

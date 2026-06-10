@@ -4,12 +4,13 @@
 # Customized for the sync-issues-action project.
 #
 # Jobs:
-#   1. lint              — Pre-commit hooks (yamllint, pymarkdown, shellcheck, typos, etc.)
-#   2. build             — ncc bundle + verify dist/ is committed and up-to-date
-#   3. test              — Jest unit tests with coverage
-#   4. integration-test  — End-to-end action test (reusable workflow)
-#   5. dependency-review — Dependency vulnerability check (PRs only)
-#   6. summary           — Aggregate results for branch protection
+#   1. resolve-image    — Determine devcontainer image tag
+#   2. lint             — Pre-commit hooks (in devcontainer)
+#   3. build            — ncc bundle + verify dist/ is committed and up-to-date
+#   4. test             — Jest unit tests with coverage
+#   5. integration-test — End-to-end action test (ubuntu; consumer simulation)
+#   6. dependency-review — Dependency vulnerability check (PRs only, ubuntu)
+#   7. summary          — Aggregate results for branch protection
 #
 # Triggers:
 #   - Pull requests to dev, release/**, and main (runs all checks)
@@ -36,6 +37,10 @@ on:  # yamllint disable-line rule:truthy
           - lint
           - build
           - test
+      image-tag:
+        description: 'Container image tag to use'
+        required: false
+        type: string
 
 concurrency:
   group: ci-${{ github.head_ref || github.ref }}
@@ -47,9 +52,37 @@ permissions:
   pull-requests: write
 
 jobs:
+  resolve-image:
+    name: Resolve image tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      image-tag: ${{ steps.resolve.outputs.image-tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          sparse-checkout: |
+            .vig-os
+            .github/actions/resolve-image
+          sparse-checkout-cone-mode: false
+
+      - name: Resolve container image
+        id: resolve
+        uses: ./.github/actions/resolve-image
+        with:
+          image-tag: ${{ inputs.image-tag }}
+
   lint:
     name: Lint & Format
-    runs-on: ubuntu-22.04
+    needs: [resolve-image]
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
+      env:
+        PRE_COMMIT_HOME: /opt/pre-commit-cache
+        UV_PROJECT_ENVIRONMENT: /root/assets/workspace/.venv
     timeout-minutes: 10
     if: |
       github.event_name != 'workflow_dispatch' ||
@@ -58,19 +91,25 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
-      - name: Set up environment
-        uses: ./.github/actions/setup-env
-        with:
-          install-uv: 'true'
+      - name: Fix git safe.directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Set up Node.js
+        run: ./scripts/setup-node.sh
 
       - name: Run pre-commit hooks
         run: uvx pre-commit run --all-files --show-diff-on-failure
 
   build:
     name: Build
-    runs-on: ubuntu-22.04
+    needs: [resolve-image]
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
+      env:
+        UV_PROJECT_ENVIRONMENT: /root/assets/workspace/.venv
     timeout-minutes: 10
     if: |
       github.event_name != 'workflow_dispatch' ||
@@ -79,17 +118,25 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
-      - name: Set up environment
-        uses: ./.github/actions/setup-env
+      - name: Fix git safe.directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Build and verify dist
-        uses: ./.github/actions/build-dist
+      - name: Sync dependencies
+        run: just sync
+
+      - name: Verify dist is up-to-date
+        run: just verify-dist
 
   test:
     name: Tests
-    runs-on: ubuntu-22.04
+    needs: [resolve-image]
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
+      env:
+        UV_PROJECT_ENVIRONMENT: /root/assets/workspace/.venv
     timeout-minutes: 15
     if: |
       github.event_name != 'workflow_dispatch' ||
@@ -98,13 +145,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
-      - name: Set up environment
-        uses: ./.github/actions/setup-env
+      - name: Fix git safe.directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Sync dependencies
+        run: just sync
 
       - name: Run tests with coverage
-        run: npm run test:coverage
+        run: just test-cov
 
       - name: Upload coverage report
         if: always()
@@ -125,7 +175,7 @@ jobs:
 
   dependency-review:
     name: Dependency Review
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     if: github.event_name == 'pull_request'
     permissions:
@@ -134,7 +184,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
       - name: Review dependencies for vulnerabilities
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48  # v4
@@ -143,9 +193,9 @@ jobs:
 
   summary:
     name: CI Summary
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: [lint, build, test, integration-test, dependency-review]
+    needs: [resolve-image, lint, build, test, integration-test, dependency-review]
     if: always()
 
     steps:
@@ -154,6 +204,7 @@ jobs:
           echo "CI Results Summary"
           echo "==================="
           echo ""
+          echo "Resolve image:     ${{ needs.resolve-image.result }}"
           echo "Lint:              ${{ needs.lint.result }}"
           echo "Build:             ${{ needs.build.result }}"
           echo "Test:              ${{ needs.test.result }}"
@@ -162,6 +213,11 @@ jobs:
           echo ""
 
           FAILED=false
+
+          if [ "${{ needs.resolve-image.result }}" = "failure" ] || [ "${{ needs.resolve-image.result }}" = "cancelled" ]; then
+            echo "ERROR: Image resolution failed"
+            FAILED=true
+          fi
 
           if [ "${{ needs.lint.result }}" = "failure" ]; then
             echo "ERROR: Lint checks failed"

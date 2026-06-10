@@ -143,10 +143,37 @@ You can also run the following specific tests:
 
 ## Development
 
+This project uses the vigOS devcontainer. Node.js is **not** baked into the image;
+`just sync` provisions it automatically from [`.nvmrc`](.nvmrc) into a gitignored
+[`.node/`](.node/) directory via [`scripts/setup-node.sh`](scripts/setup-node.sh).
+
+### Setup
+
+```bash
+just sync          # install Node (first run) + npm ci
+```
+
+After the first `just sync`, `npm` is on `PATH` in new shells (via `~/.bashrc`).
+
+### Common commands
+
+| Command | Purpose |
+|---------|---------|
+| `just sync` | Install/sync Node + npm dependencies |
+| `just lint` | ESLint |
+| `just format` | Prettier |
+| `just test` | Jest unit tests |
+| `just test-cov` | Jest with coverage |
+| `just build` | `tsc` + `ncc` bundle |
+| `just verify-dist` | Rebuild `dist/` and fail if out of sync with source |
+| `just precommit` | Run all pre-commit hooks |
+
+### Workflow
+
 1. Make changes to `src/index.ts`
-2. Build: `npm run prepare` (runs `tsc` then `ncc build` to update all of `dist/`)
-3. Run tests: `npm test`
-4. Test locally with `local-action`
+2. Build: `just build` (or `npm run prepare`)
+3. Verify: `just verify-dist` and `just test`
+4. Commit (pre-commit hooks enforce formatting and dist drift)
 
 ## License
 

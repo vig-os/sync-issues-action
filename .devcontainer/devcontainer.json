@@ -1,6 +1,10 @@
 {
     "name": "sync_issues_action-devc",
-    "dockerComposeFile": "docker-compose.yml",
+    "dockerComposeFile": [
+        "docker-compose.yml",
+        "docker-compose.project.yaml",
+        "docker-compose.local.yaml"
+    ],
     "service": "devcontainer",
     "workspaceFolder": "/workspace/sync_issues_action",
     "customizations": {
@@ -11,12 +15,10 @@
                 "ms-vscode.vscode-json",
                 "redhat.vscode-yaml",
                 "GitHub.vscode-pull-request-github",
-                "github.vscode-github-actions",
-                "dbaeumer.vscode-eslint",
-                "esbenp.prettier-vscode"
+                "nefrob.vscode-just-syntax"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.defaultInterpreterPath": "/root/assets/workspace/.venv/bin/python",
                 "[python]": {
                     "editor.defaultFormatter": "charliermarsh.ruff",
                     "editor.formatOnSave": true,
@@ -32,40 +34,23 @@
                 },
                 "git.ignoredFolders": [
                     ".pre-commit-cache"
-                ],
-                "typescript.tsdk": "node_modules/typescript/lib",
-                "typescript.enablePromptUseWorkspaceTsdk": true,
-                "typescript.preferences.useAliasesForRenames": false,
-                "typescript.suggest.autoImports": true,
-                "typescript.preferences.includePackageJsonAutoImports": "on",
-                "[typescript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode",
-                    "editor.formatOnSave": true,
-                    "editor.codeActionsOnSave": {
-                        "source.organizeImports": "explicit",
-                        "source.fixAll.eslint": "explicit"
-                    }
-                },
-                "[javascript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode",
-                    "editor.formatOnSave": true
-                },
-                "files.associations": {
-                    "*.yml": "yaml",
-                    "*.yaml": "yaml"
-                },
-                "search.exclude": {
-                    "**/node_modules": true,
-                    "**/dist": true,
-                    "**/.git": true,
-                    "**/__pycache__": true,
-                    "**/*.pyc": true,
-                    "**/.pytest_cache": true
-                }
+                ]
             }
         }
     },
+    "containerEnv": {
+        "CONTAINER_HOST": "unix:///var/run/docker.sock",
+        "DOCKER_HOST": "unix:///var/run/docker.sock"
+    },
+    "runArgs": [
+        "--cap-add=SYS_ADMIN",
+        "--cap-add=MKNOD",
+        "--security-opt=label=disable",
+        "--device=/dev/fuse",
+        "--group-add=0"
+    ],
     "initializeCommand": ".devcontainer/scripts/initialize.sh",
+    "postStartCommand": "/workspace/sync_issues_action/.devcontainer/scripts/post-start.sh",
     "postAttachCommand": "/workspace/sync_issues_action/.devcontainer/scripts/post-attach.sh",
     "postCreateCommand": "/workspace/sync_issues_action/.devcontainer/scripts/post-create.sh"
 }
