@@ -84,6 +84,9 @@ interface IssueRelationship {
     parent: number | null;
     children: number[];
 }
+export declare function formatGitHubError(error: unknown): string;
+export declare function isRetryableError(error: unknown): boolean;
+export declare function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T>;
 declare function run(): Promise<void>;
 export declare const GRAPHQL_BATCH_SIZE = 50;
 export declare function fetchIssueRelationships(octokit: ReturnType<typeof github.getOctokit>, owner: string, repo: string, issueNumbers: number[]): Promise<Map<number, IssueRelationship>>;

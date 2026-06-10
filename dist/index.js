@@ -58378,6 +58378,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GRAPHQL_BATCH_SIZE = void 0;
+exports.formatGitHubError = formatGitHubError;
+exports.isRetryableError = isRetryableError;
+exports.withRetry = withRetry;
 exports.fetchIssueRelationships = fetchIssueRelationships;
 exports.formatIssueAsMarkdown = formatIssueAsMarkdown;
 exports.formatPRAsMarkdown = formatPRAsMarkdown;
@@ -58389,6 +58392,86 @@ const github = __importStar(__nccwpck_require__(3228));
 const auth_app_1 = __nccwpck_require__(5434);
 const fs = __importStar(__nccwpck_require__(9896));
 const path = __importStar(__nccwpck_require__(6928));
+const MAX_RETRY_ATTEMPTS = 4;
+const INITIAL_RETRY_DELAY_MS = 1000;
+function getErrorStatus(error) {
+    if (typeof error === 'object' && error !== null && 'status' in error) {
+        const status = error.status;
+        if (typeof status === 'number') {
+            return status;
+        }
+    }
+    return undefined;
+}
+function formatGitHubError(error) {
+    if (!(error instanceof Error)) {
+        return 'Unknown error';
+    }
+    const message = error.message;
+    if (message.includes('<!DOCTYPE html>') || message.includes('<title>Unicorn!')) {
+        const status = getErrorStatus(error);
+        return status
+            ? `GitHub returned a ${status} server error`
+            : 'GitHub returned a server error (5xx)';
+    }
+    if (message.length > 500) {
+        return `${message.slice(0, 200)}...`;
+    }
+    return message;
+}
+function isRetryableError(error) {
+    const status = getErrorStatus(error);
+    if (status !== undefined) {
+        if (status >= 500 && status < 600) {
+            return true;
+        }
+        if (status === 429) {
+            return true;
+        }
+        if (status === 403) {
+            const message = error instanceof Error ? error.message : '';
+            if (message.toLowerCase().includes('secondary rate limit')) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        if (message.includes('<!doctype html>') || message.includes('<title>unicorn!')) {
+            return true;
+        }
+        if (message.includes('econnreset') ||
+            message.includes('etimedout') ||
+            message.includes('socket hang up') ||
+            message.includes('network')) {
+            return true;
+        }
+    }
+    return false;
+}
+async function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function withRetry(label, fn) {
+    let lastError;
+    for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+        try {
+            return await fn();
+        }
+        catch (error) {
+            lastError = error;
+            if (attempt < MAX_RETRY_ATTEMPTS && isRetryableError(error)) {
+                const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+                core.warning(`${label} failed (attempt ${attempt}/${MAX_RETRY_ATTEMPTS}): ${formatGitHubError(error)}. Retrying in ${delay}ms...`);
+                await sleep(delay);
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw lastError;
+}
 async function run() {
     try {
         // Get token from input (defaults to github.token via action.yml)
@@ -58493,14 +58576,21 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
     let hasMore = true;
     const allIssues = [];
     while (hasMore) {
-        const { data: issues } = await octokit.rest.issues.listForRepo({
-            owner,
-            repo,
-            state,
-            per_page: perPage,
-            page,
-            ...(updatedSince ? { since: updatedSince } : {}),
-        });
+        let issues;
+        try {
+            ({ data: issues } = await withRetry(`List issues (page ${page})`, () => octokit.rest.issues.listForRepo({
+                owner,
+                repo,
+                state,
+                per_page: perPage,
+                page,
+                ...(updatedSince ? { since: updatedSince } : {}),
+            })));
+        }
+        catch (error) {
+            core.warning(`Failed to list issues (page ${page}): ${formatGitHubError(error)}. Stopping issue sync.`);
+            break;
+        }
         const actualIssues = issues.filter((issue) => !issue.pull_request);
         allIssues.push(...actualIssues);
         hasMore = issues.length === perPage;
@@ -58511,27 +58601,37 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
         ? await fetchIssueRelationships(octokit, owner, repo, issueNumbers)
         : new Map();
     const files = [];
+    let skippedIssues = 0;
     for (const issue of allIssues) {
-        const filename = `issue-${issue.number}.md`;
-        const filepath = path.join(outputDir, filename);
-        const { data: fullIssue } = await octokit.rest.issues.get({
-            owner,
-            repo,
-            issue_number: issue.number,
-        });
-        const comments = await fetchComments(octokit, owner, repo, issue.number);
-        const relationship = relationships.get(issue.number);
-        const content = formatIssueAsMarkdown(fullIssue, comments, relationship);
-        if (forceUpdate || hasContentChanged(content, filepath)) {
-            fs.writeFileSync(filepath, content, 'utf-8');
-            files.push(filepath);
-            core.info(`Synced issue #${issue.number} with ${comments.length} comment(s) to ${filepath}`);
+        try {
+            const filename = `issue-${issue.number}.md`;
+            const filepath = path.join(outputDir, filename);
+            const { data: fullIssue } = await withRetry(`Fetch issue #${issue.number}`, () => octokit.rest.issues.get({
+                owner,
+                repo,
+                issue_number: issue.number,
+            }));
+            const comments = await fetchComments(octokit, owner, repo, issue.number);
+            const relationship = relationships.get(issue.number);
+            const content = formatIssueAsMarkdown(fullIssue, comments, relationship);
+            if (forceUpdate || hasContentChanged(content, filepath)) {
+                fs.writeFileSync(filepath, content, 'utf-8');
+                files.push(filepath);
+                core.info(`Synced issue #${issue.number} with ${comments.length} comment(s) to ${filepath}`);
+            }
+            else {
+                core.info(`Issue #${issue.number} unchanged, skipping write to ${filepath}`);
+            }
         }
-        else {
-            core.info(`Issue #${issue.number} unchanged, skipping write to ${filepath}`);
+        catch (error) {
+            skippedIssues++;
+            core.warning(`Skipping issue #${issue.number}: ${formatGitHubError(error)}`);
         }
     }
-    return { count: allIssues.length, files };
+    if (skippedIssues > 0) {
+        core.warning(`Skipped ${skippedIssues} issue(s) due to API errors.`);
+    }
+    return { count: allIssues.length - skippedIssues, files };
 }
 async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false) {
     const state = includeClosed ? 'all' : 'open';
@@ -58540,50 +58640,62 @@ async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed,
     let hasMore = true;
     let prsCount = 0;
     const files = [];
+    let skippedPRs = 0;
     while (hasMore) {
-        const { data: prs } = await octokit.rest.pulls.list({
-            owner,
-            repo,
-            state,
-            per_page: perPage,
-            page,
-            ...(updatedSince
-                ? {
-                    sort: 'updated',
-                    direction: 'desc',
-                }
-                : {}),
-        });
+        let prs;
+        try {
+            ({ data: prs } = await withRetry(`List pull requests (page ${page})`, () => octokit.rest.pulls.list({
+                owner,
+                repo,
+                state,
+                per_page: perPage,
+                page,
+                ...(updatedSince
+                    ? {
+                        sort: 'updated',
+                        direction: 'desc',
+                    }
+                    : {}),
+            })));
+        }
+        catch (error) {
+            core.warning(`Failed to list pull requests (page ${page}): ${formatGitHubError(error)}. Stopping PR sync.`);
+            break;
+        }
         const filteredPRs = updatedSince
             ? prs.filter((pr) => isUpdatedSince(pr.updated_at, updatedSince))
             : prs;
         prsCount += filteredPRs.length;
         for (const pr of filteredPRs) {
-            const filename = `pr-${pr.number}.md`;
-            const filepath = path.join(outputDir, filename);
-            // Fetch full PR details to get all metadata
-            const { data: fullPR } = await octokit.rest.pulls.get({
-                owner,
-                repo,
-                pull_number: pr.number,
-            });
-            // Fetch comments for this PR (issue comments + review comments)
-            const comments = await fetchComments(octokit, owner, repo, pr.number);
-            const reviewComments = await fetchReviewComments(octokit, owner, repo, pr.number);
-            // Fetch commits if PR is closed
-            let commits = [];
-            if (fullPR.state === 'closed') {
-                commits = await fetchPRCommits(octokit, owner, repo, pr.number);
+            try {
+                const filename = `pr-${pr.number}.md`;
+                const filepath = path.join(outputDir, filename);
+                const { data: fullPR } = await withRetry(`Fetch PR #${pr.number}`, () => octokit.rest.pulls.get({
+                    owner,
+                    repo,
+                    pull_number: pr.number,
+                }));
+                const comments = await fetchComments(octokit, owner, repo, pr.number);
+                const reviewComments = await fetchReviewComments(octokit, owner, repo, pr.number);
+                let commits = [];
+                if (fullPR.state === 'closed') {
+                    commits = await fetchPRCommits(octokit, owner, repo, pr.number);
+                }
+                const content = formatPRAsMarkdown(fullPR, comments, reviewComments, commits);
+                if (forceUpdate || hasContentChanged(content, filepath)) {
+                    fs.writeFileSync(filepath, content, 'utf-8');
+                    files.push(filepath);
+                    const commitInfo = commits.length > 0 ? ` with ${commits.length} commit(s)` : '';
+                    core.info(`Synced PR #${pr.number}${commitInfo} with ${comments.length + reviewComments.length} comment(s) to ${filepath}`);
+                }
+                else {
+                    core.info(`PR #${pr.number} unchanged, skipping write to ${filepath}`);
+                }
             }
-            const content = formatPRAsMarkdown(fullPR, comments, reviewComments, commits);
-            if (forceUpdate || hasContentChanged(content, filepath)) {
-                fs.writeFileSync(filepath, content, 'utf-8');
-                files.push(filepath);
-                const commitInfo = commits.length > 0 ? ` with ${commits.length} commit(s)` : '';
-                core.info(`Synced PR #${pr.number}${commitInfo} with ${comments.length + reviewComments.length} comment(s) to ${filepath}`);
-            }
-            else {
-                core.info(`PR #${pr.number} unchanged, skipping write to ${filepath}`);
+            catch (error) {
+                skippedPRs++;
+                prsCount--;
+                core.warning(`Skipping PR #${pr.number}: ${formatGitHubError(error)}`);
             }
         }
         if (updatedSince) {
@@ -58596,6 +58708,9 @@ async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed,
         }
         page++;
     }
+    if (skippedPRs > 0) {
+        core.warning(`Skipped ${skippedPRs} pull request(s) due to API errors.`);
+    }
     return { count: prsCount, files };
 }
 async function fetchComments(octokit, owner, repo, issueNumber) {
@@ -58605,19 +58720,19 @@ async function fetchComments(octokit, owner, repo, issueNumber) {
     let hasMore = true;
     while (hasMore) {
         try {
-            const { data: pageComments } = await octokit.rest.issues.listComments({
+            const { data: pageComments } = await withRetry(`Fetch comments for #${issueNumber} (page ${page})`, () => octokit.rest.issues.listComments({
                 owner,
                 repo,
                 issue_number: issueNumber,
                 per_page: perPage,
                 page,
-            });
+            }));
             comments.push(...pageComments);
             hasMore = pageComments.length === perPage;
             page++;
         }
         catch (error) {
-            core.warning(`Failed to fetch comments for #${issueNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            core.warning(`Failed to fetch comments for #${issueNumber}: ${formatGitHubError(error)}`);
             break;
         }
     }
@@ -58643,10 +58758,10 @@ async function fetchIssueRelationships(octokit, owner, repo, issueNumbers) {
       }
     }`;
         try {
-            const response = await octokit.graphql(query, {
+            const response = await withRetry(`Fetch sub-issue relationships (batch ${Math.floor(i / exports.GRAPHQL_BATCH_SIZE) + 1})`, () => octokit.graphql(query, {
                 owner,
                 repo,
-            });
+            }));
             for (const num of batch) {
                 const data = response.repository[`issue_${num}`];
                 if (data) {
@@ -58675,21 +58790,21 @@ async function fetchPRCommits(octokit, owner, repo, pullNumber) {
     let hasMore = true;
     while (hasMore) {
         try {
-            const { data: pageCommits } = await octokit.rest.pulls.listCommits({
+            const { data: pageCommits } = await withRetry(`Fetch commits for PR #${pullNumber} (page ${page})`, () => octokit.rest.pulls.listCommits({
                 owner,
                 repo,
                 pull_number: pullNumber,
                 per_page: perPage,
                 page,
-            });
+            }));
             // Fetch detailed commit info including stats and files
             const commitsWithDetails = await Promise.all(pageCommits.map(async (commit) => {
                 try {
-                    const { data: commitDetail } = await octokit.rest.repos.getCommit({
+                    const { data: commitDetail } = await withRetry(`Fetch commit details ${commit.sha}`, () => octokit.rest.repos.getCommit({
                         owner,
                         repo,
                         ref: commit.sha,
-                    });
+                    }));
                     return {
                         sha: commit.sha,
                         commit: {
@@ -58742,7 +58857,7 @@ async function fetchPRCommits(octokit, owner, repo, pullNumber) {
             page++;
         }
         catch (error) {
-            core.warning(`Failed to fetch commits for PR #${pullNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            core.warning(`Failed to fetch commits for PR #${pullNumber}: ${formatGitHubError(error)}`);
             break;
         }
     }
@@ -58755,19 +58870,19 @@ async function fetchReviewComments(octokit, owner, repo, pullNumber) {
     let hasMore = true;
     while (hasMore) {
         try {
-            const { data: pageComments } = await octokit.rest.pulls.listReviewComments({
+            const { data: pageComments } = await withRetry(`Fetch review comments for PR #${pullNumber} (page ${page})`, () => octokit.rest.pulls.listReviewComments({
                 owner,
                 repo,
                 pull_number: pullNumber,
                 per_page: perPage,
                 page,
-            });
+            }));
             reviewComments.push(...pageComments);
             hasMore = pageComments.length === perPage;
             page++;
         }
         catch (error) {
-            core.warning(`Failed to fetch review comments for PR #${pullNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            core.warning(`Failed to fetch review comments for PR #${pullNumber}: ${formatGitHubError(error)}`);
             break;
         }
     }
