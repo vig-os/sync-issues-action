@@ -96,8 +96,8 @@ jobs:
       - name: Fix git safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Set up Node.js
-        run: ./scripts/setup-node.sh
+      - name: Sync dependencies
+        run: just sync
 
       - name: Run pre-commit hooks
         run: uvx pre-commit run --all-files --show-diff-on-failure
