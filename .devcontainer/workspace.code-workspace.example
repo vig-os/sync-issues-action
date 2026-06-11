@@ -1,9 +1,9 @@
 {
     "$schema": "https://aka.ms/vscode-workspace-schema",
-    "name": "sync_issues_action",
+    "name": "devcontainer",
     "folders": [
         {
-            "name": "sync_issues_action",
+            "name": "devcontainer",
             "path": "."
         },
         {

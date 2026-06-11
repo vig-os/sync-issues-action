@@ -1,11 +1,11 @@
 # CodeQL Static Analysis
 #
-# Runs GitHub CodeQL analysis on the TypeScript codebase.
+# Runs GitHub CodeQL analysis on TypeScript source and GitHub Actions workflows.
 #
 # Triggers:
 #   - Pull requests to dev, release/**, and main
 #   - Pushes to main (post-merge analysis)
-#   - Weekly schedule (re-run with updated CodeQL rules/engines even when repo code is unchanged)
+#   - Weekly schedule (catch newly disclosed patterns)
 
 name: CodeQL
 
@@ -15,26 +15,21 @@ on:  # yamllint disable-line rule:truthy
       - dev
       - 'release/**'
       - main
-    paths:
-      - '**.ts'
   push:
     branches:
       - main
     paths:
-      - '**.ts'
+      - 'src/**'
+      - '.github/workflows/**'
   schedule:
     - cron: '15 2 * * 1'  # Monday at 02:15 UTC
-
-concurrency:
-  group: codeql-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
 
 permissions: {}  # restrict default; job declares its own
 
 jobs:
   analyze:
     name: CodeQL Analysis
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       security-events: write   # upload SARIF results
@@ -44,18 +39,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['javascript-typescript']
+        language: ['javascript-typescript', 'actions']
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
+        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e  # v4
         with:
           languages: ${{ matrix.language }}
 
       - name: Run CodeQL analysis
-        uses: github/codeql-action/analyze@38697555549f1db7851b81482ff19f1fa5c4fedc  # v4
+        uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e  # v4
         with:
           category: '/language:${{ matrix.language }}'

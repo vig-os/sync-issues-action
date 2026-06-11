@@ -1,0 +1,114 @@
+# ===============================================================================
+# PROJECT RECIPES - Team-shared customizations
+# This file is git-tracked and preserved during devcontainer upgrades.
+# Add team-shared recipes here that everyone on the project should use.
+# ===============================================================================
+# ===============================================================================
+# PROJECT VARIABLES
+# ===============================================================================
+
+project := "sync_issues_action"
+node := "./scripts/setup-node.sh"
+
+# ===============================================================================
+# INFO
+# ===============================================================================
+
+# Show project information
+[group('info')]
+info:
+    @echo "Project: {{ project }}"
+
+# -------------------------------------------------------------------------------
+# CODE QUALITY
+# -------------------------------------------------------------------------------
+
+# Run all linters
+[group('quality')]
+lint:
+    {{node}} npm run lint
+
+# Format code
+[group('quality')]
+format:
+    {{node}} npm run format
+
+# Run pre-commit hooks on all files
+[group('quality')]
+precommit:
+    {{node}} pre-commit run --all-files
+
+# -------------------------------------------------------------------------------
+# TESTING
+# -------------------------------------------------------------------------------
+
+# Run the full local suite (unit + integration; integration skipped without a token)
+[group('test')]
+test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just test-unit
+    if [ -n "${GITHUB_TOKEN:-}" ] || gh auth token >/dev/null 2>&1; then
+        just test-integration
+    else
+        echo "[warn] Skipping integration tests: no GITHUB_TOKEN and 'gh auth token' unavailable."
+        echo "       Run 'gh auth login' then 'just test-integration' to include them."
+    fi
+
+# Run unit tests
+[group('test')]
+test-unit *args:
+    {{node}} npm test -- {{args}}
+
+# Run unit tests with coverage
+[group('test')]
+test-cov *args:
+    {{node}} npm run test:coverage -- {{args}}
+
+# Run integration tests
+[group('test')]
+test-integration:
+    {{node}} npm run test:integration
+
+# -------------------------------------------------------------------------------
+# DEPENDENCIES
+# -------------------------------------------------------------------------------
+
+# Sync all dependencies (idempotent, fast if nothing changed)
+[group('deps')]
+sync:
+    ./scripts/setup-node.sh
+    {{node}} npm ci
+
+# Update all dependencies
+[group('deps')]
+update:
+    {{node}} npm update
+    @just sync
+
+# -------------------------------------------------------------------------------
+# BUILD
+# -------------------------------------------------------------------------------
+
+# Build TypeScript and ncc bundle
+[group('build')]
+build:
+    {{node}} npm run build
+    {{node}} npm run package
+
+# Verify shipped bundle matches source (fails if out of sync)
+[group('build')]
+verify-dist:
+    {{node}} npm run package
+    @git diff --exit-code dist/index.js dist/licenses.txt || (echo "dist bundle is out of sync. Run 'just build' and commit dist/index.js and dist/licenses.txt." && exit 1)
+
+# Clean build artifacts
+[group('build')]
+clean-artifacts:
+    rm -rf dist coverage node_modules/.cache
+
+# ===============================================================================
+# PROJECT-SPECIFIC RECIPES
+# ===============================================================================
+# Release workflow helpers live in .devcontainer/justfile.gh (prepare-release,
+# publish-candidate, finalize-release, promote-release).

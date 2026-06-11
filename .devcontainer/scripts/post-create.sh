@@ -1,69 +1,40 @@
 #!/bin/bash
 
-# Post-create script - runs when container is created for the first time
-# This script is called from postCreateCommand in devcontainer.json
+# Post-create script - runs once when container is created for the first time.
+# This script is called from postCreateCommand in devcontainer.json.
+#
+# All one-time setup belongs here:
+#   - Git repo init, config, hooks
+#   - SSH key + allowed-signers placement
+#   - GitHub CLI config + authentication
+#   - Pre-commit hook installation
+#   - Dependency sync (via just)
 
 set -euo pipefail
 
 echo "Running post-create setup..."
 
-# User specific setup
-# Add your custom setup commands here to install any dependencies or tools needed for your project
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="/workspace/sync_issues_action"
 
-# 1. apt update
-APT_CLEAN=false
-if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
-    echo "Updating package lists..."
-    apt-get update -qq
-    APT_CLEAN=true
+if [ ! -d "$PROJECT_ROOT" ]; then
+    echo "Error: Project directory $PROJECT_ROOT does not exist"
+    exit 1
 fi
 
-# 2. Install Node.js
-if ! command -v node &> /dev/null; then
-    NODE_MAJOR=$(tr -d 'v\n' < .nvmrc 2>/dev/null | cut -d'.' -f1)
-    NODE_MAJOR=${NODE_MAJOR:-20}
-    echo "Installing Node.js ${NODE_MAJOR}.x..."
-    curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash -
-    apt-get install -y nodejs
-fi
-NODE_VERSION=$(node --version)
-echo -e "Node.js installed (${NODE_VERSION})"
+# Set venv prompt
+sed -i 's/template-project/sync_issues_action/g' /root/assets/workspace/.venv/bin/activate
 
-# 3. Install npm
-if ! command -v npm &> /dev/null; then
-    echo "Installing npm..."
-    apt-get install -y npm
-fi
-NPM_VERSION=$(npm --version)
-echo -e "npm installed (${NPM_VERSION})"
+# One-time setup: git repo, config, hooks, gh auth
+"$SCRIPT_DIR/init-git.sh"
+"$SCRIPT_DIR/setup-git-conf.sh"
+"$SCRIPT_DIR/setup-gh-repo.sh"
+"$SCRIPT_DIR/init-precommit.sh"
 
-# 4. Clean apt
-if [ "$APT_CLEAN" = true ]; then
-    apt-get clean
-fi
+# Sync dependencies (fast if nothing changed from pre-built venv)
+echo "Syncing dependencies..."
+just --justfile "$PROJECT_ROOT/justfile" --working-directory "$PROJECT_ROOT" sync
 
-# 5. Install act (for testing workflows locally)
-if ! command -v act &> /dev/null && [ ! -f /usr/local/bin/act ]; then
-    echo -e "Installing act (workflow testing tool)..."
-    curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sh -s -- -b /usr/local/bin >/dev/null 2>&1
-fi
-ACT_VERSION=$(act --version 2>/dev/null | head -n1 | tr -d '\n' || echo "")
-echo -e "act installed (${ACT_VERSION})"
-
-# 6. Install @github/local-action (for testing JS/TS actions)
-if ! command -v local-action &> /dev/null; then
-    echo -e "Installing @github/local-action (action testing tool)..."
-    npm install -g @github/local-action tsx >/dev/null 2>&1
-fi
-LOCAL_ACTION_VERSION=$(npm list -g @github/local-action --depth=0 2>/dev/null | grep @github/local-action | awk -F'@' '{print $NF}' | tr -d '\n' || echo "")
-echo -e "@github/local-action installed (${LOCAL_ACTION_VERSION})"
-
-# Check if tsx is installed
-if ! command -v tsx &> /dev/null; then
-    echo -e "Installing tsx (required by local-action)..."
-    npm install -g tsx >/dev/null 2>&1
-fi
-TSX_VERSION=$(tsx --version 2>/dev/null | head -n1 | tr -d '\n' || echo "")
-echo -e "tsx installed (${TSX_VERSION})"
+# User specific setup — TypeScript project: just sync provisions Node via scripts/setup-node.sh
 
 echo "Post-create setup complete"

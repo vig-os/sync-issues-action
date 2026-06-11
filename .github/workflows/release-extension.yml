@@ -1,0 +1,162 @@
+name: Release Extension
+
+on:  # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
+      finalize_sha:
+        description: "Finalized commit SHA"
+        required: true
+        type: string
+      release_date:
+        description: "Release date"
+        required: true
+        type: string
+      release_kind:
+        description: "Release kind (candidate or final)"
+        required: true
+        type: string
+      publish_version:
+        description: "Version tag that will be published (vX.Y.Z or vX.Y.Z-rcN)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  extension:
+    name: Update Floating Tags
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    if: ${{ inputs.release_kind == 'final' }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Generate release app token
+        id: release_app_token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Capture existing floating tag SHAs
+        id: capture
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ steps.release_app_token.outputs.token }}
+        run: |
+          set -euo pipefail
+          FLOAT_MAJOR="v${VERSION%%.*}"
+          FLOAT_MINOR="v${VERSION%.*}"
+
+          get_tag_sha() {
+            local TAG="$1"
+            local SHA
+            SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" \
+              --jq '.object.sha' 2>/dev/null || true)
+            if [ -n "$SHA" ] && echo "$SHA" | grep -qE '^[0-9a-f]{40}$'; then
+              echo "$SHA"
+            fi
+          }
+
+          MAJOR_SHA=$(get_tag_sha "$FLOAT_MAJOR")
+          MINOR_SHA=$(get_tag_sha "$FLOAT_MINOR")
+          echo "floating_major_sha=$MAJOR_SHA" >> "$GITHUB_OUTPUT"
+          echo "floating_minor_sha=$MINOR_SHA" >> "$GITHUB_OUTPUT"
+          echo "Captured floating tag SHAs: $FLOAT_MAJOR=$MAJOR_SHA $FLOAT_MINOR=$MINOR_SHA"
+
+      - name: Update floating version tags
+        env:
+          VERSION: ${{ inputs.version }}
+          COMMIT_SHA: ${{ inputs.finalize_sha }}
+          GH_TOKEN: ${{ steps.release_app_token.outputs.token }}
+        run: |
+          set -euo pipefail
+          FLOAT_MAJOR="v${VERSION%%.*}"
+          FLOAT_MINOR="v${VERSION%.*}"
+
+          get_tag_sha() {
+            local TAG="$1"
+            local SHA
+            SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" \
+              --jq '.object.sha' 2>/dev/null || true)
+            if [ -n "$SHA" ] && echo "$SHA" | grep -qE '^[0-9a-f]{40}$'; then
+              echo "$SHA"
+            fi
+          }
+
+          upsert_tag() {
+            local TAG="$1" SHA="$2"
+            local EXISTING
+            EXISTING=$(get_tag_sha "$TAG")
+            if [ -n "$EXISTING" ]; then
+              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
+                --method PATCH -f sha="$SHA" -F force=true
+              echo "Updated $TAG → $SHA (was $EXISTING)"
+            else
+              gh api "repos/$GITHUB_REPOSITORY/git/refs" \
+                -f ref="refs/tags/$TAG" -f sha="$SHA"
+              echo "Created $TAG → $SHA"
+            fi
+          }
+
+          upsert_tag "$FLOAT_MAJOR" "$COMMIT_SHA"
+          upsert_tag "$FLOAT_MINOR" "$COMMIT_SHA"
+
+      - name: Restore floating version tags on failure
+        if: failure()
+        continue-on-error: true
+        env:
+          VERSION: ${{ inputs.version }}
+          PREV_MAJOR_SHA: ${{ steps.capture.outputs.floating_major_sha }}
+          PREV_MINOR_SHA: ${{ steps.capture.outputs.floating_minor_sha }}
+          GH_TOKEN: ${{ steps.release_app_token.outputs.token }}
+        run: |
+          set -euo pipefail
+          FLOAT_MAJOR="v${VERSION%%.*}"
+          FLOAT_MINOR="v${VERSION%.*}"
+
+          restore_or_delete() {
+            local TAG="$1" PREV_SHA="$2"
+            if [ -n "$PREV_SHA" ] && echo "$PREV_SHA" | grep -qE '^[0-9a-f]{40}$'; then
+              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
+                --method PATCH -f sha="$PREV_SHA" -F force=true 2>/dev/null \
+                && echo "Restored $TAG → $PREV_SHA" \
+                || echo "Warning: Could not restore $TAG"
+            elif [ -n "$PREV_SHA" ]; then
+              echo "Warning: Invalid previous SHA for $TAG ($PREV_SHA), skipping restore/delete"
+            else
+              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
+                --method DELETE 2>/dev/null \
+                && echo "Deleted floating tag $TAG" \
+                || echo "No floating tag $TAG to delete"
+            fi
+          }
+
+          restore_or_delete "$FLOAT_MAJOR" "$PREV_MAJOR_SHA"
+          restore_or_delete "$FLOAT_MINOR" "$PREV_MINOR_SHA"
+
+  extension-candidate:
+    name: Extension Hook (Candidate No-op)
+    runs-on: ubuntu-24.04
+    if: ${{ inputs.release_kind == 'candidate' }}
+    steps:
+      - name: Candidate extension summary
+        env:
+          VERSION: ${{ inputs.version }}
+          FINALIZE_SHA: ${{ inputs.finalize_sha }}
+          RELEASE_DATE: ${{ inputs.release_date }}
+          RELEASE_KIND: ${{ inputs.release_kind }}
+          PUBLISH_VERSION: ${{ inputs.publish_version }}
+        run: |
+          echo "No candidate extension configured."
+          echo "Version: $VERSION"
+          echo "Release kind: $RELEASE_KIND"
+          echo "Publish version: $PUBLISH_VERSION"
+          echo "Finalize SHA: $FINALIZE_SHA"
+          echo "Release date: $RELEASE_DATE"

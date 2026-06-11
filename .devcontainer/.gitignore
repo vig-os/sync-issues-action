@@ -1,9 +1,14 @@
-# User-specific configuration
+# Local configuration (machine-specific, not tracked)
+.local/
+
+# User-specific configuration (personal, not shared with team)
 .conf/
+.env
 .env.local
-docker-compose.override.yml
-docker-compose.local.yml
-workspace.code-workspace
+docker-compose.local.yaml
+
+# VS Code workspace files (personal editor layout)
+*.code-workspace
 
 # Temporary files
 *.tmp

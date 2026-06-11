@@ -214,12 +214,21 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# Personal justfile recipes
+justfile.local
+
+# Project-local Node.js install (scripts/setup-node.sh)
+.node/
+
 # Pre-commit cache
 .pre-commit-cache/
 
 # Action output
 node_modules/
-dist/__tests__
+# Action bundle (ncc output only; tsc emit under dist/src/ is local build noise)
+dist/*
+!dist/index.js
+!dist/licenses.txt
 dist/*.tsbuildinfo
 *.log
 .DS_Store

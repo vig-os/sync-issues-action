@@ -1,7 +1,7 @@
 ---
 # .pre-commit-config.yaml
 
-exclude: ^dist/|test_output/|^docs/issues/|^docs/pull-requests/
+exclude: ^.github_data/|^docs/issues/|^docs/pull-requests/|^dist/
 
 repos:
   # General Pre-commit Hooks (Fixes formatting issues)
@@ -27,11 +27,26 @@ repos:
       - id: check-symlinks
       - id: check-toml
       - id: check-yaml
-      - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: trailing-whitespace
+
+  # TypeScript/JavaScript linting and formatting
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: npm run lint
+        language: system
+        files: ^src/.*\.ts$
+        pass_filenames: false
+      - id: prettier
+        name: prettier
+        entry: npm run format
+        language: system
+        files: ^src/.*\.ts$
+        pass_filenames: false
 
   # YAML Linting
   - repo: https://github.com/adrienverge/yamllint
@@ -47,6 +62,7 @@ repos:
       - id: shellcheck
         name: shellcheck
         args: ["-x"]
+        exclude: ^\.envrc$
 
   # Markdown Linting (excludes auto-generated docs)
   - repo: https://github.com/jackdewinter/pymarkdown
@@ -56,6 +72,16 @@ repos:
         name: pymarkdown
         args: ["-c", ".pymarkdown", "fix"]
         exclude: ^(README\.md|CONTRIBUTE\.md|TESTING\.md)
+
+  # Justfile formatting
+  - repo: local
+    hooks:
+      - id: just-fmt
+        name: just (format justfiles)
+        entry: just --fmt --unstable
+        language: system
+        files: ^justfile(\..*)?$
+        pass_filenames: false
 
   # Typo Linting
   - repo: https://github.com/crate-ci/typos
