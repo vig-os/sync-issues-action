@@ -1,9 +1,13 @@
+# Managed by vigOS devkit — regenerated on upgrade; local edits are lost.
+# Customize in justfile.project. Bugs / missing tools: https://github.com/vig-os/devkit/issues
+
 # Promote Release — after final release.yml has created the git tag and draft GitHub Release
 #
 # 1. validate: semver, draft GitHub Release for X.Y.Z, release PR approved and CI green
 # 2. promote: publish (undraft) GitHub Release
 # 3. merge: merge release/X.Y.Z PR to main (triggers sync-main-to-dev)
-# 4. cleanup (best-effort): delete remote git RC tags matching X.Y.Z-rc* with no GitHub Release
+# 4. cleanup (best-effort): delete RC draft pre-releases for X.Y.Z, then remote git RC tags
+#    matching X.Y.Z-rc* with no (remaining) GitHub Release
 #
 # See docs/DOWNSTREAM_RELEASE.md. No GHCR/cosign/smoke-test gate (project-specific).
 name: Promote Release
@@ -22,39 +26,51 @@ concurrency:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
-  resolve-image:
-    name: Resolve image tag
+  resolve-toolchain:
+    name: Resolve toolchain
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
+      mode: ${{ steps.resolve.outputs.mode }}
+      image: ${{ steps.resolve.outputs.image }}
       image-tag: ${{ steps.resolve.outputs.image-tag }}
+      tag-prefix: ${{ steps.resolve.outputs.tag-prefix }}
+      floating-tags: ${{ steps.resolve.outputs.floating-tags }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           sparse-checkout: |
             .vig-os
-            .github/actions/resolve-image
+            .github/actions/resolve-toolchain
           sparse-checkout-cone-mode: false
 
-      - name: Resolve container image
+      - name: Resolve toolchain
         id: resolve
-        uses: ./.github/actions/resolve-image
+        uses: ./.github/actions/resolve-toolchain
+        with:
+          registry-token: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
+          registry-username: ${{ github.actor }}
 
   validate:
     name: Validate promote prerequisites
-    needs: [resolve-image]
+    needs: [resolve-toolchain]
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
+      image: ${{ needs.resolve-toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
     timeout-minutes: 15
     outputs:
       version: ${{ steps.vars.outputs.version }}
     permissions:
-      contents: write
+      contents: read
       pull-requests: read
+      packages: read
     defaults:
       run:
         shell: bash
@@ -62,11 +78,20 @@ jobs:
       GH_REPO: ${{ github.repository }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Set up devkit toolchain
+        uses: ./.github/actions/setup-devkit-toolchain
+        with:
+          mode: ${{ needs.resolve-toolchain.outputs.mode }}
+          devkit-version: ${{ needs.resolve-toolchain.outputs.image-tag }}
+
       - name: Generate release app token
         id: release_app_token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
         with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Validate version
@@ -87,11 +112,17 @@ jobs:
 
       - name: Verify draft GitHub Release exists
         env:
-          GH_TOKEN: ${{ github.token }}
+          # GitHub only returns draft releases to a token with push (contents:write)
+          # access. The job's GITHUB_TOKEN is read-only (#1136), so use the
+          # RELEASE_APP token this job already mints for its PR-check step; a
+          # read-only github.token would silently hide the draft and fail promote.
+          GH_TOKEN: ${{ steps.release_app_token.outputs.token }}
           VERSION: ${{ steps.vars.outputs.version }}
+          TAG_PREFIX: ${{ needs.resolve-toolchain.outputs.tag-prefix }}
         run: |
           set -euo pipefail
-          TAG="v${VERSION}"
+          # The Release/tag published by release.yml carries the prefix (#1044).
+          PROMOTE_TAG="${TAG_PREFIX}${VERSION}"
           RETRIES=5
           LAST_ERROR=""
           RELEASE_JSON=""
@@ -99,12 +130,12 @@ jobs:
             API_OUTPUT=""
             if API_OUTPUT=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate 2>&1); then
               MATCHED=$(printf '%s' "$API_OUTPUT" | \
-                jq -s --arg tag "$TAG" 'flatten | map(select(.tag_name == $tag)) | .[0] // empty' 2>/dev/null)
+                jq -s --arg tag "$PROMOTE_TAG" 'flatten | map(select(.tag_name == $tag)) | .[0] // empty' 2>/dev/null)
               if printf '%s' "$MATCHED" | jq -e 'type == "object"' >/dev/null 2>&1; then
                 RELEASE_JSON="$MATCHED"
                 break
               fi
-              LAST_ERROR="No release found for tag $TAG (not in releases list yet)"
+              LAST_ERROR="No release found for tag $PROMOTE_TAG (not in releases list yet)"
               if [ "$i" -lt "$RETRIES" ]; then
                 sleep $((i * 5))
                 continue
@@ -129,12 +160,12 @@ jobs:
                 continue
               fi
             fi
-            echo "ERROR: Unexpected response querying release for tag $TAG"
+            echo "ERROR: Unexpected response querying release for tag $PROMOTE_TAG"
             echo "$API_OUTPUT"
             exit 1
           done
           if [ -z "$RELEASE_JSON" ]; then
-            echo "ERROR: No GitHub Release for tag $TAG"
+            echo "ERROR: No GitHub Release for tag $PROMOTE_TAG"
             if [ -n "$LAST_ERROR" ]; then
               echo "$LAST_ERROR"
             fi
@@ -142,10 +173,10 @@ jobs:
           fi
           IS_DRAFT=$(printf '%s' "$RELEASE_JSON" | jq -r '.draft')
           if [ "$IS_DRAFT" != "true" ]; then
-            echo "ERROR: GitHub Release for $TAG must still be a draft (got draft=$IS_DRAFT)"
+            echo "ERROR: GitHub Release for $PROMOTE_TAG must still be a draft (got draft=$IS_DRAFT)"
             exit 1
           fi
-          echo "✓ Draft GitHub Release exists for $TAG"
+          echo "✓ Draft GitHub Release exists for $PROMOTE_TAG"
 
       - name: Find and verify release PR
         env:
@@ -209,6 +240,45 @@ jobs:
             exit 1
           fi
 
+          # Mergeability gate (#1132). promote → merge is preceded by an
+          # IRREVERSIBLE publish (undraft), so a PR that is approved + CI-green
+          # but not actually mergeable (BEHIND main, BLOCKED, or DIRTY) would
+          # undraft the Release and only then fail to merge — a half-promoted
+          # release. Fail fast here instead. GitHub computes mergeability
+          # asynchronously, so re-query while either field is UNKNOWN.
+          MERGEABLE="UNKNOWN"
+          MERGE_STATE="UNKNOWN"
+          for attempt in 1 2 3 4 5; do
+            MERGE_JSON=$(retry --retries 3 --backoff 5 --max-backoff 30 -- \
+              gh pr view "$PR_NUMBER" --json mergeable,mergeStateStatus)
+            MERGEABLE=$(echo "$MERGE_JSON" | jq -r '.mergeable')
+            MERGE_STATE=$(echo "$MERGE_JSON" | jq -r '.mergeStateStatus')
+            if [ "$MERGEABLE" != "UNKNOWN" ] && [ "$MERGE_STATE" != "UNKNOWN" ]; then
+              break
+            fi
+            echo "Mergeability still computing (mergeable=$MERGEABLE, mergeStateStatus=$MERGE_STATE), retry $attempt/5..."
+            sleep $((attempt * 5))
+          done
+
+          if [ "$MERGEABLE" != "MERGEABLE" ]; then
+            echo "ERROR: PR #$PR_NUMBER is not mergeable (mergeable=$MERGEABLE, mergeStateStatus=$MERGE_STATE)"
+            echo "Refusing to promote: the publish step is irreversible and this merge would fail after it."
+            exit 1
+          fi
+          case "$MERGE_STATE" in
+            CLEAN | HAS_HOOKS | UNSTABLE)
+              echo "PR #$PR_NUMBER is mergeable (mergeStateStatus=$MERGE_STATE)"
+              ;;
+            BEHIND)
+              echo "ERROR: PR #$PR_NUMBER is BEHIND main — update release/$VERSION to base before promoting"
+              exit 1
+              ;;
+            *)
+              echo "ERROR: PR #$PR_NUMBER is not in a mergeable state (mergeStateStatus=$MERGE_STATE)"
+              exit 1
+              ;;
+          esac
+
           echo "✓ PR #$PR_NUMBER verified for promote"
 
       - name: Summary
@@ -219,13 +289,17 @@ jobs:
 
   promote:
     name: Publish GitHub Release
-    needs: [resolve-image, validate]
+    needs: [resolve-toolchain, validate]
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
+      image: ${{ needs.resolve-toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
     timeout-minutes: 10
     permissions:
-      contents: write
+      contents: read
+      packages: read
     defaults:
       run:
         shell: bash
@@ -233,23 +307,34 @@ jobs:
       GH_REPO: ${{ github.repository }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Set up devkit toolchain
+        uses: ./.github/actions/setup-devkit-toolchain
+        with:
+          mode: ${{ needs.resolve-toolchain.outputs.mode }}
+          devkit-version: ${{ needs.resolve-toolchain.outputs.image-tag }}
+
       - name: Generate release app token
         id: release_app_token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
         with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ steps.release_app_token.outputs.token }}
           VERSION: ${{ needs.validate.outputs.version }}
+          TAG_PREFIX: ${{ needs.resolve-toolchain.outputs.tag-prefix }}
         run: |
           set -euo pipefail
-          TAG="v${VERSION}"
+          # The GitHub Release is keyed on the prefixed tag name (#1044).
+          PROMOTE_TAG="${TAG_PREFIX}${VERSION}"
           retry --retries 3 --backoff 5 --max-backoff 30 -- \
-            gh release edit "$TAG" --draft=false
-          echo "✓ GitHub Release $TAG published (no longer draft)"
+            gh release edit "$PROMOTE_TAG" --draft=false
+          echo "✓ GitHub Release $PROMOTE_TAG published (no longer draft)"
 
       - name: Summary
         env:
@@ -259,14 +344,18 @@ jobs:
 
   merge:
     name: Merge release PR to main
-    needs: [resolve-image, validate, promote]
+    needs: [resolve-toolchain, validate, promote]
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
+      image: ${{ needs.resolve-toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
     timeout-minutes: 10
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
+      packages: read
     defaults:
       run:
         shell: bash
@@ -274,11 +363,20 @@ jobs:
       GH_REPO: ${{ github.repository }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Set up devkit toolchain
+        uses: ./.github/actions/setup-devkit-toolchain
+        with:
+          mode: ${{ needs.resolve-toolchain.outputs.mode }}
+          devkit-version: ${{ needs.resolve-toolchain.outputs.image-tag }}
+
       - name: Generate release app token
         id: release_app_token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
         with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Find and verify release PR
@@ -376,53 +474,98 @@ jobs:
 
   cleanup:
     name: Cleanup git RC tags
-    needs: [resolve-image, validate, promote, merge]
+    needs: [resolve-toolchain, validate, promote, merge]
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
+      image: ${{ needs.resolve-toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
     timeout-minutes: 15
     if: ${{ needs.merge.result == 'success' }}
     continue-on-error: true
     permissions:
-      contents: write
+      contents: read
+      packages: read
     defaults:
       run:
         shell: bash
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Set up devkit toolchain
+        uses: ./.github/actions/setup-devkit-toolchain
+        with:
+          mode: ${{ needs.resolve-toolchain.outputs.mode }}
+          devkit-version: ${{ needs.resolve-toolchain.outputs.image-tag }}
+
       - name: Generate release app token
         id: release_app_token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
         with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
-      - name: Delete git RC tags without GitHub Release
+      - name: Delete RC draft pre-releases and git RC tags
         env:
           GH_TOKEN: ${{ steps.release_app_token.outputs.token }}
           VERSION: ${{ needs.validate.outputs.version }}
+          TAG_PREFIX: ${{ needs.resolve-toolchain.outputs.tag-prefix }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
+          # RC tags carry the prefix (#1044): <prefix>X.Y.Z-rcN. Empty prefix
+          # reproduces the bare X.Y.Z-rc* pattern (today's behavior).
+          RC_BASE="${TAG_PREFIX}${VERSION}"
+          TMP=$(mktemp)
+          trap 'rm -f "$TMP"' EXIT
+
+          # Emit "<id>\t<tag>" for every RC draft pre-release of the base version,
+          # read from the releases list cached in "$TMP". Drafts must be deleted by
+          # id (gh release delete <tag> cannot resolve a draft), and seeding from
+          # releases — not git tags — reclaims drafts whose RC tag was already
+          # removed by an earlier partial run.
+          select_rc_draft_releases() {
+            jq -r -s --arg base "$RC_BASE" '
+              ( "^" + ($base | gsub("\\.";"\\.")) + "-rc[0-9]+$" ) as $rc
+              | (add // [])[]
+              | select(.draft == true and .prerelease == true and (.tag_name | test($rc)))
+              | "\(.id)\t\(.tag_name)"
+            ' "$TMP"
+          }
+
+          # Pass 1: delete RC draft pre-releases by release id.
+          retry --retries 3 --backoff 5 --max-backoff 30 -- \
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/releases" > "$TMP"
+          DELETE_FAILED=0
+          while IFS=$'\t' read -r rel_id tag; do
+            [ -z "$rel_id" ] && continue
+            echo "Deleting RC draft pre-release $tag (release id $rel_id)"
+            if ! retry --retries 3 --backoff 5 --max-backoff 30 -- \
+              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/${rel_id}"; then
+              echo "ERROR: failed to delete RC draft pre-release $tag (release id $rel_id)"
+              DELETE_FAILED=1
+            fi
+          done < <(select_rc_draft_releases)
+
+          # Re-read releases after deletions for the tag pass and verification.
+          retry --retries 3 --backoff 5 --max-backoff 30 -- \
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/releases" > "$TMP"
+          RELEASES_AFTER=$(jq -s 'add // []' "$TMP")
+
+          # Pass 2: delete leftover git RC tags for the base version, but keep any
+          # tag that still has a GitHub Release attached — a published pre-release,
+          # or a draft whose deletion failed above so it stays discoverable.
           TAGS=$(retry --retries 3 --backoff 5 --max-backoff 30 -- \
-            git ls-remote --tags --refs "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "v${VERSION}-rc*" \
+            git ls-remote --tags --refs "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${RC_BASE}-rc*" \
             | awk '{print $2}' | sed 's#refs/tags/##' || true)
-          if [ -z "$TAGS" ]; then
-            echo "No remote RC tags matching v${VERSION}-rc*"
-            exit 0
-          fi
           while IFS= read -r tag; do
             [ -z "$tag" ] && continue
-            RAW=""
-            if ! RAW=$(retry --retries 2 --backoff 3 --max-backoff 10 -- \
-              gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate 2>&1); then
-              echo "WARN: release lookup failed for tag $tag, skipping deletion"
-              continue
-            fi
-            if printf '%s' "$RAW" | \
-              jq -s --arg tag "$tag" 'flatten | map(select(.tag_name == $tag)) | .[0] // empty' 2>/dev/null | \
-              jq -e 'type == "object"' >/dev/null 2>&1; then
-              echo "Skipping tag $tag (GitHub Release exists)"
+            HAS_RELEASE=$(printf '%s' "$RELEASES_AFTER" | jq -r --arg t "$tag" 'any(.[]; .tag_name == $t)')
+            if [ "$HAS_RELEASE" = "true" ]; then
+              echo "Keeping tag $tag (GitHub Release still attached)"
               continue
             fi
             echo "Deleting remote tag $tag (no GitHub Release)"
@@ -430,4 +573,125 @@ jobs:
               gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}" \
               || echo "WARN: failed to delete tag $tag"
           done <<< "$TAGS"
-          echo "✓ Git RC tag cleanup complete for $VERSION"
+
+          # Verify: no RC draft pre-release for the base version may survive.
+          REMAINING=$(select_rc_draft_releases || true)
+          if [ -n "$REMAINING" ]; then
+            echo "ERROR: RC draft pre-releases still present for $VERSION:"
+            printf '%s\n' "$REMAINING"
+            exit 1
+          fi
+          if [ "$DELETE_FAILED" -ne 0 ]; then
+            echo "ERROR: one or more RC draft pre-release deletions failed for $VERSION"
+            exit 1
+          fi
+          echo "✓ RC draft pre-release and git RC tag cleanup complete for $VERSION"
+
+  floating-tags:
+    # Opt-in floating major/minor tags (#1045). Runs at the post-acceptance gate
+    # — after the GitHub Release is published (promote) AND the release PR is
+    # merged to main (merge) — mirroring where the upstream image moves GHCR
+    # `:latest`. RC candidates never reach promote, so this is final-only. Off
+    # unless DEVKIT_FLOATING_TAGS is set; the tag ruleset can then deny tag
+    # update/delete to everyone but the RELEASE_APP, making moves app-exclusive.
+    name: Move floating tags
+    needs: [resolve-toolchain, validate, promote, merge]
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.resolve-toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
+    timeout-minutes: 10
+    if: ${{ needs.merge.result == 'success' && needs.resolve-toolchain.outputs.floating-tags != '' }}
+    permissions:
+      contents: read
+      packages: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      GH_REPO: ${{ github.repository }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Set up devkit toolchain
+        uses: ./.github/actions/setup-devkit-toolchain
+        with:
+          mode: ${{ needs.resolve-toolchain.outputs.mode }}
+          devkit-version: ${{ needs.resolve-toolchain.outputs.image-tag }}
+
+      - name: Generate release app token
+        id: release_app_token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Move floating major/minor tags
+        env:
+          GH_TOKEN: ${{ steps.release_app_token.outputs.token }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          TAG_PREFIX: ${{ needs.resolve-toolchain.outputs.tag-prefix }}
+          FLOATING_TAGS: ${{ needs.resolve-toolchain.outputs.floating-tags }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          RELEASE_TAG="${TAG_PREFIX}${VERSION}"
+
+          # Resolve the commit the release tag points at. release-publish.yml
+          # creates an ANNOTATED tag, so peel it (object.type == "tag") to the
+          # underlying commit; floating tags then point straight at the commit.
+          REF_JSON=$(retry --retries 3 --backoff 5 --max-backoff 30 -- \
+            gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}")
+          TARGET_SHA=$(printf '%s' "$REF_JSON" | jq -r '.object.sha')
+          OBJ_TYPE=$(printf '%s' "$REF_JSON" | jq -r '.object.type')
+          if [ "$OBJ_TYPE" = "tag" ]; then
+            TARGET_SHA=$(retry --retries 3 --backoff 5 --max-backoff 30 -- \
+              gh api "repos/${GITHUB_REPOSITORY}/git/tags/${TARGET_SHA}" --jq '.object.sha')
+          fi
+          if [ -z "$TARGET_SHA" ] || [ "$TARGET_SHA" = "null" ]; then
+            echo "ERROR: Could not resolve commit for release tag ${RELEASE_TAG}"
+            exit 1
+          fi
+
+          MAJOR="${VERSION%%.*}"
+          REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"
+
+          # Create-or-update a lightweight floating tag at the release commit,
+          # idempotently (skip when it already points there). Force is required
+          # because a floating tag is mutable by design (#1045).
+          move_tag() {
+            name="$1"
+            current=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${name}" --jq '.object.sha' 2>/dev/null || echo "")
+            if [ "$current" = "$TARGET_SHA" ]; then
+              echo "Floating tag ${name} already at ${TARGET_SHA}; skipping"
+              return 0
+            fi
+            if [ -n "$current" ]; then
+              retry --retries 3 --backoff 5 --max-backoff 30 -- \
+                gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/${name}" \
+                -f sha="$TARGET_SHA" -F force=true >/dev/null
+              echo "Moved floating tag ${name} -> ${TARGET_SHA}"
+            else
+              retry --retries 3 --backoff 5 --max-backoff 30 -- \
+                gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+                -f ref="refs/tags/${name}" -f sha="$TARGET_SHA" >/dev/null
+              echo "Created floating tag ${name} -> ${TARGET_SHA}"
+            fi
+          }
+
+          IFS=',' read -ra LEVELS <<< "$FLOATING_TAGS"
+          for level in "${LEVELS[@]}"; do
+            level="${level//[[:space:]]/}"
+            case "$level" in
+              major) move_tag "${TAG_PREFIX}${MAJOR}" ;;
+              minor) move_tag "${TAG_PREFIX}${MAJOR}.${MINOR}" ;;
+              "") ;;
+              *) echo "::warning::Unknown DEVKIT_FLOATING_TAGS level '$level' (expected major or minor); skipping" ;;
+            esac
+          done
+          echo "✓ Floating tag move complete for ${RELEASE_TAG}"

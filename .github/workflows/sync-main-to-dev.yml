@@ -1,3 +1,6 @@
+# Managed by vigOS devkit — regenerated on upgrade; local edits are lost.
+# Customize in justfile.project. Bugs / missing tools: https://github.com/vig-os/devkit/issues
+
 # Sync main to dev
 #
 # Keeps dev up to date with main by opening a PR from a disposable sync branch.
@@ -19,8 +22,11 @@
 # NOTE: This workspace workflow is intentionally decoupled from upstream
 # `.github/workflows/sync-main-to-dev.yml` and maintained separately.
 #
-# With the new CHANGELOG flow, dev already has ## Unreleased (created during
-# prepare-release), so no CHANGELOG reset is needed here.
+# No CHANGELOG reset is needed here. prepare-release never strips ## Unreleased
+# from the release branch, so main and dev both carry it and it is stable common
+# context in the merge base. main only edits the [X.Y.Z] line at finalization;
+# the merge therefore preserves ## Unreleased instead of silently dropping it
+# (#590).
 #
 # Triggers: push to main · workflow_dispatch
 
@@ -37,33 +43,42 @@ concurrency:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
-  resolve-image:
-    name: Resolve image tag
+  resolve-toolchain:
+    name: Resolve toolchain
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
+      mode: ${{ steps.resolve.outputs.mode }}
+      image: ${{ steps.resolve.outputs.image }}
       image-tag: ${{ steps.resolve.outputs.image-tag }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           sparse-checkout: |
             .vig-os
-            .github/actions/resolve-image
+            .github/actions/resolve-toolchain
           sparse-checkout-cone-mode: false
 
-      - name: Resolve container image
+      - name: Resolve toolchain
         id: resolve
-        uses: ./.github/actions/resolve-image
+        uses: ./.github/actions/resolve-toolchain
+        with:
+          registry-token: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
+          registry-username: ${{ github.actor }}
 
   check:
     name: Check if dev is up to date
-    needs: [resolve-image]
+    needs: [resolve-toolchain]
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
+      image: ${{ needs.resolve-toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
     timeout-minutes: 5
     defaults:
       run:
@@ -73,12 +88,15 @@ jobs:
 
     steps:
       - name: Checkout and fetch
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           fetch-depth: 0
 
-      - name: Fix git safe.directory
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Set up devkit toolchain
+        uses: ./.github/actions/setup-devkit-toolchain
+        with:
+          mode: ${{ needs.resolve-toolchain.outputs.mode }}
+          devkit-version: ${{ needs.resolve-toolchain.outputs.image-tag }}
 
       - name: Check if dev is up to date with main
         id: check
@@ -104,11 +122,14 @@ jobs:
 
   sync:
     name: Merge main into dev via PR
-    needs: [resolve-image, check]
+    needs: [resolve-toolchain, check]
     if: needs.check.outputs.up_to_date != 'true'
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/vig-os/devcontainer:${{ needs.resolve-image.outputs.image-tag }}
+      image: ${{ needs.resolve-toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
     timeout-minutes: 10
     defaults:
       run:
@@ -116,27 +137,30 @@ jobs:
     env:
       SYNC_BRANCH: chore/sync-main-to-dev-${{ github.run_number }}-${{ github.run_attempt }}
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
       issues: write
+      packages: read
 
     steps:
       - name: Generate Commit App Token
         id: commit-app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
         with:
-          app-id: ${{ secrets.COMMIT_APP_ID }}
+          client-id: ${{ secrets.COMMIT_APP_CLIENT_ID }}
           private-key: ${{ secrets.COMMIT_APP_PRIVATE_KEY }}
 
-      - name: Checkout dev
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
-          ref: dev
           fetch-depth: 0
           token: ${{ steps.commit-app-token.outputs.token }}
 
-      - name: Fix git safe.directory
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Set up devkit toolchain
+        uses: ./.github/actions/setup-devkit-toolchain
+        with:
+          mode: ${{ needs.resolve-toolchain.outputs.mode }}
+          devkit-version: ${{ needs.resolve-toolchain.outputs.image-tag }}
 
       - name: Re-check if dev is still behind main
         id: recheck
@@ -157,7 +181,7 @@ jobs:
         id: release-app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
         with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
       - name: Check for existing open sync PR

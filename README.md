@@ -143,17 +143,17 @@ You can also run the following specific tests:
 
 ## Development
 
-This project uses the vigOS devcontainer. Node.js is **not** baked into the image;
-`just sync` provisions it automatically from [`.nvmrc`](.nvmrc) into a gitignored
-[`.node/`](.node/) directory via [`scripts/setup-node.sh`](scripts/setup-node.sh).
+This project uses the [vigOS devkit](https://github.com/vig-os/devkit) in
+**direnv** mode: a Nix flake dev-shell provides Node.js and the shared vigOS
+toolchain (`just`, `prek`, linters). The build tools (tsc, jest, ncc, eslint,
+prettier) come from npm devDependencies via `just sync`.
 
 ### Setup
 
 ```bash
-just sync          # install Node (first run) + npm ci
+direnv allow       # load the flake dev-shell (or `nix develop` without direnv)
+just sync          # npm ci
 ```
-
-After the first `just sync`, `npm` is on `PATH` in new shells (via `~/.bashrc`).
 
 ### Common commands
 

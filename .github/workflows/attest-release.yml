@@ -1,0 +1,55 @@
+# Attest Release — build provenance for the published bundle (consumer-owned)
+#
+# Re-homes the provenance attestation the bespoke release.yml carried before
+# the vigOS devkit migration: attest dist/index.js (the artifact consumers
+# execute) for every pushed release tag.
+#
+# Why not the release-extension.yml seam: attestation needs `id-token: write` +
+# `attestations: write` on GITHUB_TOKEN, but the managed release.yml calls the
+# extension seam under its workflow-level `contents: read, packages: read`
+# grant, and a called reusable workflow can never ELEVATE the caller's token —
+# the attest step would be denied. A tag-push workflow owns its token grant
+# outright, so the attestation lives here instead (no edits to a managed
+# workflow). Filed upstream as a devkit seam limitation.
+#
+# The subject is the committed dist/index.js AT THE TAG — exactly the file a
+# consumer pinning `@<tag>` executes (action.yml -> main: dist/index.js).
+# Migration of the attest action itself is tracked in #70.
+#
+# Refs: https://github.com/vig-os/sync-issues-action/issues/106
+
+name: Attest Release
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Published tag to attest (e.g. v0.3.0)"
+        required: true
+        type: string
+
+permissions: {}  # restrict default; job declares its own
+
+jobs:
+  attest:
+    name: Attest build provenance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          ref: ${{ inputs.ref || github.ref_name }}
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f  # v3
+        with:
+          subject-path: dist/index.js
