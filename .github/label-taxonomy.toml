@@ -1,8 +1,11 @@
+# Managed by vigOS devkit — regenerated on upgrade; local edits are lost.
+# Customize in justfile.project. Bugs / missing tools: https://github.com/vig-os/devkit/issues
+
 # Canonical repository labels.
 # Single source of truth — referenced by:
 #   - uv run setup-labels                   (provision labels on a repo)
-#   - .cursor/skills/issue_triage/SKILL.md  (triage label check)
-#   - .cursor/skills/issue_create/SKILL.md  (agent label mapping)
+#   - .claude/skills/issue_triage/SKILL.md  (triage label check)
+#   - .claude/skills/issue_create/SKILL.md  (agent label mapping)
 #   - .github/ISSUE_TEMPLATE/*.yml          (template label values)
 #
 # Label reconciliation:
@@ -93,18 +96,13 @@ description = "Documentation, README, guides"
 color = "1d76db"
 
 [[labels]]
-name = "area:action"
-description = "GitHub Action runtime, inputs/outputs, action.yml"
-color = "1d76db"
-
-[[labels]]
-name = "area:dist"
-description = "ncc bundle, dist/index.js, build artifacts"
+name = "area:image"
+description = "Container image, Dockerfile, build"
 color = "1d76db"
 
 [[labels]]
 name = "area:testing"
-description = "Test infrastructure, Jest, integration tests"
+description = "Test infrastructure, BATS, pytest"
 color = "1d76db"
 
 [[labels]]

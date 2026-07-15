@@ -8,7 +8,6 @@
 # ===============================================================================
 
 project := "sync_issues_action"
-node := "./scripts/setup-node.sh"
 
 # ===============================================================================
 # INFO
@@ -26,17 +25,22 @@ info:
 # Run all linters
 [group('quality')]
 lint:
-    {{node}} npm run lint
+    npm run lint
 
 # Format code
 [group('quality')]
 format:
-    {{node}} npm run format
+    npm run format
+
+# Check formatting without rewriting (the CI gate; `format` is the local fix)
+[group('quality')]
+format-check:
+    npm run format:check
 
 # Run pre-commit hooks on all files
 [group('quality')]
 precommit:
-    {{node}} pre-commit run --all-files
+    prek run --all-files
 
 # -------------------------------------------------------------------------------
 # TESTING
@@ -58,57 +62,54 @@ test:
 # Run unit tests
 [group('test')]
 test-unit *args:
-    {{node}} npm test -- {{args}}
+    npm test -- {{ args }}
 
 # Run unit tests with coverage
 [group('test')]
 test-cov *args:
-    {{node}} npm run test:coverage -- {{args}}
+    npm run test:coverage -- {{ args }}
 
 # Run integration tests
 [group('test')]
 test-integration:
-    {{node}} npm run test:integration
+    npm run test:integration
 
 # -------------------------------------------------------------------------------
 # DEPENDENCIES
 # -------------------------------------------------------------------------------
 
-# Sync all dependencies (idempotent, fast if nothing changed)
+# Sync dependencies (npm ci; node itself comes from the flake dev shell)
 [group('deps')]
-sync:
-    ./scripts/setup-node.sh
-    {{node}} npm ci
+sync *args:
+    npm ci
 
 # Update all dependencies
 [group('deps')]
 update:
-    {{node}} npm update
+    npm update
     @just sync
 
 # -------------------------------------------------------------------------------
 # BUILD
 # -------------------------------------------------------------------------------
 
-# Build TypeScript and ncc bundle
+# Type-check / compile (tsc)
 [group('build')]
 build:
-    {{node}} npm run build
-    {{node}} npm run package
+    npm run build
+
+# Bundle the action into dist/ with ncc (committed; required for the action to run)
+[group('build')]
+bundle:
+    npm run bundle
 
 # Verify shipped bundle matches source (fails if out of sync)
 [group('build')]
 verify-dist:
-    {{node}} npm run package
-    @git diff --exit-code dist/index.js dist/licenses.txt || (echo "dist bundle is out of sync. Run 'just build' and commit dist/index.js and dist/licenses.txt." && exit 1)
+    npm run bundle
+    @git diff --exit-code dist/index.js dist/licenses.txt || (echo "dist bundle is out of sync. Run 'just bundle' and commit dist/index.js and dist/licenses.txt." && exit 1)
 
 # Clean build artifacts
 [group('build')]
 clean-artifacts:
-    rm -rf dist coverage node_modules/.cache
-
-# ===============================================================================
-# PROJECT-SPECIFIC RECIPES
-# ===============================================================================
-# Release workflow helpers live in .devcontainer/justfile.gh (prepare-release,
-# publish-candidate, finalize-release, promote-release).
+    rm -rf coverage node_modules/.cache

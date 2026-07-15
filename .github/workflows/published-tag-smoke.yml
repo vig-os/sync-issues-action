@@ -1,0 +1,53 @@
+# Published Tag Smoke — run the RELEASED artifact from its git tag, as a consumer does
+#
+# The PR-time integration matrix proves the bundled action works when run as
+# `uses: ./` from a branch checkout. It never runs the action from the PUBLISHED
+# tag ref a consumer actually pins (`uses: vig-os/sync-issues-action@vX.Y.Z`).
+# This workflow closes that gap: after a release tag is pushed, it re-runs the
+# full integration matrix with the action checked out AT THE TAG — the faithful
+# equivalent of a consumer pinning `@<tag>` (integration-test.yml checks out
+# `inputs.ref` and executes `uses: ./` from it).
+#
+# Triggers:
+#   - push of any vX.Y.Z / vX.Y.Z-rcN tag. The release pipeline pushes tags with
+#     the Release App token (not GITHUB_TOKEN), so tag-push events do trigger
+#     workflows. The `v*.*.*` filter matches full semver tags (RCs and finals)
+#     and excludes the floating v0 / v0.X tags that are force-moved on promotion
+#     (which would otherwise re-trigger this smoke on every promotion).
+#   - workflow_dispatch with a `ref` input, to validate a tag pushed before this
+#     workflow existed.
+#
+# Ported from vig-os/commit-action (adapted: the smoke here is the repo's own
+# integration matrix rather than a bespoke commit-verification job).
+#
+# Refs: https://github.com/vig-os/sync-issues-action/issues/106
+
+name: Published Tag Smoke
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Published tag to smoke-test (e.g. v0.3.0-rc1)"
+        required: true
+        type: string
+
+permissions: {}  # restrict default; the called workflow declares its needs
+
+concurrency:
+  group: published-tag-smoke-${{ inputs.ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Published Tag Smoke
+    uses: ./.github/workflows/integration-test.yml
+    with:
+      ref: ${{ inputs.ref || github.ref_name }}
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read

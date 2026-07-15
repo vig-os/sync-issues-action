@@ -1,0 +1,37 @@
+# Integration Test — PR gate (consumer-owned)
+#
+# Thin caller wiring the reusable integration-test.yml matrix (the 8-scenario
+# end-to-end suite that runs the action as `uses: ./` against the real GitHub
+# API) to pull requests. The bespoke ci.yml used to embed this call; the
+# scaffold-managed ci.yml (vigOS devkit) does not know about it, so the trigger
+# lives here as a consumer-owned workflow — same pattern as dist-check.yml
+# (no edits to a managed workflow).
+#
+# This fills the role commit-action's e2e-smoke.yml plays: nothing else
+# executes the committed dist/index.js bundle the way a consumer does.
+#
+# Refs: https://github.com/vig-os/sync-issues-action/issues/106
+
+name: Integration
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    branches:
+      - dev
+      - 'release/**'
+      - main
+
+permissions: {}  # restrict default; the called workflow declares its needs
+
+jobs:
+  integration:
+    name: Integration Test
+    # Fork PRs get a read-only GITHUB_TOKEN without issues/PR read on this
+    # repo's API surface; the matrix reads real issues/PRs, so run only on
+    # same-repo PRs.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/integration-test.yml
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read

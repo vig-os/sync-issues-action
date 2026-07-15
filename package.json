@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "package": "ncc build src/index.ts -o dist --license licenses.txt",
+    "bundle": "npm run package",
     "test": "jest",
     "test:unit": "jest",
     "test:watch": "jest --watch",
@@ -15,6 +16,7 @@
     "test:all": "npm run test:unit && npm run test:integration && npm run test:integration:local",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
+    "format:check": "prettier --check src/**/*.ts",
     "prepare": "npm run build && npm run package"
   },
   "keywords": [
