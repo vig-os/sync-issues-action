@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renovate: update `ubuntu` from `22.04` to `24.04`** ([#130](https://github.com/vig-os/sync-issues-action/pull/130))
 - **Renovate dependency update** ([#126](https://github.com/vig-os/sync-issues-action/pull/126))
   - Update `@types/node` from `25.5.0` to `25.9.5`
   - Update `@typescript-eslint/eslint-plugin` from `8.57.2` to `8.64.0`
