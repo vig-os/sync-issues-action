@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Run the action on the Node.js 24 runtime** ([#77](https://github.com/vig-os/sync-issues-action/issues/77))
+  - `action.yml` `runs.using` switched from `node20` to `node24` ahead of GitHub's June 2026 forced default
+  - `.nvmrc` updated to 24, matching the flake dev-shell (node 24.16) the suite already runs on
+
 - **Adopt vigOS devkit 1.3.0 (direnv mode)** ([#106](https://github.com/vig-os/sync-issues-action/issues/106))
   - Replace the bespoke CI/release stack with the devkit scaffold (managed ci/release/promote workflows; native dist prep, tag prefix `v`, and floating `v0`/`v0.X` tags)
   - Nix flake dev-shell (direnv) with flake-generated pre-commit hooks replaces the devcontainer image and `scripts/setup-node.sh` provisioning
