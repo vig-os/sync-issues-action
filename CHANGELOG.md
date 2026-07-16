@@ -74,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Bump bundled `undici` to 6.27.0** ([#111](https://github.com/vig-os/sync-issues-action/issues/111))
+  - Clears the high-severity WebSocket DoS advisory (GHSA-vxpw-j846-p89q) and three related `undici` advisories flagged by dependency review, plus dev-only `@babel/core` and `js-yaml` audit findings
+
 - **Resolve npm audit vulnerabilities** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
   - Upgrade `@actions/github` to v9 and `@actions/core` to v3, resolving high-severity `undici` advisories in the bundled action
   - Apply non-breaking audit fixes for dev/build-only dependencies (`handlebars`, `flatted`, `picomatch`, `brace-expansion`)
