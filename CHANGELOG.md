@@ -9,22 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Sync specific issues/PRs by number or range** ([#55](https://github.com/vig-os/sync-issues-action/issues/55))
-  - New optional `issues-filter` and `prs-filter` inputs accept comma-separated numbers and inclusive ranges (e.g. `1,5,10-20`)
-  - When set, the action fetches only the requested items directly instead of paginating through all issues or pull requests
+### Changed
+
+### Deprecated
+
+### Removed
 
 ### Fixed
 
-- **Retry transient GitHub 5xx errors and skip failing items during sync** ([#96](https://github.com/vig-os/sync-issues-action/issues/96))
-  - Add `withRetry` helper with exponential backoff for 5xx, rate-limit, and network errors
-  - Sanitize GitHub "Unicorn!" HTML error pages into concise messages
-  - Skip individual issues/PRs that fail persistently instead of aborting the entire sync run
-
 ### Security
 
-- **Resolve npm audit vulnerabilities** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
-  - Upgrade `@actions/github` to v9 and `@actions/core` to v3, resolving high-severity `undici` advisories in the bundled action
-  - Apply non-breaking audit fixes for dev/build-only dependencies (`handlebars`, `flatted`, `picomatch`, `brace-expansion`)
+## [0.3.0] - TBD
+
+### Added
+
+- **Sync specific issues/PRs by number or range** ([#55](https://github.com/vig-os/sync-issues-action/issues/55))
+  - New optional `issues-filter` and `prs-filter` inputs accept comma-separated numbers and inclusive ranges (e.g. `1,5,10-20`)
+  - When set, the action fetches only the requested items directly instead of paginating through all issues or pull requests
 
 ### Changed
 
@@ -63,6 +64,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bound integration test runtime to a fixed subset** ([#56](https://github.com/vig-os/sync-issues-action/issues/56))
   - Integration test workflow and local test scripts now pass `issues-filter`/`prs-filter` so only a small, stable set of issues and PRs is synced
   - Keeps test duration bounded as the repository's issue/PR count grows
+
+### Fixed
+
+- **Retry transient GitHub 5xx errors and skip failing items during sync** ([#96](https://github.com/vig-os/sync-issues-action/issues/96))
+  - Add `withRetry` helper with exponential backoff for 5xx, rate-limit, and network errors
+  - Sanitize GitHub "Unicorn!" HTML error pages into concise messages
+  - Skip individual issues/PRs that fail persistently instead of aborting the entire sync run
+
+### Security
+
+- **Resolve npm audit vulnerabilities** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
+  - Upgrade `@actions/github` to v9 and `@actions/core` to v3, resolving high-severity `undici` advisories in the bundled action
+  - Apply non-breaking audit fixes for dev/build-only dependencies (`handlebars`, `flatted`, `picomatch`, `brace-expansion`)
 
 ## [0.2.2] - 2026-02-26
 
