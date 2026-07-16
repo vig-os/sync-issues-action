@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.4.0] - TBD
+
+### Added
+
 - **User-configurable formatting hook for generated markdown** ([#17](https://github.com/vig-os/sync-issues-action/issues/17))
   - New optional `format-command` input runs a shell command on the synced files after they are written and before outputs are set, so the downstream commit step picks up formatted files
   - Every `{files}` placeholder is replaced with the shell-quoted modified paths (e.g. `npx prettier --write {files}`); a failing command fails the action
@@ -32,12 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Update `ts-jest` from `29.4.6` to `29.4.11`
   - Update `tsx` from `4.21.0` to `4.23.1`
   - Update `typescript-eslint` from `8.57.2` to `8.64.0`
-
-### Deprecated
-
-### Removed
-
-### Fixed
 
 ### Security
 
