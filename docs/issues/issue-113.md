@@ -1,19 +1,19 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-07-16T10:13:41Z
-updated: 2026-07-16T10:13:41Z
+updated: 2026-07-16T12:53:00Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/113
-comments: 0
+comments: 1
 labels: chore, area:ci, priority:blocking, effort:small
 assignees: none
 milestone: 0.3
 projects: none
 parent: none
 children: none
-synced: 2026-07-16T12:36:43.846Z
+synced: 2026-07-16T18:08:25.906Z
 ---
 
 # [Issue 113]: [[CHORE] First release train blocked: commit-lint re-validates pre-devkit history](https://github.com/vig-os/sync-issues-action/issues/113)
@@ -33,3 +33,11 @@ Self-healing: once 0.3.0 reaches `main`, future merge-bases move past the commit
 Design gap filed against vig-os/devkit (link below): the first release train over pre-gate history re-lints commits the gate never covered; devkit could skip commits already reachable from the trunk branch (`dev`).
 
 Refs: #106, #110
+---
+
+# [Comment #1]() by [c-vigo]()
+
+_Posted on July 16, 2026 at 12:52 PM_
+
+Waiver shipped with v0.3.0 (PR #114) and served its purpose — release PR #110 commit-lint went green with the base advanced past the grandfathered commit. Now that 0.3.0 is on main, merge-bases have moved past it: the patch is inert and can be dropped whenever the next devkit upgrade regenerates ci.yml.
+
