@@ -40,6 +40,9 @@ inputs:
   prs-filter:
     description: 'Comma-separated pull request numbers and/or inclusive ranges (e.g. 1,5,10-20). When set, only these pull requests are synced.'
     required: false
+  format-command:
+    description: 'Optional shell command run on the synced files after they are written, before outputs are set (e.g. to apply prettier or pre-commit fixes). Every {files} placeholder is replaced with the shell-quoted modified file paths; without a placeholder the command runs as-is. A failing command fails the action.'
+    required: false
   state-file:
     description: 'Optional path to store last sync timestamp (use with cache)'
     required: false

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **User-configurable formatting hook for generated markdown** ([#17](https://github.com/vig-os/sync-issues-action/issues/17))
+  - New optional `format-command` input runs a shell command on the synced files after they are written and before outputs are set, so the downstream commit step picks up formatted files
+  - Every `{files}` placeholder is replaced with the shell-quoted modified paths (e.g. `npx prettier --write {files}`); a failing command fails the action
+
 ### Changed
 
 ### Deprecated
