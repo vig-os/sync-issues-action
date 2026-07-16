@@ -3,5 +3,13 @@
   "extends": [
     "github>vig-os/sync-issues-action//.github/renovate-default"
   ],
-  "enabledManagers": ["github-actions", "npm"]
+  "enabledManagers": ["github-actions", "npm"],
+  "packageRules": [
+    {
+      "description": "Hold TypeScript on v5/v6: the v7 native (Go) rewrite drops the JS compiler-internal APIs that @vercel/ncc (dist bundling), ts-jest, and typescript-eslint depend on, so the package/test/lint toolchain breaks even though bare tsc compiles. Revisit when those support TS 7. Refs #132, #128.",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<7"
+    }
+  ]
 }
