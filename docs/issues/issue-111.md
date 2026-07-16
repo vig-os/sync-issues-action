@@ -1,19 +1,19 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-07-16T08:44:33Z
-updated: 2026-07-16T08:44:34Z
+updated: 2026-07-16T12:52:58Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/111
-comments: 0
+comments: 1
 labels: area:ci, dependencies, security, priority:blocking, effort:small, semver:patch
 assignees: none
 milestone: 0.3
 projects: none
 parent: none
 children: none
-synced: 2026-07-16T12:36:44.383Z
+synced: 2026-07-16T18:08:26.284Z
 ---
 
 # [Issue 111]: [[SECURITY] Dependency review blocks release 0.3.0: undici@6.26.0 high-severity advisories](https://github.com/vig-os/sync-issues-action/issues/111)
@@ -27,3 +27,11 @@ The first devkit release train run (release/0.3.0, PR #110) is blocked by the De
 `npm audit fix` resolves everything within existing semver ranges (undici → 6.27.0, 0 vulnerabilities). `dist/index.js` must be rebuilt since undici is bundled. Forward-fix directly on `release/0.3.0`; flows back to `dev` via the post-promote main→dev sync.
 
 Refs: #106 (release train), #110 (release PR)
+---
+
+# [Comment #1]() by [c-vigo]()
+
+_Posted on July 16, 2026 at 12:52 PM_
+
+Shipped in v0.3.0 via PR #112: bundled undici 6.27.0, dependency review green, npm audit clean.
+

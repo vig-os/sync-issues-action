@@ -1,19 +1,19 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-03-02T20:07:08Z
-updated: 2026-07-16T08:31:43Z
+updated: 2026-07-16T15:15:57Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/70
-comments: 0
+comments: 1
 labels: chore, area:ci, priority:medium, effort:small
 assignees: none
 milestone: 0.4
 projects: none
 parent: none
 children: none
-synced: 2026-07-16T12:36:48.059Z
+synced: 2026-07-16T18:08:28.510Z
 ---
 
 # [Issue 70]: [[CHORE] Switch workflow attestation action to actions/attest](https://github.com/vig-os/sync-issues-action/issues/70)
@@ -48,3 +48,11 @@ No changelog needed
 ## Additional Context
 PR #65 updates `actions/attest-build-provenance` and includes upstream release guidance:
 “new implementations should use `actions/attest` instead.”
+---
+
+# [Comment #1]() by [c-vigo]()
+
+_Posted on July 16, 2026 at 03:15 PM_
+
+Done via PR #119: attest-release.yml now uses actions/attest@a1948c3 (v4.1.1) directly. Like-for-like verified — the migrated workflow was dispatched against the published v0.3.0 tag and `gh attestation verify` passes with the identical `https://slsa.dev/provenance/v1` predicate under the unchanged `id-token` + `attestations` grant. Takes effect for every future `v*.*.*` tag push.
+

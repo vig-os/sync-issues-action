@@ -1,19 +1,19 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-03-12T08:07:16Z
-updated: 2026-07-16T08:31:39Z
+updated: 2026-07-16T12:52:56Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/77
-comments: 2
+comments: 3
 labels: chore, area:ci, priority:high, semver:minor
 assignees: none
 milestone: 0.3
 projects: none
 parent: 106
 children: none
-synced: 2026-07-16T12:36:46.587Z
+synced: 2026-07-16T18:08:27.855Z
 ---
 
 # [Issue 77]: [[CHORE] Upgrade action to support Node.js 24 runtime](https://github.com/vig-os/sync-issues-action/issues/77)
@@ -69,4 +69,12 @@ See also vig-os/commit-action#14 — same Node.js 24 upgrade needed there. Resol
 _Posted on March 16, 2026 at 08:38 AM_
 
 Tracking downstream migration in devcontainer repo: https://github.com/vig-os/devcontainer/issues/321
+
+---
+
+# [Comment #3]() by [c-vigo]()
+
+_Posted on July 16, 2026 at 12:52 PM_
+
+Shipped in [v0.3.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.3.0) (published 2026-07-16): action runs on the node24 runtime (PR #109). All acceptance criteria met.
 

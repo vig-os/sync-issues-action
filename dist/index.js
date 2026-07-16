@@ -29212,184 +29212,6 @@ function qstring(str) {
 }
 //# sourceMappingURL=index.js.map
 
-/***/ }),
-
-/***/ 1120:
-/***/ ((module) => {
-
-"use strict";
-var __webpack_unused_export__;
-
-
-const NullObject = function NullObject () { }
-NullObject.prototype = Object.create(null)
-
-/**
- * RegExp to match *( ";" parameter ) in RFC 7231 sec 3.1.1.1
- *
- * parameter     = token "=" ( token / quoted-string )
- * token         = 1*tchar
- * tchar         = "!" / "#" / "$" / "%" / "&" / "'" / "*"
- *               / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
- *               / DIGIT / ALPHA
- *               ; any VCHAR, except delimiters
- * quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
- * qdtext        = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
- * obs-text      = %x80-FF
- * quoted-pair   = "\" ( HTAB / SP / VCHAR / obs-text )
- */
-const paramRE = /; *([!#$%&'*+.^\w`|~-]+)=("(?:[\v\u0020\u0021\u0023-\u005b\u005d-\u007e\u0080-\u00ff]|\\[\v\u0020-\u00ff])*"|[!#$%&'*+.^\w`|~-]+) */gu
-
-/**
- * RegExp to match quoted-pair in RFC 7230 sec 3.2.6
- *
- * quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
- * obs-text    = %x80-FF
- */
-const quotedPairRE = /\\([\v\u0020-\u00ff])/gu
-
-/**
- * RegExp to match type in RFC 7231 sec 3.1.1.1
- *
- * media-type = type "/" subtype
- * type       = token
- * subtype    = token
- */
-const mediaTypeRE = /^[!#$%&'*+.^\w|~-]+\/[!#$%&'*+.^\w|~-]+$/u
-
-// default ContentType to prevent repeated object creation
-const defaultContentType = { type: '', parameters: new NullObject() }
-Object.freeze(defaultContentType.parameters)
-Object.freeze(defaultContentType)
-
-/**
- * Parse media type to object.
- *
- * @param {string|object} header
- * @return {Object}
- * @public
- */
-
-function parse (header) {
-  if (typeof header !== 'string') {
-    throw new TypeError('argument header is required and must be a string')
-  }
-
-  let index = header.indexOf(';')
-  const type = index !== -1
-    ? header.slice(0, index).trim()
-    : header.trim()
-
-  if (mediaTypeRE.test(type) === false) {
-    throw new TypeError('invalid media type')
-  }
-
-  const result = {
-    type: type.toLowerCase(),
-    parameters: new NullObject()
-  }
-
-  // parse parameters
-  if (index === -1) {
-    return result
-  }
-
-  let key
-  let match
-  let value
-
-  paramRE.lastIndex = index
-
-  while ((match = paramRE.exec(header))) {
-    if (match.index !== index) {
-      throw new TypeError('invalid parameter format')
-    }
-
-    index += match[0].length
-    key = match[1].toLowerCase()
-    value = match[2]
-
-    if (value[0] === '"') {
-      // remove quotes and escapes
-      value = value
-        .slice(1, value.length - 1)
-
-      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
-    }
-
-    result.parameters[key] = value
-  }
-
-  if (index !== header.length) {
-    throw new TypeError('invalid parameter format')
-  }
-
-  return result
-}
-
-function safeParse (header) {
-  if (typeof header !== 'string') {
-    return defaultContentType
-  }
-
-  let index = header.indexOf(';')
-  const type = index !== -1
-    ? header.slice(0, index).trim()
-    : header.trim()
-
-  if (mediaTypeRE.test(type) === false) {
-    return defaultContentType
-  }
-
-  const result = {
-    type: type.toLowerCase(),
-    parameters: new NullObject()
-  }
-
-  // parse parameters
-  if (index === -1) {
-    return result
-  }
-
-  let key
-  let match
-  let value
-
-  paramRE.lastIndex = index
-
-  while ((match = paramRE.exec(header))) {
-    if (match.index !== index) {
-      return defaultContentType
-    }
-
-    index += match[0].length
-    key = match[1].toLowerCase()
-    value = match[2]
-
-    if (value[0] === '"') {
-      // remove quotes and escapes
-      value = value
-        .slice(1, value.length - 1)
-
-      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
-    }
-
-    result.parameters[key] = value
-  }
-
-  if (index !== header.length) {
-    return defaultContentType
-  }
-
-  return result
-}
-
-__webpack_unused_export__ = { parse, safeParse }
-__webpack_unused_export__ = parse
-module.exports.xL = safeParse
-__webpack_unused_export__ = defaultContentType
-
-
 /***/ })
 
 /******/ 	});
@@ -29468,6 +29290,7 @@ __nccwpck_require__.r(__webpack_exports__);
 // EXPORTS
 __nccwpck_require__.d(__webpack_exports__, {
   GRAPHQL_BATCH_SIZE: () => (/* binding */ GRAPHQL_BATCH_SIZE),
+  extractAttachmentAssets: () => (/* binding */ extractAttachmentAssets),
   fetchIssueRelationships: () => (/* binding */ fetchIssueRelationships),
   formatDate: () => (/* binding */ formatDate),
   formatGitHubError: () => (/* binding */ formatGitHubError),
@@ -29475,7 +29298,9 @@ __nccwpck_require__.d(__webpack_exports__, {
   formatPRAsMarkdown: () => (/* binding */ formatPRAsMarkdown),
   isRetryableError: () => (/* binding */ isRetryableError),
   parseNumberFilter: () => (/* binding */ parseNumberFilter),
+  processBodyAttachments: () => (/* binding */ processBodyAttachments),
   run: () => (/* binding */ run),
+  runFormatCommand: () => (/* binding */ runFormatCommand),
   shiftHeadersToMinLevel: () => (/* binding */ shiftHeadersToMinLevel),
   withRetry: () => (/* binding */ withRetry)
 });
@@ -33048,14 +32873,269 @@ const originalStringify = JSON.stringify;
 const originalParse = JSON.parse;
 const customFormat = /^-?\d+n$/;
 
-const bigIntsStringify = /([\[:])?"(-?\d+)n"($|([\\n]|\s)*(\s|[\\n])*[,\}\]])/g;
-const noiseStringify =
-  /([\[:])?("-?\d+n+)n("$|"([\\n]|\s)*(\s|[\\n])*[,\}\]])/g;
+const bigIntsStringify = /([\[:])?"(-?\d+)n"($|\s*[,\}\]])/g;
+const noiseStringify = /([\[:])?("-?\d+n+)n("$|"\s*[,\}\]])/g;
 
 /**
  * @typedef {(this: any, key: string | number | undefined, value: any) => any} Replacer
  * @typedef {(key: string | number | undefined, value: any, context?: { source: string }) => any} Reviver
  */
+
+/**
+ * Checks if a value is unstringifiable according to native JSON.stringify rules.
+ *
+ * @param {any} val The value to check.
+ * @returns {boolean} True if the value is undefined, a function, or a symbol.
+ */
+const isUnstringifiable = (val) =>
+  val === undefined || typeof val === "function" || typeof val === "symbol";
+
+/**
+ * Checks if a value is a native JSON.rawJSON object (Node.js 22+).
+ *
+ * @param {any} val The value to check.
+ * @returns {boolean} True if the value is a RawJSON instance.
+ */
+const isRawJSON = (val) =>
+  val !== null &&
+  typeof val === "object" &&
+  val.constructor &&
+  val.constructor.name === "RawJSON";
+
+/**
+ * Iteratively converts a JS value to a JSON string.
+ * Used as a fallback when the native JSON.stringify hits the Maximum Call Stack size.
+ * Fully compliant with JSON formatting (space), replacers, and toJSON behaviors.
+ *
+ * @param {any} rootValue The value to stringify.
+ * @param {Replacer | Array<string | number> | null} [replacer] User's custom replacer function.
+ * @param {string | number} [spaceParam] Indentation for pretty-printing.
+ * @returns {string | undefined} The generated JSON string.
+ */
+const stringifyIteratively = (rootValue, replacer, spaceParam) => {
+  let space = "";
+
+  if (typeof spaceParam === "number") {
+    space = " ".repeat(Math.min(10, Math.max(0, Math.floor(spaceParam))));
+  } else if (typeof spaceParam === "string") {
+    space = spaceParam.slice(0, 10);
+  }
+
+  const isFunctionReplacer = typeof replacer === "function";
+  const propertyList = Array.isArray(replacer)
+    ? new Set(replacer.map(String))
+    : null;
+
+  /**
+   * Prepares a value for stringification by resolving toJSON, handling BigInts,
+   * applying custom replacers, and unwrapping primitive objects.
+   *
+   * @param {object|Array} parent The parent object or array holding the value.
+   * @param {string} key The key associated with the value.
+   * @param {any} val The raw value to process.
+   * @returns {any} The processed value ready for stringification.
+   */
+  const prepareVal = (parent, key, val) => {
+    const isObject = val !== null && typeof val === "object";
+    const hasToJSON = isObject && typeof val.toJSON === "function";
+
+    if (hasToJSON) {
+      val = val.toJSON(key);
+    }
+
+    const isNoise = typeof val === "string" && noiseValue.test(val);
+
+    if (isNoise) return val + "n";
+
+    const isBigInt = typeof val === "bigint";
+
+    if (isBigInt) {
+      const supportsRawJSON = "rawJSON" in JSON;
+
+      if (supportsRawJSON) return JSON.rawJSON(val.toString());
+
+      return val.toString() + "n";
+    }
+
+    if (isFunctionReplacer) {
+      val = replacer.call(parent, key, val);
+    }
+
+    const isPostReplacerObject = val !== null && typeof val === "object";
+
+    if (isPostReplacerObject) {
+      const isPrimitiveWrapper =
+        val instanceof Number ||
+        val instanceof String ||
+        val instanceof Boolean;
+
+      if (isPrimitiveWrapper) {
+        val = val.valueOf();
+      }
+    }
+
+    return val;
+  };
+
+  const rootProcessed = prepareVal({ "": rootValue }, "", rootValue);
+
+  if (isUnstringifiable(rootProcessed)) {
+    return undefined;
+  }
+
+  const isRootPrimitive =
+    rootProcessed === null || typeof rootProcessed !== "object";
+  const isRootNativeRawJSON = isRawJSON(rootProcessed);
+
+  if (isRootPrimitive || isRootNativeRawJSON) {
+    return originalStringify(rootProcessed);
+  }
+
+  const chunks = [];
+  let level = 0;
+
+  const stack = [
+    {
+      parent: { "": rootProcessed },
+      key: "",
+      val: rootProcessed,
+      isArray: Array.isArray(rootProcessed),
+      keys: Array.isArray(rootProcessed) ? null : Object.keys(rootProcessed),
+      index: 0,
+      first: true,
+    },
+  ];
+
+  const visited = new WeakSet([rootProcessed]);
+
+  while (stack.length > 0) {
+    const node = stack[stack.length - 1];
+
+    if (node.index === 0) {
+      chunks.push(node.isArray ? "[" : "{");
+      level++;
+    }
+
+    let isDone = false;
+
+    if (node.isArray) {
+      if (node.index < node.val.length) {
+        if (!node.first) chunks.push(",");
+
+        if (space) chunks.push("\n" + space.repeat(level));
+
+        const childRaw = node.val[node.index];
+        const childVal = prepareVal(node.val, String(node.index), childRaw);
+
+        if (isUnstringifiable(childVal)) {
+          chunks.push("null");
+          node.first = false;
+          node.index++;
+        } else {
+          const isComplexObject =
+            childVal !== null && typeof childVal === "object";
+          const isNativeRaw = isRawJSON(childVal);
+
+          if (isComplexObject && !isNativeRaw) {
+            if (visited.has(childVal)) {
+              throw new TypeError("Converting circular structure to JSON");
+            }
+
+            visited.add(childVal);
+
+            stack.push({
+              parent: node.val,
+              key: String(node.index),
+              val: childVal,
+              isArray: Array.isArray(childVal),
+              keys: Array.isArray(childVal) ? null : Object.keys(childVal),
+              index: 0,
+              first: true,
+            });
+
+            node.first = false;
+            node.index++;
+          } else {
+            chunks.push(originalStringify(childVal));
+            node.first = false;
+            node.index++;
+          }
+        }
+      } else {
+        isDone = true;
+      }
+    } else {
+      while (node.index < node.keys.length) {
+        const k = node.keys[node.index++];
+
+        const isFilteredOutByArray = propertyList && !propertyList.has(k);
+
+        if (isFilteredOutByArray) continue;
+
+        const childRaw = node.val[k];
+        const childVal = prepareVal(node.val, k, childRaw);
+
+        if (isUnstringifiable(childVal)) continue;
+
+        if (!node.first) chunks.push(",");
+
+        if (space) {
+          chunks.push("\n" + space.repeat(level) + originalStringify(k) + ": ");
+        } else {
+          chunks.push(originalStringify(k) + ":");
+        }
+
+        const isComplexObject =
+          childVal !== null && typeof childVal === "object";
+        const isNativeRaw = isRawJSON(childVal);
+
+        if (isComplexObject && !isNativeRaw) {
+          if (visited.has(childVal)) {
+            throw new TypeError("Converting circular structure to JSON");
+          }
+
+          visited.add(childVal);
+
+          stack.push({
+            parent: node.val,
+            key: k,
+            val: childVal,
+            isArray: Array.isArray(childVal),
+            keys: Array.isArray(childVal) ? null : Object.keys(childVal),
+            index: 0,
+            first: true,
+          });
+
+          node.first = false;
+
+          break; // Stop current loop level to process the newly pushed stack node
+        } else {
+          chunks.push(originalStringify(childVal));
+          node.first = false;
+        }
+      }
+
+      const isNodeFullyProcessed =
+        node.index >= node.keys.length && stack[stack.length - 1] === node;
+
+      if (isNodeFullyProcessed) {
+        isDone = true;
+      }
+    }
+
+    if (isDone) {
+      level--;
+
+      if (!node.first && space) chunks.push("\n" + space.repeat(level));
+
+      chunks.push(node.isArray ? "]" : "}");
+      visited.delete(node.val);
+      stack.pop();
+    }
+  }
+
+  return chunks.join("");
+};
 
 /**
  * Converts a JavaScript value to a JSON string.
@@ -33068,55 +33148,87 @@ const noiseStringify =
  *
  * @param {*} value The value to convert to a JSON string.
  * @param {Replacer | Array<string | number> | null} [replacer]
- *   A function that alters the behavior of the stringification process,
- *   or an array of strings/numbers to indicate properties to exclude.
+ * A function that alters the behavior of the stringification process,
+ * or an array of strings/numbers to indicate properties to exclude.
  * @param {string | number} [space]
- *   A string or number to specify indentation or pretty-printing.
+ * A string or number to specify indentation or pretty-printing.
  * @returns {string} The JSON string representation.
  */
 const JSONStringify = (value, replacer, space) => {
-  if ("rawJSON" in JSON) {
-    return originalStringify(
+  try {
+    const supportsRawJSON = "rawJSON" in JSON;
+
+    if (supportsRawJSON) {
+      return originalStringify(
+        value,
+        (key, val) => {
+          if (typeof val === "bigint") return JSON.rawJSON(val.toString());
+
+          const hasFunctionReplacer = typeof replacer === "function";
+
+          if (hasFunctionReplacer) return replacer(key, val);
+
+          const isKeyInArrayReplacer =
+            Array.isArray(replacer) && replacer.includes(key);
+
+          if (isKeyInArrayReplacer) return val;
+
+          return val;
+        },
+        space,
+      );
+    }
+
+    if (!value) return originalStringify(value, replacer, space);
+
+    const convertedToCustomJSON = originalStringify(
       value,
-      (key, value) => {
-        if (typeof value === "bigint") return JSON.rawJSON(value.toString());
+      (key, val) => {
+        const isNoise = typeof val === "string" && noiseValue.test(val);
 
-        if (typeof replacer === "function") return replacer(key, value);
+        if (isNoise) return val.toString() + "n"; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
 
-        if (Array.isArray(replacer) && replacer.includes(key)) return value;
+        if (typeof val === "bigint") return val.toString() + "n";
 
-        return value;
+        const hasFunctionReplacer = typeof replacer === "function";
+
+        if (hasFunctionReplacer) return replacer(key, val);
+
+        const isKeyInArrayReplacer =
+          Array.isArray(replacer) && replacer.includes(key);
+
+        if (isKeyInArrayReplacer) return val;
+
+        return val;
       },
       space,
     );
+
+    const processedJSON = convertedToCustomJSON.replace(
+      bigIntsStringify,
+      "$1$2$3",
+    ); // Delete one "n" off the end of every BigInt value
+
+    const denoisedJSON = processedJSON.replace(noiseStringify, "$1$2$3"); // Remove one "n" off the end of every noisy string
+
+    return denoisedJSON;
+  } catch (error) {
+    if (error instanceof RangeError) {
+      const convertedJSON = stringifyIteratively(value, replacer, space);
+
+      if (convertedJSON === undefined) return undefined;
+
+      const supportsRawJSON = "rawJSON" in JSON;
+
+      if (supportsRawJSON) return convertedJSON;
+
+      const processedJSON = convertedJSON.replace(bigIntsStringify, "$1$2$3");
+
+      return processedJSON.replace(noiseStringify, "$1$2$3");
+    }
+
+    throw error;
   }
-
-  if (!value) return originalStringify(value, replacer, space);
-
-  const convertedToCustomJSON = originalStringify(
-    value,
-    (key, value) => {
-      const isNoise = typeof value === "string" && noiseValue.test(value);
-
-      if (isNoise) return value.toString() + "n"; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
-
-      if (typeof value === "bigint") return value.toString() + "n";
-
-      if (typeof replacer === "function") return replacer(key, value);
-
-      if (Array.isArray(replacer) && replacer.includes(key)) return value;
-
-      return value;
-    },
-    space,
-  );
-  const processedJSON = convertedToCustomJSON.replace(
-    bigIntsStringify,
-    "$1$2$3",
-  ); // Delete one "n" off the end of every BigInt value
-  const denoisedJSON = processedJSON.replace(noiseStringify, "$1$2$3"); // Remove one "n" off the end of every noisy string
-
-  return denoisedJSON;
 };
 
 const featureCache = new Map();
@@ -33164,12 +33276,15 @@ const isContextSourceSupported = () => {
 const convertMarkedBigIntsReviver = (key, value, context, userReviver) => {
   const isCustomFormatBigInt =
     typeof value === "string" && customFormat.test(value);
+
   if (isCustomFormatBigInt) return BigInt(value.slice(0, -1));
 
   const isNoiseValue = typeof value === "string" && noiseValue.test(value);
   if (isNoiseValue) return value.slice(0, -1);
 
-  if (typeof userReviver !== "function") return value;
+  const hasUserReviver = typeof userReviver === "function";
+
+  if (!hasUserReviver) return value;
 
   return userReviver(key, value, context);
 };
@@ -33187,15 +33302,18 @@ const convertMarkedBigIntsReviver = (key, value, context, userReviver) => {
  */
 const JSONParseV2 = (text, reviver) => {
   return JSON.parse(text, (key, value, context) => {
-    const isBigNumber =
-      typeof value === "number" &&
-      (value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER);
+    const isNumber = typeof value === "number";
+    const isOutOfBounds =
+      value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER;
+    const isBigNumber = isNumber && isOutOfBounds;
     const isInt = context && intRegex.test(context.source);
     const isBigInt = isBigNumber && isInt;
 
     if (isBigInt) return BigInt(context.source);
 
-    if (typeof reviver !== "function") return value;
+    const hasCustomReviver = typeof reviver === "function";
+
+    if (!hasCustomReviver) return value;
 
     return reviver(key, value, context);
   });
@@ -33208,6 +33326,105 @@ const stringsOrLargeNumbers =
 const noiseValueWithQuotes = /^"-?\d+n+"$/; // Noise - strings that match the custom format before being converted to it
 
 /**
+ * Iteratively traverses the parsed object bottom-up (post-order),
+ * emulating the native JSON.parse reviver behavior.
+ * This avoids Call Stack overflows (RangeError) on deeply nested structures.
+ *
+ * @param {any} parsed The natively parsed JSON object.
+ * @param {Reviver} [userReviver] User's custom reviver function.
+ * @returns {any} The fully processed object.
+ */
+const applyReviverIteratively = (parsed, userReviver) => {
+  const rootHolder = { "": parsed };
+  const stack = [{ parent: rootHolder, key: "", visited: false }];
+
+  while (stack.length > 0) {
+    const node = stack[stack.length - 1];
+
+    if (!node.visited) {
+      node.visited = true;
+
+      const value = node.parent[node.key];
+      const isComplexObject = value !== null && typeof value === "object";
+
+      if (isComplexObject) {
+        const keys = Object.keys(value);
+
+        for (let i = keys.length - 1; i >= 0; i--) {
+          stack.push({ parent: value, key: keys[i], visited: false });
+        }
+      }
+    } else {
+      const { parent, key } = node;
+      let value = parent[key];
+
+      if (typeof value === "string") {
+        const isCustomFormatBigInt = customFormat.test(value);
+
+        if (isCustomFormatBigInt) {
+          value = BigInt(value.slice(0, -1));
+        } else {
+          const isNoise = noiseValue.test(value);
+
+          if (isNoise) value = value.slice(0, -1);
+        }
+      }
+
+      const hasUserReviver = typeof userReviver === "function";
+
+      if (hasUserReviver) {
+        value = userReviver.call(parent, key, value);
+      }
+
+      const isDeleted = value === undefined;
+
+      if (isDeleted) {
+        delete parent[key];
+      } else {
+        parent[key] = value;
+      }
+
+      stack.pop();
+    }
+  }
+
+  return rootHolder[""];
+};
+
+/**
+ * Pre-processes the JSON string to mark large numbers with an 'n' suffix.
+ *
+ * @param {string} text The raw JSON string.
+ * @returns {string} The serialized string with marked BigInts.
+ */
+const serializeBigInts = (text) => {
+  return text.replace(
+    stringsOrLargeNumbers,
+    (match, digits, fractional, exponential) => {
+      const isString = match[0] === '"';
+      const isNoise = isString && noiseValueWithQuotes.test(match);
+
+      if (isNoise) return match.substring(0, match.length - 1) + 'n"'; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
+
+      const hasFractionalOrExponential = fractional || exponential;
+
+      // With a fixed number of digits, we can correctly use lexicographical comparison to do a numeric comparison
+      const isLessThanMaxSafeInt =
+        digits &&
+        (digits.length < MAX_DIGITS ||
+          (digits.length === MAX_DIGITS && digits <= MAX_INT));
+
+      const isStandardValue =
+        isString || hasFractionalOrExponential || isLessThanMaxSafeInt;
+
+      if (isStandardValue) return match;
+
+      return '"' + match + 'n"';
+    },
+  );
+};
+
+/**
  * Converts a JSON string into a JavaScript value.
  *
  * Supports parsing of large integers using two strategies:
@@ -33218,42 +33435,34 @@ const noiseValueWithQuotes = /^"-?\d+n+"$/; // Noise - strings that match the cu
  *
  * @param {string} text A valid JSON string.
  * @param {Reviver} [reviver]
- *   A function that transforms the results. This function is called for each member
- *   of the object. If a member contains nested objects, the nested objects are
- *   transformed before the parent object is.
+ * A function that transforms the results. This function is called for each member
+ * of the object. If a member contains nested objects, the nested objects are
+ * transformed before the parent object is.
  * @returns {any} The parsed JavaScript value.
  * @throws {SyntaxError} If text is not valid JSON.
  */
 const JSONParse = (text, reviver) => {
   if (!text) return originalParse(text, reviver);
 
-  if (isContextSourceSupported()) return JSONParseV2(text, reviver); // Shortcut to a faster (2x) and simpler version
+  try {
+    if (isContextSourceSupported()) return JSONParseV2(text, reviver); // Shortcut to a faster (2x) and simpler version
 
-  // Find and mark big numbers with "n"
-  const serializedData = text.replace(
-    stringsOrLargeNumbers,
-    (text, digits, fractional, exponential) => {
-      const isString = text[0] === '"';
-      const isNoise = isString && noiseValueWithQuotes.test(text);
+    // Find and mark big numbers with "n"
+    const serializedData = serializeBigInts(text);
 
-      if (isNoise) return text.substring(0, text.length - 1) + 'n"'; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
+    return originalParse(serializedData, (key, value, context) =>
+      convertMarkedBigIntsReviver(key, value, context, reviver),
+    );
+  } catch (error) {
+    if (error instanceof RangeError) {
+      const serializedData = serializeBigInts(text);
+      const parsed = originalParse(serializedData);
 
-      const isFractionalOrExponential = fractional || exponential;
-      const isLessThanMaxSafeInt =
-        digits &&
-        (digits.length < MAX_DIGITS ||
-          (digits.length === MAX_DIGITS && digits <= MAX_INT)); // With a fixed number of digits, we can correctly use lexicographical comparison to do a numeric comparison
+      return applyReviverIteratively(parsed, reviver);
+    }
 
-      if (isString || isFractionalOrExponential || isLessThanMaxSafeInt)
-        return text;
-
-      return '"' + text + 'n"';
-    },
-  );
-
-  return originalParse(serializedData, (key, value, context) =>
-    convertMarkedBigIntsReviver(key, value, context, reviver),
-  );
+    throw error;
+  }
 };
 
 
@@ -33307,7 +33516,7 @@ class RequestError extends Error {
 
 
 // pkg/dist-src/version.js
-var dist_bundle_VERSION = "10.0.10";
+var dist_bundle_VERSION = "10.0.11";
 
 // pkg/dist-src/defaults.js
 var defaults_default = {
@@ -33464,9 +33673,10 @@ function toErrorMessage(data) {
   if (data instanceof ArrayBuffer) {
     return "Unknown error";
   }
-  if ("message" in data) {
-    const suffix = "documentation_url" in data ? ` - ${data.documentation_url}` : "";
-    return Array.isArray(data.errors) ? `${data.message}: ${data.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${data.message}${suffix}`;
+  if (typeof data === "object" && data !== null && "message" in data) {
+    const objectData = data;
+    const suffix = "documentation_url" in objectData ? ` - ${objectData.documentation_url}` : "";
+    return Array.isArray(objectData.errors) ? `${objectData.message}: ${objectData.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${objectData.message}${suffix}`;
   }
   return `Unknown error: ${JSON.stringify(data)}`;
 }
@@ -33497,7 +33707,7 @@ function dist_bundle_withDefaults(oldEndpoint, newDefaults) {
 }
 
 // pkg/dist-src/index.js
-var request = dist_bundle_withDefaults(endpoint, defaults_default);
+var dist_bundle_request = dist_bundle_withDefaults(endpoint, defaults_default);
 
 /* v8 ignore next -- @preserve */
 /* v8 ignore else -- @preserve */
@@ -33614,7 +33824,7 @@ function graphql_dist_bundle_withDefaults(request2, newDefaults) {
 }
 
 // pkg/dist-src/index.js
-var graphql2 = graphql_dist_bundle_withDefaults(request, {
+var graphql2 = graphql_dist_bundle_withDefaults(dist_bundle_request, {
   headers: {
     "user-agent": `octokit-graphql.js/${graphql_dist_bundle_VERSION} ${getUserAgent()}`
   },
@@ -33758,7 +33968,7 @@ class Octokit {
   constructor(options = {}) {
     const hook = new before_after_hook.Collection();
     const requestDefaults = {
-      baseUrl: request.endpoint.DEFAULTS.baseUrl,
+      baseUrl: dist_bundle_request.endpoint.DEFAULTS.baseUrl,
       headers: {},
       request: Object.assign({}, options.request, {
         // @ts-ignore internal usage only, no need to type
@@ -33779,7 +33989,7 @@ class Octokit {
     if (options.timeZone) {
       requestDefaults.headers["time-zone"] = options.timeZone;
     }
-    this.request = request.defaults(requestDefaults);
+    this.request = dist_bundle_request.defaults(requestDefaults);
     this.graphql = withCustomRequest(this.request).defaults(requestDefaults);
     this.log = createLogger(options.log);
     this.hook = hook;
@@ -36741,2918 +36951,6 @@ function getOctokit(token, options, ...additionalPlugins) {
     return new GitHubWithPlugins(getOctokitOptions(token, options));
 }
 //# sourceMappingURL=github.js.map
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-app/node_modules/@octokit/endpoint/dist-bundle/index.js
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var endpoint_dist_bundle_VERSION = "0.0.0-development";
-
-// pkg/dist-src/defaults.js
-var dist_bundle_userAgent = `octokit-endpoint.js/${endpoint_dist_bundle_VERSION} ${getUserAgent()}`;
-var dist_bundle_DEFAULTS = {
-  method: "GET",
-  baseUrl: "https://api.github.com",
-  headers: {
-    accept: "application/vnd.github.v3+json",
-    "user-agent": dist_bundle_userAgent
-  },
-  mediaType: {
-    format: ""
-  }
-};
-
-// pkg/dist-src/util/lowercase-keys.js
-function endpoint_dist_bundle_lowercaseKeys(object) {
-  if (!object) {
-    return {};
-  }
-  return Object.keys(object).reduce((newObj, key) => {
-    newObj[key.toLowerCase()] = object[key];
-    return newObj;
-  }, {});
-}
-
-// pkg/dist-src/util/is-plain-object.js
-function endpoint_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/util/merge-deep.js
-function dist_bundle_mergeDeep(defaults, options) {
-  const result = Object.assign({}, defaults);
-  Object.keys(options).forEach((key) => {
-    if (endpoint_dist_bundle_isPlainObject(options[key])) {
-      if (!(key in defaults)) Object.assign(result, { [key]: options[key] });
-      else result[key] = dist_bundle_mergeDeep(defaults[key], options[key]);
-    } else {
-      Object.assign(result, { [key]: options[key] });
-    }
-  });
-  return result;
-}
-
-// pkg/dist-src/util/remove-undefined-properties.js
-function dist_bundle_removeUndefinedProperties(obj) {
-  for (const key in obj) {
-    if (obj[key] === void 0) {
-      delete obj[key];
-    }
-  }
-  return obj;
-}
-
-// pkg/dist-src/merge.js
-function dist_bundle_merge(defaults, route, options) {
-  if (typeof route === "string") {
-    let [method, url] = route.split(" ");
-    options = Object.assign(url ? { method, url } : { url: method }, options);
-  } else {
-    options = Object.assign({}, route);
-  }
-  options.headers = endpoint_dist_bundle_lowercaseKeys(options.headers);
-  dist_bundle_removeUndefinedProperties(options);
-  dist_bundle_removeUndefinedProperties(options.headers);
-  const mergedOptions = dist_bundle_mergeDeep(defaults || {}, options);
-  if (options.url === "/graphql") {
-    if (defaults && defaults.mediaType.previews?.length) {
-      mergedOptions.mediaType.previews = defaults.mediaType.previews.filter(
-        (preview) => !mergedOptions.mediaType.previews.includes(preview)
-      ).concat(mergedOptions.mediaType.previews);
-    }
-    mergedOptions.mediaType.previews = (mergedOptions.mediaType.previews || []).map((preview) => preview.replace(/-preview/, ""));
-  }
-  return mergedOptions;
-}
-
-// pkg/dist-src/util/add-query-parameters.js
-function dist_bundle_addQueryParameters(url, parameters) {
-  const separator = /\?/.test(url) ? "&" : "?";
-  const names = Object.keys(parameters);
-  if (names.length === 0) {
-    return url;
-  }
-  return url + separator + names.map((name) => {
-    if (name === "q") {
-      return "q=" + parameters.q.split("+").map(encodeURIComponent).join("+");
-    }
-    return `${name}=${encodeURIComponent(parameters[name])}`;
-  }).join("&");
-}
-
-// pkg/dist-src/util/extract-url-variable-names.js
-var dist_bundle_urlVariableRegex = /\{[^{}}]+\}/g;
-function dist_bundle_removeNonChars(variableName) {
-  return variableName.replace(/(?:^\W+)|(?:(?<!\W)\W+$)/g, "").split(/,/);
-}
-function dist_bundle_extractUrlVariableNames(url) {
-  const matches = url.match(dist_bundle_urlVariableRegex);
-  if (!matches) {
-    return [];
-  }
-  return matches.map(dist_bundle_removeNonChars).reduce((a, b) => a.concat(b), []);
-}
-
-// pkg/dist-src/util/omit.js
-function dist_bundle_omit(object, keysToOmit) {
-  const result = { __proto__: null };
-  for (const key of Object.keys(object)) {
-    if (keysToOmit.indexOf(key) === -1) {
-      result[key] = object[key];
-    }
-  }
-  return result;
-}
-
-// pkg/dist-src/util/url-template.js
-function dist_bundle_encodeReserved(str) {
-  return str.split(/(%[0-9A-Fa-f]{2})/g).map(function(part) {
-    if (!/%[0-9A-Fa-f]/.test(part)) {
-      part = encodeURI(part).replace(/%5B/g, "[").replace(/%5D/g, "]");
-    }
-    return part;
-  }).join("");
-}
-function dist_bundle_encodeUnreserved(str) {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
-    return "%" + c.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-function dist_bundle_encodeValue(operator, value, key) {
-  value = operator === "+" || operator === "#" ? dist_bundle_encodeReserved(value) : dist_bundle_encodeUnreserved(value);
-  if (key) {
-    return dist_bundle_encodeUnreserved(key) + "=" + value;
-  } else {
-    return value;
-  }
-}
-function dist_bundle_isDefined(value) {
-  return value !== void 0 && value !== null;
-}
-function dist_bundle_isKeyOperator(operator) {
-  return operator === ";" || operator === "&" || operator === "?";
-}
-function dist_bundle_getValues(context, operator, key, modifier) {
-  var value = context[key], result = [];
-  if (dist_bundle_isDefined(value) && value !== "") {
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      value = value.toString();
-      if (modifier && modifier !== "*") {
-        value = value.substring(0, parseInt(modifier, 10));
-      }
-      result.push(
-        dist_bundle_encodeValue(operator, value, dist_bundle_isKeyOperator(operator) ? key : "")
-      );
-    } else {
-      if (modifier === "*") {
-        if (Array.isArray(value)) {
-          value.filter(dist_bundle_isDefined).forEach(function(value2) {
-            result.push(
-              dist_bundle_encodeValue(operator, value2, dist_bundle_isKeyOperator(operator) ? key : "")
-            );
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (dist_bundle_isDefined(value[k])) {
-              result.push(dist_bundle_encodeValue(operator, value[k], k));
-            }
-          });
-        }
-      } else {
-        const tmp = [];
-        if (Array.isArray(value)) {
-          value.filter(dist_bundle_isDefined).forEach(function(value2) {
-            tmp.push(dist_bundle_encodeValue(operator, value2));
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (dist_bundle_isDefined(value[k])) {
-              tmp.push(dist_bundle_encodeUnreserved(k));
-              tmp.push(dist_bundle_encodeValue(operator, value[k].toString()));
-            }
-          });
-        }
-        if (dist_bundle_isKeyOperator(operator)) {
-          result.push(dist_bundle_encodeUnreserved(key) + "=" + tmp.join(","));
-        } else if (tmp.length !== 0) {
-          result.push(tmp.join(","));
-        }
-      }
-    }
-  } else {
-    if (operator === ";") {
-      if (dist_bundle_isDefined(value)) {
-        result.push(dist_bundle_encodeUnreserved(key));
-      }
-    } else if (value === "" && (operator === "&" || operator === "?")) {
-      result.push(dist_bundle_encodeUnreserved(key) + "=");
-    } else if (value === "") {
-      result.push("");
-    }
-  }
-  return result;
-}
-function dist_bundle_parseUrl(template) {
-  return {
-    expand: dist_bundle_expand.bind(null, template)
-  };
-}
-function dist_bundle_expand(template, context) {
-  var operators = ["+", "#", ".", "/", ";", "?", "&"];
-  template = template.replace(
-    /\{([^\{\}]+)\}|([^\{\}]+)/g,
-    function(_, expression, literal) {
-      if (expression) {
-        let operator = "";
-        const values = [];
-        if (operators.indexOf(expression.charAt(0)) !== -1) {
-          operator = expression.charAt(0);
-          expression = expression.substr(1);
-        }
-        expression.split(/,/g).forEach(function(variable) {
-          var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-          values.push(dist_bundle_getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
-        });
-        if (operator && operator !== "+") {
-          var separator = ",";
-          if (operator === "?") {
-            separator = "&";
-          } else if (operator !== "#") {
-            separator = operator;
-          }
-          return (values.length !== 0 ? operator : "") + values.join(separator);
-        } else {
-          return values.join(",");
-        }
-      } else {
-        return dist_bundle_encodeReserved(literal);
-      }
-    }
-  );
-  if (template === "/") {
-    return template;
-  } else {
-    return template.replace(/\/$/, "");
-  }
-}
-
-// pkg/dist-src/parse.js
-function dist_bundle_parse(options) {
-  let method = options.method.toUpperCase();
-  let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
-  let headers = Object.assign({}, options.headers);
-  let body;
-  let parameters = dist_bundle_omit(options, [
-    "method",
-    "baseUrl",
-    "url",
-    "headers",
-    "request",
-    "mediaType"
-  ]);
-  const urlVariableNames = dist_bundle_extractUrlVariableNames(url);
-  url = dist_bundle_parseUrl(url).expand(parameters);
-  if (!/^http/.test(url)) {
-    url = options.baseUrl + url;
-  }
-  const omittedParameters = Object.keys(options).filter((option) => urlVariableNames.includes(option)).concat("baseUrl");
-  const remainingParameters = dist_bundle_omit(parameters, omittedParameters);
-  const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
-  if (!isBinaryRequest) {
-    if (options.mediaType.format) {
-      headers.accept = headers.accept.split(/,/).map(
-        (format) => format.replace(
-          /application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/,
-          `application/vnd$1$2.${options.mediaType.format}`
-        )
-      ).join(",");
-    }
-    if (url.endsWith("/graphql")) {
-      if (options.mediaType.previews?.length) {
-        const previewsFromAcceptHeader = headers.accept.match(/(?<![\w-])[\w-]+(?=-preview)/g) || [];
-        headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
-          const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
-          return `application/vnd.github.${preview}-preview${format}`;
-        }).join(",");
-      }
-    }
-  }
-  if (["GET", "HEAD"].includes(method)) {
-    url = dist_bundle_addQueryParameters(url, remainingParameters);
-  } else {
-    if ("data" in remainingParameters) {
-      body = remainingParameters.data;
-    } else {
-      if (Object.keys(remainingParameters).length) {
-        body = remainingParameters;
-      }
-    }
-  }
-  if (!headers["content-type"] && typeof body !== "undefined") {
-    headers["content-type"] = "application/json; charset=utf-8";
-  }
-  if (["PATCH", "PUT"].includes(method) && typeof body === "undefined") {
-    body = "";
-  }
-  return Object.assign(
-    { method, url, headers },
-    typeof body !== "undefined" ? { body } : null,
-    options.request ? { request: options.request } : null
-  );
-}
-
-// pkg/dist-src/endpoint-with-defaults.js
-function dist_bundle_endpointWithDefaults(defaults, route, options) {
-  return dist_bundle_parse(dist_bundle_merge(defaults, route, options));
-}
-
-// pkg/dist-src/with-defaults.js
-function endpoint_dist_bundle_withDefaults(oldDefaults, newDefaults) {
-  const DEFAULTS2 = dist_bundle_merge(oldDefaults, newDefaults);
-  const endpoint2 = dist_bundle_endpointWithDefaults.bind(null, DEFAULTS2);
-  return Object.assign(endpoint2, {
-    DEFAULTS: DEFAULTS2,
-    defaults: endpoint_dist_bundle_withDefaults.bind(null, DEFAULTS2),
-    merge: dist_bundle_merge.bind(null, DEFAULTS2),
-    parse: dist_bundle_parse
-  });
-}
-
-// pkg/dist-src/index.js
-var dist_bundle_endpoint = endpoint_dist_bundle_withDefaults(null, dist_bundle_DEFAULTS);
-
-
-// EXTERNAL MODULE: ./node_modules/fast-content-type-parse/index.js
-var fast_content_type_parse = __nccwpck_require__(1120);
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-app/node_modules/@octokit/request-error/dist-src/index.js
-class dist_src_RequestError extends Error {
-  name;
-  /**
-   * http status code
-   */
-  status;
-  /**
-   * Request options that lead to the error.
-   */
-  request;
-  /**
-   * Response object if a response was received
-   */
-  response;
-  constructor(message, statusCode, options) {
-    super(message);
-    this.name = "HttpError";
-    this.status = Number.parseInt(statusCode);
-    if (Number.isNaN(this.status)) {
-      this.status = 0;
-    }
-    if ("response" in options) {
-      this.response = options.response;
-    }
-    const requestCopy = Object.assign({}, options.request);
-    if (options.request.headers.authorization) {
-      requestCopy.headers = Object.assign({}, options.request.headers, {
-        authorization: options.request.headers.authorization.replace(
-          /(?<! ) .*$/,
-          " [REDACTED]"
-        )
-      });
-    }
-    requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
-  }
-}
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-app/node_modules/@octokit/request/dist-bundle/index.js
-// pkg/dist-src/index.js
-
-
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var request_dist_bundle_VERSION = "9.2.4";
-
-// pkg/dist-src/defaults.js
-var dist_bundle_defaults_default = {
-  headers: {
-    "user-agent": `octokit-request.js/${request_dist_bundle_VERSION} ${getUserAgent()}`
-  }
-};
-
-// pkg/dist-src/fetch-wrapper.js
-
-
-// pkg/dist-src/is-plain-object.js
-function request_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/fetch-wrapper.js
-
-async function dist_bundle_fetchWrapper(requestOptions) {
-  const fetch = requestOptions.request?.fetch || globalThis.fetch;
-  if (!fetch) {
-    throw new Error(
-      "fetch is not set. Please pass a fetch implementation as new Octokit({ request: { fetch }}). Learn more at https://github.com/octokit/octokit.js/#fetch-missing"
-    );
-  }
-  const log = requestOptions.request?.log || console;
-  const parseSuccessResponseBody = requestOptions.request?.parseSuccessResponseBody !== false;
-  const body = request_dist_bundle_isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body) ? JSON.stringify(requestOptions.body) : requestOptions.body;
-  const requestHeaders = Object.fromEntries(
-    Object.entries(requestOptions.headers).map(([name, value]) => [
-      name,
-      String(value)
-    ])
-  );
-  let fetchResponse;
-  try {
-    fetchResponse = await fetch(requestOptions.url, {
-      method: requestOptions.method,
-      body,
-      redirect: requestOptions.request?.redirect,
-      headers: requestHeaders,
-      signal: requestOptions.request?.signal,
-      // duplex must be set if request.body is ReadableStream or Async Iterables.
-      // See https://fetch.spec.whatwg.org/#dom-requestinit-duplex.
-      ...requestOptions.body && { duplex: "half" }
-    });
-  } catch (error) {
-    let message = "Unknown Error";
-    if (error instanceof Error) {
-      if (error.name === "AbortError") {
-        error.status = 500;
-        throw error;
-      }
-      message = error.message;
-      if (error.name === "TypeError" && "cause" in error) {
-        if (error.cause instanceof Error) {
-          message = error.cause.message;
-        } else if (typeof error.cause === "string") {
-          message = error.cause;
-        }
-      }
-    }
-    const requestError = new dist_src_RequestError(message, 500, {
-      request: requestOptions
-    });
-    requestError.cause = error;
-    throw requestError;
-  }
-  const status = fetchResponse.status;
-  const url = fetchResponse.url;
-  const responseHeaders = {};
-  for (const [key, value] of fetchResponse.headers) {
-    responseHeaders[key] = value;
-  }
-  const octokitResponse = {
-    url,
-    status,
-    headers: responseHeaders,
-    data: ""
-  };
-  if ("deprecation" in responseHeaders) {
-    const matches = responseHeaders.link && responseHeaders.link.match(/<([^<>]+)>; rel="deprecation"/);
-    const deprecationLink = matches && matches.pop();
-    log.warn(
-      `[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${responseHeaders.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`
-    );
-  }
-  if (status === 204 || status === 205) {
-    return octokitResponse;
-  }
-  if (requestOptions.method === "HEAD") {
-    if (status < 400) {
-      return octokitResponse;
-    }
-    throw new dist_src_RequestError(fetchResponse.statusText, status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status === 304) {
-    octokitResponse.data = await dist_bundle_getResponseData(fetchResponse);
-    throw new dist_src_RequestError("Not modified", status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status >= 400) {
-    octokitResponse.data = await dist_bundle_getResponseData(fetchResponse);
-    throw new dist_src_RequestError(dist_bundle_toErrorMessage(octokitResponse.data), status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  octokitResponse.data = parseSuccessResponseBody ? await dist_bundle_getResponseData(fetchResponse) : fetchResponse.body;
-  return octokitResponse;
-}
-async function dist_bundle_getResponseData(response) {
-  const contentType = response.headers.get("content-type");
-  if (!contentType) {
-    return response.text().catch(() => "");
-  }
-  const mimetype = (0,fast_content_type_parse/* safeParse */.xL)(contentType);
-  if (dist_bundle_isJSONResponse(mimetype)) {
-    let text = "";
-    try {
-      text = await response.text();
-      return JSON.parse(text);
-    } catch (err) {
-      return text;
-    }
-  } else if (mimetype.type.startsWith("text/") || mimetype.parameters.charset?.toLowerCase() === "utf-8") {
-    return response.text().catch(() => "");
-  } else {
-    return response.arrayBuffer().catch(() => new ArrayBuffer(0));
-  }
-}
-function dist_bundle_isJSONResponse(mimetype) {
-  return mimetype.type === "application/json" || mimetype.type === "application/scim+json";
-}
-function dist_bundle_toErrorMessage(data) {
-  if (typeof data === "string") {
-    return data;
-  }
-  if (data instanceof ArrayBuffer) {
-    return "Unknown error";
-  }
-  if ("message" in data) {
-    const suffix = "documentation_url" in data ? ` - ${data.documentation_url}` : "";
-    return Array.isArray(data.errors) ? `${data.message}: ${data.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${data.message}${suffix}`;
-  }
-  return `Unknown error: ${JSON.stringify(data)}`;
-}
-
-// pkg/dist-src/with-defaults.js
-function request_dist_bundle_withDefaults(oldEndpoint, newDefaults) {
-  const endpoint2 = oldEndpoint.defaults(newDefaults);
-  const newApi = function(route, parameters) {
-    const endpointOptions = endpoint2.merge(route, parameters);
-    if (!endpointOptions.request || !endpointOptions.request.hook) {
-      return dist_bundle_fetchWrapper(endpoint2.parse(endpointOptions));
-    }
-    const request2 = (route2, parameters2) => {
-      return dist_bundle_fetchWrapper(
-        endpoint2.parse(endpoint2.merge(route2, parameters2))
-      );
-    };
-    Object.assign(request2, {
-      endpoint: endpoint2,
-      defaults: request_dist_bundle_withDefaults.bind(null, endpoint2)
-    });
-    return endpointOptions.request.hook(request2, endpointOptions);
-  };
-  return Object.assign(newApi, {
-    endpoint: endpoint2,
-    defaults: request_dist_bundle_withDefaults.bind(null, endpoint2)
-  });
-}
-
-// pkg/dist-src/index.js
-var dist_bundle_request = request_dist_bundle_withDefaults(dist_bundle_endpoint, dist_bundle_defaults_default);
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-oauth-app/node_modules/@octokit/endpoint/dist-bundle/index.js
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var _octokit_endpoint_dist_bundle_VERSION = "0.0.0-development";
-
-// pkg/dist-src/defaults.js
-var endpoint_dist_bundle_userAgent = `octokit-endpoint.js/${_octokit_endpoint_dist_bundle_VERSION} ${getUserAgent()}`;
-var endpoint_dist_bundle_DEFAULTS = {
-  method: "GET",
-  baseUrl: "https://api.github.com",
-  headers: {
-    accept: "application/vnd.github.v3+json",
-    "user-agent": endpoint_dist_bundle_userAgent
-  },
-  mediaType: {
-    format: ""
-  }
-};
-
-// pkg/dist-src/util/lowercase-keys.js
-function _octokit_endpoint_dist_bundle_lowercaseKeys(object) {
-  if (!object) {
-    return {};
-  }
-  return Object.keys(object).reduce((newObj, key) => {
-    newObj[key.toLowerCase()] = object[key];
-    return newObj;
-  }, {});
-}
-
-// pkg/dist-src/util/is-plain-object.js
-function _octokit_endpoint_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/util/merge-deep.js
-function endpoint_dist_bundle_mergeDeep(defaults, options) {
-  const result = Object.assign({}, defaults);
-  Object.keys(options).forEach((key) => {
-    if (_octokit_endpoint_dist_bundle_isPlainObject(options[key])) {
-      if (!(key in defaults)) Object.assign(result, { [key]: options[key] });
-      else result[key] = endpoint_dist_bundle_mergeDeep(defaults[key], options[key]);
-    } else {
-      Object.assign(result, { [key]: options[key] });
-    }
-  });
-  return result;
-}
-
-// pkg/dist-src/util/remove-undefined-properties.js
-function endpoint_dist_bundle_removeUndefinedProperties(obj) {
-  for (const key in obj) {
-    if (obj[key] === void 0) {
-      delete obj[key];
-    }
-  }
-  return obj;
-}
-
-// pkg/dist-src/merge.js
-function endpoint_dist_bundle_merge(defaults, route, options) {
-  if (typeof route === "string") {
-    let [method, url] = route.split(" ");
-    options = Object.assign(url ? { method, url } : { url: method }, options);
-  } else {
-    options = Object.assign({}, route);
-  }
-  options.headers = _octokit_endpoint_dist_bundle_lowercaseKeys(options.headers);
-  endpoint_dist_bundle_removeUndefinedProperties(options);
-  endpoint_dist_bundle_removeUndefinedProperties(options.headers);
-  const mergedOptions = endpoint_dist_bundle_mergeDeep(defaults || {}, options);
-  if (options.url === "/graphql") {
-    if (defaults && defaults.mediaType.previews?.length) {
-      mergedOptions.mediaType.previews = defaults.mediaType.previews.filter(
-        (preview) => !mergedOptions.mediaType.previews.includes(preview)
-      ).concat(mergedOptions.mediaType.previews);
-    }
-    mergedOptions.mediaType.previews = (mergedOptions.mediaType.previews || []).map((preview) => preview.replace(/-preview/, ""));
-  }
-  return mergedOptions;
-}
-
-// pkg/dist-src/util/add-query-parameters.js
-function endpoint_dist_bundle_addQueryParameters(url, parameters) {
-  const separator = /\?/.test(url) ? "&" : "?";
-  const names = Object.keys(parameters);
-  if (names.length === 0) {
-    return url;
-  }
-  return url + separator + names.map((name) => {
-    if (name === "q") {
-      return "q=" + parameters.q.split("+").map(encodeURIComponent).join("+");
-    }
-    return `${name}=${encodeURIComponent(parameters[name])}`;
-  }).join("&");
-}
-
-// pkg/dist-src/util/extract-url-variable-names.js
-var endpoint_dist_bundle_urlVariableRegex = /\{[^{}}]+\}/g;
-function endpoint_dist_bundle_removeNonChars(variableName) {
-  return variableName.replace(/(?:^\W+)|(?:(?<!\W)\W+$)/g, "").split(/,/);
-}
-function endpoint_dist_bundle_extractUrlVariableNames(url) {
-  const matches = url.match(endpoint_dist_bundle_urlVariableRegex);
-  if (!matches) {
-    return [];
-  }
-  return matches.map(endpoint_dist_bundle_removeNonChars).reduce((a, b) => a.concat(b), []);
-}
-
-// pkg/dist-src/util/omit.js
-function endpoint_dist_bundle_omit(object, keysToOmit) {
-  const result = { __proto__: null };
-  for (const key of Object.keys(object)) {
-    if (keysToOmit.indexOf(key) === -1) {
-      result[key] = object[key];
-    }
-  }
-  return result;
-}
-
-// pkg/dist-src/util/url-template.js
-function endpoint_dist_bundle_encodeReserved(str) {
-  return str.split(/(%[0-9A-Fa-f]{2})/g).map(function(part) {
-    if (!/%[0-9A-Fa-f]/.test(part)) {
-      part = encodeURI(part).replace(/%5B/g, "[").replace(/%5D/g, "]");
-    }
-    return part;
-  }).join("");
-}
-function endpoint_dist_bundle_encodeUnreserved(str) {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
-    return "%" + c.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-function endpoint_dist_bundle_encodeValue(operator, value, key) {
-  value = operator === "+" || operator === "#" ? endpoint_dist_bundle_encodeReserved(value) : endpoint_dist_bundle_encodeUnreserved(value);
-  if (key) {
-    return endpoint_dist_bundle_encodeUnreserved(key) + "=" + value;
-  } else {
-    return value;
-  }
-}
-function endpoint_dist_bundle_isDefined(value) {
-  return value !== void 0 && value !== null;
-}
-function endpoint_dist_bundle_isKeyOperator(operator) {
-  return operator === ";" || operator === "&" || operator === "?";
-}
-function endpoint_dist_bundle_getValues(context, operator, key, modifier) {
-  var value = context[key], result = [];
-  if (endpoint_dist_bundle_isDefined(value) && value !== "") {
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      value = value.toString();
-      if (modifier && modifier !== "*") {
-        value = value.substring(0, parseInt(modifier, 10));
-      }
-      result.push(
-        endpoint_dist_bundle_encodeValue(operator, value, endpoint_dist_bundle_isKeyOperator(operator) ? key : "")
-      );
-    } else {
-      if (modifier === "*") {
-        if (Array.isArray(value)) {
-          value.filter(endpoint_dist_bundle_isDefined).forEach(function(value2) {
-            result.push(
-              endpoint_dist_bundle_encodeValue(operator, value2, endpoint_dist_bundle_isKeyOperator(operator) ? key : "")
-            );
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (endpoint_dist_bundle_isDefined(value[k])) {
-              result.push(endpoint_dist_bundle_encodeValue(operator, value[k], k));
-            }
-          });
-        }
-      } else {
-        const tmp = [];
-        if (Array.isArray(value)) {
-          value.filter(endpoint_dist_bundle_isDefined).forEach(function(value2) {
-            tmp.push(endpoint_dist_bundle_encodeValue(operator, value2));
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (endpoint_dist_bundle_isDefined(value[k])) {
-              tmp.push(endpoint_dist_bundle_encodeUnreserved(k));
-              tmp.push(endpoint_dist_bundle_encodeValue(operator, value[k].toString()));
-            }
-          });
-        }
-        if (endpoint_dist_bundle_isKeyOperator(operator)) {
-          result.push(endpoint_dist_bundle_encodeUnreserved(key) + "=" + tmp.join(","));
-        } else if (tmp.length !== 0) {
-          result.push(tmp.join(","));
-        }
-      }
-    }
-  } else {
-    if (operator === ";") {
-      if (endpoint_dist_bundle_isDefined(value)) {
-        result.push(endpoint_dist_bundle_encodeUnreserved(key));
-      }
-    } else if (value === "" && (operator === "&" || operator === "?")) {
-      result.push(endpoint_dist_bundle_encodeUnreserved(key) + "=");
-    } else if (value === "") {
-      result.push("");
-    }
-  }
-  return result;
-}
-function endpoint_dist_bundle_parseUrl(template) {
-  return {
-    expand: endpoint_dist_bundle_expand.bind(null, template)
-  };
-}
-function endpoint_dist_bundle_expand(template, context) {
-  var operators = ["+", "#", ".", "/", ";", "?", "&"];
-  template = template.replace(
-    /\{([^\{\}]+)\}|([^\{\}]+)/g,
-    function(_, expression, literal) {
-      if (expression) {
-        let operator = "";
-        const values = [];
-        if (operators.indexOf(expression.charAt(0)) !== -1) {
-          operator = expression.charAt(0);
-          expression = expression.substr(1);
-        }
-        expression.split(/,/g).forEach(function(variable) {
-          var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-          values.push(endpoint_dist_bundle_getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
-        });
-        if (operator && operator !== "+") {
-          var separator = ",";
-          if (operator === "?") {
-            separator = "&";
-          } else if (operator !== "#") {
-            separator = operator;
-          }
-          return (values.length !== 0 ? operator : "") + values.join(separator);
-        } else {
-          return values.join(",");
-        }
-      } else {
-        return endpoint_dist_bundle_encodeReserved(literal);
-      }
-    }
-  );
-  if (template === "/") {
-    return template;
-  } else {
-    return template.replace(/\/$/, "");
-  }
-}
-
-// pkg/dist-src/parse.js
-function endpoint_dist_bundle_parse(options) {
-  let method = options.method.toUpperCase();
-  let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
-  let headers = Object.assign({}, options.headers);
-  let body;
-  let parameters = endpoint_dist_bundle_omit(options, [
-    "method",
-    "baseUrl",
-    "url",
-    "headers",
-    "request",
-    "mediaType"
-  ]);
-  const urlVariableNames = endpoint_dist_bundle_extractUrlVariableNames(url);
-  url = endpoint_dist_bundle_parseUrl(url).expand(parameters);
-  if (!/^http/.test(url)) {
-    url = options.baseUrl + url;
-  }
-  const omittedParameters = Object.keys(options).filter((option) => urlVariableNames.includes(option)).concat("baseUrl");
-  const remainingParameters = endpoint_dist_bundle_omit(parameters, omittedParameters);
-  const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
-  if (!isBinaryRequest) {
-    if (options.mediaType.format) {
-      headers.accept = headers.accept.split(/,/).map(
-        (format) => format.replace(
-          /application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/,
-          `application/vnd$1$2.${options.mediaType.format}`
-        )
-      ).join(",");
-    }
-    if (url.endsWith("/graphql")) {
-      if (options.mediaType.previews?.length) {
-        const previewsFromAcceptHeader = headers.accept.match(/(?<![\w-])[\w-]+(?=-preview)/g) || [];
-        headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
-          const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
-          return `application/vnd.github.${preview}-preview${format}`;
-        }).join(",");
-      }
-    }
-  }
-  if (["GET", "HEAD"].includes(method)) {
-    url = endpoint_dist_bundle_addQueryParameters(url, remainingParameters);
-  } else {
-    if ("data" in remainingParameters) {
-      body = remainingParameters.data;
-    } else {
-      if (Object.keys(remainingParameters).length) {
-        body = remainingParameters;
-      }
-    }
-  }
-  if (!headers["content-type"] && typeof body !== "undefined") {
-    headers["content-type"] = "application/json; charset=utf-8";
-  }
-  if (["PATCH", "PUT"].includes(method) && typeof body === "undefined") {
-    body = "";
-  }
-  return Object.assign(
-    { method, url, headers },
-    typeof body !== "undefined" ? { body } : null,
-    options.request ? { request: options.request } : null
-  );
-}
-
-// pkg/dist-src/endpoint-with-defaults.js
-function endpoint_dist_bundle_endpointWithDefaults(defaults, route, options) {
-  return endpoint_dist_bundle_parse(endpoint_dist_bundle_merge(defaults, route, options));
-}
-
-// pkg/dist-src/with-defaults.js
-function _octokit_endpoint_dist_bundle_withDefaults(oldDefaults, newDefaults) {
-  const DEFAULTS2 = endpoint_dist_bundle_merge(oldDefaults, newDefaults);
-  const endpoint2 = endpoint_dist_bundle_endpointWithDefaults.bind(null, DEFAULTS2);
-  return Object.assign(endpoint2, {
-    DEFAULTS: DEFAULTS2,
-    defaults: _octokit_endpoint_dist_bundle_withDefaults.bind(null, DEFAULTS2),
-    merge: endpoint_dist_bundle_merge.bind(null, DEFAULTS2),
-    parse: endpoint_dist_bundle_parse
-  });
-}
-
-// pkg/dist-src/index.js
-var endpoint_dist_bundle_endpoint = _octokit_endpoint_dist_bundle_withDefaults(null, endpoint_dist_bundle_DEFAULTS);
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-oauth-app/node_modules/@octokit/request-error/dist-src/index.js
-class request_error_dist_src_RequestError extends Error {
-  name;
-  /**
-   * http status code
-   */
-  status;
-  /**
-   * Request options that lead to the error.
-   */
-  request;
-  /**
-   * Response object if a response was received
-   */
-  response;
-  constructor(message, statusCode, options) {
-    super(message);
-    this.name = "HttpError";
-    this.status = Number.parseInt(statusCode);
-    if (Number.isNaN(this.status)) {
-      this.status = 0;
-    }
-    if ("response" in options) {
-      this.response = options.response;
-    }
-    const requestCopy = Object.assign({}, options.request);
-    if (options.request.headers.authorization) {
-      requestCopy.headers = Object.assign({}, options.request.headers, {
-        authorization: options.request.headers.authorization.replace(
-          /(?<! ) .*$/,
-          " [REDACTED]"
-        )
-      });
-    }
-    requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
-  }
-}
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-oauth-app/node_modules/@octokit/request/dist-bundle/index.js
-// pkg/dist-src/index.js
-
-
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var _octokit_request_dist_bundle_VERSION = "9.2.4";
-
-// pkg/dist-src/defaults.js
-var request_dist_bundle_defaults_default = {
-  headers: {
-    "user-agent": `octokit-request.js/${_octokit_request_dist_bundle_VERSION} ${getUserAgent()}`
-  }
-};
-
-// pkg/dist-src/fetch-wrapper.js
-
-
-// pkg/dist-src/is-plain-object.js
-function _octokit_request_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/fetch-wrapper.js
-
-async function request_dist_bundle_fetchWrapper(requestOptions) {
-  const fetch = requestOptions.request?.fetch || globalThis.fetch;
-  if (!fetch) {
-    throw new Error(
-      "fetch is not set. Please pass a fetch implementation as new Octokit({ request: { fetch }}). Learn more at https://github.com/octokit/octokit.js/#fetch-missing"
-    );
-  }
-  const log = requestOptions.request?.log || console;
-  const parseSuccessResponseBody = requestOptions.request?.parseSuccessResponseBody !== false;
-  const body = _octokit_request_dist_bundle_isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body) ? JSON.stringify(requestOptions.body) : requestOptions.body;
-  const requestHeaders = Object.fromEntries(
-    Object.entries(requestOptions.headers).map(([name, value]) => [
-      name,
-      String(value)
-    ])
-  );
-  let fetchResponse;
-  try {
-    fetchResponse = await fetch(requestOptions.url, {
-      method: requestOptions.method,
-      body,
-      redirect: requestOptions.request?.redirect,
-      headers: requestHeaders,
-      signal: requestOptions.request?.signal,
-      // duplex must be set if request.body is ReadableStream or Async Iterables.
-      // See https://fetch.spec.whatwg.org/#dom-requestinit-duplex.
-      ...requestOptions.body && { duplex: "half" }
-    });
-  } catch (error) {
-    let message = "Unknown Error";
-    if (error instanceof Error) {
-      if (error.name === "AbortError") {
-        error.status = 500;
-        throw error;
-      }
-      message = error.message;
-      if (error.name === "TypeError" && "cause" in error) {
-        if (error.cause instanceof Error) {
-          message = error.cause.message;
-        } else if (typeof error.cause === "string") {
-          message = error.cause;
-        }
-      }
-    }
-    const requestError = new request_error_dist_src_RequestError(message, 500, {
-      request: requestOptions
-    });
-    requestError.cause = error;
-    throw requestError;
-  }
-  const status = fetchResponse.status;
-  const url = fetchResponse.url;
-  const responseHeaders = {};
-  for (const [key, value] of fetchResponse.headers) {
-    responseHeaders[key] = value;
-  }
-  const octokitResponse = {
-    url,
-    status,
-    headers: responseHeaders,
-    data: ""
-  };
-  if ("deprecation" in responseHeaders) {
-    const matches = responseHeaders.link && responseHeaders.link.match(/<([^<>]+)>; rel="deprecation"/);
-    const deprecationLink = matches && matches.pop();
-    log.warn(
-      `[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${responseHeaders.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`
-    );
-  }
-  if (status === 204 || status === 205) {
-    return octokitResponse;
-  }
-  if (requestOptions.method === "HEAD") {
-    if (status < 400) {
-      return octokitResponse;
-    }
-    throw new request_error_dist_src_RequestError(fetchResponse.statusText, status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status === 304) {
-    octokitResponse.data = await request_dist_bundle_getResponseData(fetchResponse);
-    throw new request_error_dist_src_RequestError("Not modified", status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status >= 400) {
-    octokitResponse.data = await request_dist_bundle_getResponseData(fetchResponse);
-    throw new request_error_dist_src_RequestError(request_dist_bundle_toErrorMessage(octokitResponse.data), status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  octokitResponse.data = parseSuccessResponseBody ? await request_dist_bundle_getResponseData(fetchResponse) : fetchResponse.body;
-  return octokitResponse;
-}
-async function request_dist_bundle_getResponseData(response) {
-  const contentType = response.headers.get("content-type");
-  if (!contentType) {
-    return response.text().catch(() => "");
-  }
-  const mimetype = (0,fast_content_type_parse/* safeParse */.xL)(contentType);
-  if (request_dist_bundle_isJSONResponse(mimetype)) {
-    let text = "";
-    try {
-      text = await response.text();
-      return JSON.parse(text);
-    } catch (err) {
-      return text;
-    }
-  } else if (mimetype.type.startsWith("text/") || mimetype.parameters.charset?.toLowerCase() === "utf-8") {
-    return response.text().catch(() => "");
-  } else {
-    return response.arrayBuffer().catch(() => new ArrayBuffer(0));
-  }
-}
-function request_dist_bundle_isJSONResponse(mimetype) {
-  return mimetype.type === "application/json" || mimetype.type === "application/scim+json";
-}
-function request_dist_bundle_toErrorMessage(data) {
-  if (typeof data === "string") {
-    return data;
-  }
-  if (data instanceof ArrayBuffer) {
-    return "Unknown error";
-  }
-  if ("message" in data) {
-    const suffix = "documentation_url" in data ? ` - ${data.documentation_url}` : "";
-    return Array.isArray(data.errors) ? `${data.message}: ${data.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${data.message}${suffix}`;
-  }
-  return `Unknown error: ${JSON.stringify(data)}`;
-}
-
-// pkg/dist-src/with-defaults.js
-function _octokit_request_dist_bundle_withDefaults(oldEndpoint, newDefaults) {
-  const endpoint2 = oldEndpoint.defaults(newDefaults);
-  const newApi = function(route, parameters) {
-    const endpointOptions = endpoint2.merge(route, parameters);
-    if (!endpointOptions.request || !endpointOptions.request.hook) {
-      return request_dist_bundle_fetchWrapper(endpoint2.parse(endpointOptions));
-    }
-    const request2 = (route2, parameters2) => {
-      return request_dist_bundle_fetchWrapper(
-        endpoint2.parse(endpoint2.merge(route2, parameters2))
-      );
-    };
-    Object.assign(request2, {
-      endpoint: endpoint2,
-      defaults: _octokit_request_dist_bundle_withDefaults.bind(null, endpoint2)
-    });
-    return endpointOptions.request.hook(request2, endpointOptions);
-  };
-  return Object.assign(newApi, {
-    endpoint: endpoint2,
-    defaults: _octokit_request_dist_bundle_withDefaults.bind(null, endpoint2)
-  });
-}
-
-// pkg/dist-src/index.js
-var request_dist_bundle_request = _octokit_request_dist_bundle_withDefaults(endpoint_dist_bundle_endpoint, request_dist_bundle_defaults_default);
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-oauth-user/node_modules/@octokit/endpoint/dist-bundle/index.js
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var node_modules_octokit_endpoint_dist_bundle_VERSION = "0.0.0-development";
-
-// pkg/dist-src/defaults.js
-var _octokit_endpoint_dist_bundle_userAgent = `octokit-endpoint.js/${node_modules_octokit_endpoint_dist_bundle_VERSION} ${getUserAgent()}`;
-var _octokit_endpoint_dist_bundle_DEFAULTS = {
-  method: "GET",
-  baseUrl: "https://api.github.com",
-  headers: {
-    accept: "application/vnd.github.v3+json",
-    "user-agent": _octokit_endpoint_dist_bundle_userAgent
-  },
-  mediaType: {
-    format: ""
-  }
-};
-
-// pkg/dist-src/util/lowercase-keys.js
-function node_modules_octokit_endpoint_dist_bundle_lowercaseKeys(object) {
-  if (!object) {
-    return {};
-  }
-  return Object.keys(object).reduce((newObj, key) => {
-    newObj[key.toLowerCase()] = object[key];
-    return newObj;
-  }, {});
-}
-
-// pkg/dist-src/util/is-plain-object.js
-function node_modules_octokit_endpoint_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/util/merge-deep.js
-function _octokit_endpoint_dist_bundle_mergeDeep(defaults, options) {
-  const result = Object.assign({}, defaults);
-  Object.keys(options).forEach((key) => {
-    if (node_modules_octokit_endpoint_dist_bundle_isPlainObject(options[key])) {
-      if (!(key in defaults)) Object.assign(result, { [key]: options[key] });
-      else result[key] = _octokit_endpoint_dist_bundle_mergeDeep(defaults[key], options[key]);
-    } else {
-      Object.assign(result, { [key]: options[key] });
-    }
-  });
-  return result;
-}
-
-// pkg/dist-src/util/remove-undefined-properties.js
-function _octokit_endpoint_dist_bundle_removeUndefinedProperties(obj) {
-  for (const key in obj) {
-    if (obj[key] === void 0) {
-      delete obj[key];
-    }
-  }
-  return obj;
-}
-
-// pkg/dist-src/merge.js
-function _octokit_endpoint_dist_bundle_merge(defaults, route, options) {
-  if (typeof route === "string") {
-    let [method, url] = route.split(" ");
-    options = Object.assign(url ? { method, url } : { url: method }, options);
-  } else {
-    options = Object.assign({}, route);
-  }
-  options.headers = node_modules_octokit_endpoint_dist_bundle_lowercaseKeys(options.headers);
-  _octokit_endpoint_dist_bundle_removeUndefinedProperties(options);
-  _octokit_endpoint_dist_bundle_removeUndefinedProperties(options.headers);
-  const mergedOptions = _octokit_endpoint_dist_bundle_mergeDeep(defaults || {}, options);
-  if (options.url === "/graphql") {
-    if (defaults && defaults.mediaType.previews?.length) {
-      mergedOptions.mediaType.previews = defaults.mediaType.previews.filter(
-        (preview) => !mergedOptions.mediaType.previews.includes(preview)
-      ).concat(mergedOptions.mediaType.previews);
-    }
-    mergedOptions.mediaType.previews = (mergedOptions.mediaType.previews || []).map((preview) => preview.replace(/-preview/, ""));
-  }
-  return mergedOptions;
-}
-
-// pkg/dist-src/util/add-query-parameters.js
-function _octokit_endpoint_dist_bundle_addQueryParameters(url, parameters) {
-  const separator = /\?/.test(url) ? "&" : "?";
-  const names = Object.keys(parameters);
-  if (names.length === 0) {
-    return url;
-  }
-  return url + separator + names.map((name) => {
-    if (name === "q") {
-      return "q=" + parameters.q.split("+").map(encodeURIComponent).join("+");
-    }
-    return `${name}=${encodeURIComponent(parameters[name])}`;
-  }).join("&");
-}
-
-// pkg/dist-src/util/extract-url-variable-names.js
-var _octokit_endpoint_dist_bundle_urlVariableRegex = /\{[^{}}]+\}/g;
-function _octokit_endpoint_dist_bundle_removeNonChars(variableName) {
-  return variableName.replace(/(?:^\W+)|(?:(?<!\W)\W+$)/g, "").split(/,/);
-}
-function _octokit_endpoint_dist_bundle_extractUrlVariableNames(url) {
-  const matches = url.match(_octokit_endpoint_dist_bundle_urlVariableRegex);
-  if (!matches) {
-    return [];
-  }
-  return matches.map(_octokit_endpoint_dist_bundle_removeNonChars).reduce((a, b) => a.concat(b), []);
-}
-
-// pkg/dist-src/util/omit.js
-function _octokit_endpoint_dist_bundle_omit(object, keysToOmit) {
-  const result = { __proto__: null };
-  for (const key of Object.keys(object)) {
-    if (keysToOmit.indexOf(key) === -1) {
-      result[key] = object[key];
-    }
-  }
-  return result;
-}
-
-// pkg/dist-src/util/url-template.js
-function _octokit_endpoint_dist_bundle_encodeReserved(str) {
-  return str.split(/(%[0-9A-Fa-f]{2})/g).map(function(part) {
-    if (!/%[0-9A-Fa-f]/.test(part)) {
-      part = encodeURI(part).replace(/%5B/g, "[").replace(/%5D/g, "]");
-    }
-    return part;
-  }).join("");
-}
-function _octokit_endpoint_dist_bundle_encodeUnreserved(str) {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
-    return "%" + c.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-function _octokit_endpoint_dist_bundle_encodeValue(operator, value, key) {
-  value = operator === "+" || operator === "#" ? _octokit_endpoint_dist_bundle_encodeReserved(value) : _octokit_endpoint_dist_bundle_encodeUnreserved(value);
-  if (key) {
-    return _octokit_endpoint_dist_bundle_encodeUnreserved(key) + "=" + value;
-  } else {
-    return value;
-  }
-}
-function _octokit_endpoint_dist_bundle_isDefined(value) {
-  return value !== void 0 && value !== null;
-}
-function _octokit_endpoint_dist_bundle_isKeyOperator(operator) {
-  return operator === ";" || operator === "&" || operator === "?";
-}
-function _octokit_endpoint_dist_bundle_getValues(context, operator, key, modifier) {
-  var value = context[key], result = [];
-  if (_octokit_endpoint_dist_bundle_isDefined(value) && value !== "") {
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      value = value.toString();
-      if (modifier && modifier !== "*") {
-        value = value.substring(0, parseInt(modifier, 10));
-      }
-      result.push(
-        _octokit_endpoint_dist_bundle_encodeValue(operator, value, _octokit_endpoint_dist_bundle_isKeyOperator(operator) ? key : "")
-      );
-    } else {
-      if (modifier === "*") {
-        if (Array.isArray(value)) {
-          value.filter(_octokit_endpoint_dist_bundle_isDefined).forEach(function(value2) {
-            result.push(
-              _octokit_endpoint_dist_bundle_encodeValue(operator, value2, _octokit_endpoint_dist_bundle_isKeyOperator(operator) ? key : "")
-            );
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (_octokit_endpoint_dist_bundle_isDefined(value[k])) {
-              result.push(_octokit_endpoint_dist_bundle_encodeValue(operator, value[k], k));
-            }
-          });
-        }
-      } else {
-        const tmp = [];
-        if (Array.isArray(value)) {
-          value.filter(_octokit_endpoint_dist_bundle_isDefined).forEach(function(value2) {
-            tmp.push(_octokit_endpoint_dist_bundle_encodeValue(operator, value2));
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (_octokit_endpoint_dist_bundle_isDefined(value[k])) {
-              tmp.push(_octokit_endpoint_dist_bundle_encodeUnreserved(k));
-              tmp.push(_octokit_endpoint_dist_bundle_encodeValue(operator, value[k].toString()));
-            }
-          });
-        }
-        if (_octokit_endpoint_dist_bundle_isKeyOperator(operator)) {
-          result.push(_octokit_endpoint_dist_bundle_encodeUnreserved(key) + "=" + tmp.join(","));
-        } else if (tmp.length !== 0) {
-          result.push(tmp.join(","));
-        }
-      }
-    }
-  } else {
-    if (operator === ";") {
-      if (_octokit_endpoint_dist_bundle_isDefined(value)) {
-        result.push(_octokit_endpoint_dist_bundle_encodeUnreserved(key));
-      }
-    } else if (value === "" && (operator === "&" || operator === "?")) {
-      result.push(_octokit_endpoint_dist_bundle_encodeUnreserved(key) + "=");
-    } else if (value === "") {
-      result.push("");
-    }
-  }
-  return result;
-}
-function _octokit_endpoint_dist_bundle_parseUrl(template) {
-  return {
-    expand: _octokit_endpoint_dist_bundle_expand.bind(null, template)
-  };
-}
-function _octokit_endpoint_dist_bundle_expand(template, context) {
-  var operators = ["+", "#", ".", "/", ";", "?", "&"];
-  template = template.replace(
-    /\{([^\{\}]+)\}|([^\{\}]+)/g,
-    function(_, expression, literal) {
-      if (expression) {
-        let operator = "";
-        const values = [];
-        if (operators.indexOf(expression.charAt(0)) !== -1) {
-          operator = expression.charAt(0);
-          expression = expression.substr(1);
-        }
-        expression.split(/,/g).forEach(function(variable) {
-          var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-          values.push(_octokit_endpoint_dist_bundle_getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
-        });
-        if (operator && operator !== "+") {
-          var separator = ",";
-          if (operator === "?") {
-            separator = "&";
-          } else if (operator !== "#") {
-            separator = operator;
-          }
-          return (values.length !== 0 ? operator : "") + values.join(separator);
-        } else {
-          return values.join(",");
-        }
-      } else {
-        return _octokit_endpoint_dist_bundle_encodeReserved(literal);
-      }
-    }
-  );
-  if (template === "/") {
-    return template;
-  } else {
-    return template.replace(/\/$/, "");
-  }
-}
-
-// pkg/dist-src/parse.js
-function _octokit_endpoint_dist_bundle_parse(options) {
-  let method = options.method.toUpperCase();
-  let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
-  let headers = Object.assign({}, options.headers);
-  let body;
-  let parameters = _octokit_endpoint_dist_bundle_omit(options, [
-    "method",
-    "baseUrl",
-    "url",
-    "headers",
-    "request",
-    "mediaType"
-  ]);
-  const urlVariableNames = _octokit_endpoint_dist_bundle_extractUrlVariableNames(url);
-  url = _octokit_endpoint_dist_bundle_parseUrl(url).expand(parameters);
-  if (!/^http/.test(url)) {
-    url = options.baseUrl + url;
-  }
-  const omittedParameters = Object.keys(options).filter((option) => urlVariableNames.includes(option)).concat("baseUrl");
-  const remainingParameters = _octokit_endpoint_dist_bundle_omit(parameters, omittedParameters);
-  const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
-  if (!isBinaryRequest) {
-    if (options.mediaType.format) {
-      headers.accept = headers.accept.split(/,/).map(
-        (format) => format.replace(
-          /application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/,
-          `application/vnd$1$2.${options.mediaType.format}`
-        )
-      ).join(",");
-    }
-    if (url.endsWith("/graphql")) {
-      if (options.mediaType.previews?.length) {
-        const previewsFromAcceptHeader = headers.accept.match(/(?<![\w-])[\w-]+(?=-preview)/g) || [];
-        headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
-          const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
-          return `application/vnd.github.${preview}-preview${format}`;
-        }).join(",");
-      }
-    }
-  }
-  if (["GET", "HEAD"].includes(method)) {
-    url = _octokit_endpoint_dist_bundle_addQueryParameters(url, remainingParameters);
-  } else {
-    if ("data" in remainingParameters) {
-      body = remainingParameters.data;
-    } else {
-      if (Object.keys(remainingParameters).length) {
-        body = remainingParameters;
-      }
-    }
-  }
-  if (!headers["content-type"] && typeof body !== "undefined") {
-    headers["content-type"] = "application/json; charset=utf-8";
-  }
-  if (["PATCH", "PUT"].includes(method) && typeof body === "undefined") {
-    body = "";
-  }
-  return Object.assign(
-    { method, url, headers },
-    typeof body !== "undefined" ? { body } : null,
-    options.request ? { request: options.request } : null
-  );
-}
-
-// pkg/dist-src/endpoint-with-defaults.js
-function _octokit_endpoint_dist_bundle_endpointWithDefaults(defaults, route, options) {
-  return _octokit_endpoint_dist_bundle_parse(_octokit_endpoint_dist_bundle_merge(defaults, route, options));
-}
-
-// pkg/dist-src/with-defaults.js
-function node_modules_octokit_endpoint_dist_bundle_withDefaults(oldDefaults, newDefaults) {
-  const DEFAULTS2 = _octokit_endpoint_dist_bundle_merge(oldDefaults, newDefaults);
-  const endpoint2 = _octokit_endpoint_dist_bundle_endpointWithDefaults.bind(null, DEFAULTS2);
-  return Object.assign(endpoint2, {
-    DEFAULTS: DEFAULTS2,
-    defaults: node_modules_octokit_endpoint_dist_bundle_withDefaults.bind(null, DEFAULTS2),
-    merge: _octokit_endpoint_dist_bundle_merge.bind(null, DEFAULTS2),
-    parse: _octokit_endpoint_dist_bundle_parse
-  });
-}
-
-// pkg/dist-src/index.js
-var _octokit_endpoint_dist_bundle_endpoint = node_modules_octokit_endpoint_dist_bundle_withDefaults(null, _octokit_endpoint_dist_bundle_DEFAULTS);
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-oauth-user/node_modules/@octokit/request-error/dist-src/index.js
-class _octokit_request_error_dist_src_RequestError extends Error {
-  name;
-  /**
-   * http status code
-   */
-  status;
-  /**
-   * Request options that lead to the error.
-   */
-  request;
-  /**
-   * Response object if a response was received
-   */
-  response;
-  constructor(message, statusCode, options) {
-    super(message);
-    this.name = "HttpError";
-    this.status = Number.parseInt(statusCode);
-    if (Number.isNaN(this.status)) {
-      this.status = 0;
-    }
-    if ("response" in options) {
-      this.response = options.response;
-    }
-    const requestCopy = Object.assign({}, options.request);
-    if (options.request.headers.authorization) {
-      requestCopy.headers = Object.assign({}, options.request.headers, {
-        authorization: options.request.headers.authorization.replace(
-          /(?<! ) .*$/,
-          " [REDACTED]"
-        )
-      });
-    }
-    requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
-  }
-}
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-oauth-user/node_modules/@octokit/request/dist-bundle/index.js
-// pkg/dist-src/index.js
-
-
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var node_modules_octokit_request_dist_bundle_VERSION = "9.2.4";
-
-// pkg/dist-src/defaults.js
-var _octokit_request_dist_bundle_defaults_default = {
-  headers: {
-    "user-agent": `octokit-request.js/${node_modules_octokit_request_dist_bundle_VERSION} ${getUserAgent()}`
-  }
-};
-
-// pkg/dist-src/fetch-wrapper.js
-
-
-// pkg/dist-src/is-plain-object.js
-function node_modules_octokit_request_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/fetch-wrapper.js
-
-async function _octokit_request_dist_bundle_fetchWrapper(requestOptions) {
-  const fetch = requestOptions.request?.fetch || globalThis.fetch;
-  if (!fetch) {
-    throw new Error(
-      "fetch is not set. Please pass a fetch implementation as new Octokit({ request: { fetch }}). Learn more at https://github.com/octokit/octokit.js/#fetch-missing"
-    );
-  }
-  const log = requestOptions.request?.log || console;
-  const parseSuccessResponseBody = requestOptions.request?.parseSuccessResponseBody !== false;
-  const body = node_modules_octokit_request_dist_bundle_isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body) ? JSON.stringify(requestOptions.body) : requestOptions.body;
-  const requestHeaders = Object.fromEntries(
-    Object.entries(requestOptions.headers).map(([name, value]) => [
-      name,
-      String(value)
-    ])
-  );
-  let fetchResponse;
-  try {
-    fetchResponse = await fetch(requestOptions.url, {
-      method: requestOptions.method,
-      body,
-      redirect: requestOptions.request?.redirect,
-      headers: requestHeaders,
-      signal: requestOptions.request?.signal,
-      // duplex must be set if request.body is ReadableStream or Async Iterables.
-      // See https://fetch.spec.whatwg.org/#dom-requestinit-duplex.
-      ...requestOptions.body && { duplex: "half" }
-    });
-  } catch (error) {
-    let message = "Unknown Error";
-    if (error instanceof Error) {
-      if (error.name === "AbortError") {
-        error.status = 500;
-        throw error;
-      }
-      message = error.message;
-      if (error.name === "TypeError" && "cause" in error) {
-        if (error.cause instanceof Error) {
-          message = error.cause.message;
-        } else if (typeof error.cause === "string") {
-          message = error.cause;
-        }
-      }
-    }
-    const requestError = new _octokit_request_error_dist_src_RequestError(message, 500, {
-      request: requestOptions
-    });
-    requestError.cause = error;
-    throw requestError;
-  }
-  const status = fetchResponse.status;
-  const url = fetchResponse.url;
-  const responseHeaders = {};
-  for (const [key, value] of fetchResponse.headers) {
-    responseHeaders[key] = value;
-  }
-  const octokitResponse = {
-    url,
-    status,
-    headers: responseHeaders,
-    data: ""
-  };
-  if ("deprecation" in responseHeaders) {
-    const matches = responseHeaders.link && responseHeaders.link.match(/<([^<>]+)>; rel="deprecation"/);
-    const deprecationLink = matches && matches.pop();
-    log.warn(
-      `[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${responseHeaders.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`
-    );
-  }
-  if (status === 204 || status === 205) {
-    return octokitResponse;
-  }
-  if (requestOptions.method === "HEAD") {
-    if (status < 400) {
-      return octokitResponse;
-    }
-    throw new _octokit_request_error_dist_src_RequestError(fetchResponse.statusText, status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status === 304) {
-    octokitResponse.data = await _octokit_request_dist_bundle_getResponseData(fetchResponse);
-    throw new _octokit_request_error_dist_src_RequestError("Not modified", status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status >= 400) {
-    octokitResponse.data = await _octokit_request_dist_bundle_getResponseData(fetchResponse);
-    throw new _octokit_request_error_dist_src_RequestError(_octokit_request_dist_bundle_toErrorMessage(octokitResponse.data), status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  octokitResponse.data = parseSuccessResponseBody ? await _octokit_request_dist_bundle_getResponseData(fetchResponse) : fetchResponse.body;
-  return octokitResponse;
-}
-async function _octokit_request_dist_bundle_getResponseData(response) {
-  const contentType = response.headers.get("content-type");
-  if (!contentType) {
-    return response.text().catch(() => "");
-  }
-  const mimetype = (0,fast_content_type_parse/* safeParse */.xL)(contentType);
-  if (_octokit_request_dist_bundle_isJSONResponse(mimetype)) {
-    let text = "";
-    try {
-      text = await response.text();
-      return JSON.parse(text);
-    } catch (err) {
-      return text;
-    }
-  } else if (mimetype.type.startsWith("text/") || mimetype.parameters.charset?.toLowerCase() === "utf-8") {
-    return response.text().catch(() => "");
-  } else {
-    return response.arrayBuffer().catch(() => new ArrayBuffer(0));
-  }
-}
-function _octokit_request_dist_bundle_isJSONResponse(mimetype) {
-  return mimetype.type === "application/json" || mimetype.type === "application/scim+json";
-}
-function _octokit_request_dist_bundle_toErrorMessage(data) {
-  if (typeof data === "string") {
-    return data;
-  }
-  if (data instanceof ArrayBuffer) {
-    return "Unknown error";
-  }
-  if ("message" in data) {
-    const suffix = "documentation_url" in data ? ` - ${data.documentation_url}` : "";
-    return Array.isArray(data.errors) ? `${data.message}: ${data.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${data.message}${suffix}`;
-  }
-  return `Unknown error: ${JSON.stringify(data)}`;
-}
-
-// pkg/dist-src/with-defaults.js
-function node_modules_octokit_request_dist_bundle_withDefaults(oldEndpoint, newDefaults) {
-  const endpoint2 = oldEndpoint.defaults(newDefaults);
-  const newApi = function(route, parameters) {
-    const endpointOptions = endpoint2.merge(route, parameters);
-    if (!endpointOptions.request || !endpointOptions.request.hook) {
-      return _octokit_request_dist_bundle_fetchWrapper(endpoint2.parse(endpointOptions));
-    }
-    const request2 = (route2, parameters2) => {
-      return _octokit_request_dist_bundle_fetchWrapper(
-        endpoint2.parse(endpoint2.merge(route2, parameters2))
-      );
-    };
-    Object.assign(request2, {
-      endpoint: endpoint2,
-      defaults: node_modules_octokit_request_dist_bundle_withDefaults.bind(null, endpoint2)
-    });
-    return endpointOptions.request.hook(request2, endpointOptions);
-  };
-  return Object.assign(newApi, {
-    endpoint: endpoint2,
-    defaults: node_modules_octokit_request_dist_bundle_withDefaults.bind(null, endpoint2)
-  });
-}
-
-// pkg/dist-src/index.js
-var _octokit_request_dist_bundle_request = node_modules_octokit_request_dist_bundle_withDefaults(_octokit_endpoint_dist_bundle_endpoint, _octokit_request_dist_bundle_defaults_default);
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-oauth-device/node_modules/@octokit/endpoint/dist-bundle/index.js
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var auth_oauth_device_node_modules_octokit_endpoint_dist_bundle_VERSION = "0.0.0-development";
-
-// pkg/dist-src/defaults.js
-var node_modules_octokit_endpoint_dist_bundle_userAgent = `octokit-endpoint.js/${auth_oauth_device_node_modules_octokit_endpoint_dist_bundle_VERSION} ${getUserAgent()}`;
-var node_modules_octokit_endpoint_dist_bundle_DEFAULTS = {
-  method: "GET",
-  baseUrl: "https://api.github.com",
-  headers: {
-    accept: "application/vnd.github.v3+json",
-    "user-agent": node_modules_octokit_endpoint_dist_bundle_userAgent
-  },
-  mediaType: {
-    format: ""
-  }
-};
-
-// pkg/dist-src/util/lowercase-keys.js
-function auth_oauth_device_node_modules_octokit_endpoint_dist_bundle_lowercaseKeys(object) {
-  if (!object) {
-    return {};
-  }
-  return Object.keys(object).reduce((newObj, key) => {
-    newObj[key.toLowerCase()] = object[key];
-    return newObj;
-  }, {});
-}
-
-// pkg/dist-src/util/is-plain-object.js
-function auth_oauth_device_node_modules_octokit_endpoint_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/util/merge-deep.js
-function node_modules_octokit_endpoint_dist_bundle_mergeDeep(defaults, options) {
-  const result = Object.assign({}, defaults);
-  Object.keys(options).forEach((key) => {
-    if (auth_oauth_device_node_modules_octokit_endpoint_dist_bundle_isPlainObject(options[key])) {
-      if (!(key in defaults)) Object.assign(result, { [key]: options[key] });
-      else result[key] = node_modules_octokit_endpoint_dist_bundle_mergeDeep(defaults[key], options[key]);
-    } else {
-      Object.assign(result, { [key]: options[key] });
-    }
-  });
-  return result;
-}
-
-// pkg/dist-src/util/remove-undefined-properties.js
-function node_modules_octokit_endpoint_dist_bundle_removeUndefinedProperties(obj) {
-  for (const key in obj) {
-    if (obj[key] === void 0) {
-      delete obj[key];
-    }
-  }
-  return obj;
-}
-
-// pkg/dist-src/merge.js
-function node_modules_octokit_endpoint_dist_bundle_merge(defaults, route, options) {
-  if (typeof route === "string") {
-    let [method, url] = route.split(" ");
-    options = Object.assign(url ? { method, url } : { url: method }, options);
-  } else {
-    options = Object.assign({}, route);
-  }
-  options.headers = auth_oauth_device_node_modules_octokit_endpoint_dist_bundle_lowercaseKeys(options.headers);
-  node_modules_octokit_endpoint_dist_bundle_removeUndefinedProperties(options);
-  node_modules_octokit_endpoint_dist_bundle_removeUndefinedProperties(options.headers);
-  const mergedOptions = node_modules_octokit_endpoint_dist_bundle_mergeDeep(defaults || {}, options);
-  if (options.url === "/graphql") {
-    if (defaults && defaults.mediaType.previews?.length) {
-      mergedOptions.mediaType.previews = defaults.mediaType.previews.filter(
-        (preview) => !mergedOptions.mediaType.previews.includes(preview)
-      ).concat(mergedOptions.mediaType.previews);
-    }
-    mergedOptions.mediaType.previews = (mergedOptions.mediaType.previews || []).map((preview) => preview.replace(/-preview/, ""));
-  }
-  return mergedOptions;
-}
-
-// pkg/dist-src/util/add-query-parameters.js
-function node_modules_octokit_endpoint_dist_bundle_addQueryParameters(url, parameters) {
-  const separator = /\?/.test(url) ? "&" : "?";
-  const names = Object.keys(parameters);
-  if (names.length === 0) {
-    return url;
-  }
-  return url + separator + names.map((name) => {
-    if (name === "q") {
-      return "q=" + parameters.q.split("+").map(encodeURIComponent).join("+");
-    }
-    return `${name}=${encodeURIComponent(parameters[name])}`;
-  }).join("&");
-}
-
-// pkg/dist-src/util/extract-url-variable-names.js
-var node_modules_octokit_endpoint_dist_bundle_urlVariableRegex = /\{[^{}}]+\}/g;
-function node_modules_octokit_endpoint_dist_bundle_removeNonChars(variableName) {
-  return variableName.replace(/(?:^\W+)|(?:(?<!\W)\W+$)/g, "").split(/,/);
-}
-function node_modules_octokit_endpoint_dist_bundle_extractUrlVariableNames(url) {
-  const matches = url.match(node_modules_octokit_endpoint_dist_bundle_urlVariableRegex);
-  if (!matches) {
-    return [];
-  }
-  return matches.map(node_modules_octokit_endpoint_dist_bundle_removeNonChars).reduce((a, b) => a.concat(b), []);
-}
-
-// pkg/dist-src/util/omit.js
-function node_modules_octokit_endpoint_dist_bundle_omit(object, keysToOmit) {
-  const result = { __proto__: null };
-  for (const key of Object.keys(object)) {
-    if (keysToOmit.indexOf(key) === -1) {
-      result[key] = object[key];
-    }
-  }
-  return result;
-}
-
-// pkg/dist-src/util/url-template.js
-function node_modules_octokit_endpoint_dist_bundle_encodeReserved(str) {
-  return str.split(/(%[0-9A-Fa-f]{2})/g).map(function(part) {
-    if (!/%[0-9A-Fa-f]/.test(part)) {
-      part = encodeURI(part).replace(/%5B/g, "[").replace(/%5D/g, "]");
-    }
-    return part;
-  }).join("");
-}
-function node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(str) {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
-    return "%" + c.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-function node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value, key) {
-  value = operator === "+" || operator === "#" ? node_modules_octokit_endpoint_dist_bundle_encodeReserved(value) : node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(value);
-  if (key) {
-    return node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(key) + "=" + value;
-  } else {
-    return value;
-  }
-}
-function node_modules_octokit_endpoint_dist_bundle_isDefined(value) {
-  return value !== void 0 && value !== null;
-}
-function node_modules_octokit_endpoint_dist_bundle_isKeyOperator(operator) {
-  return operator === ";" || operator === "&" || operator === "?";
-}
-function node_modules_octokit_endpoint_dist_bundle_getValues(context, operator, key, modifier) {
-  var value = context[key], result = [];
-  if (node_modules_octokit_endpoint_dist_bundle_isDefined(value) && value !== "") {
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      value = value.toString();
-      if (modifier && modifier !== "*") {
-        value = value.substring(0, parseInt(modifier, 10));
-      }
-      result.push(
-        node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value, node_modules_octokit_endpoint_dist_bundle_isKeyOperator(operator) ? key : "")
-      );
-    } else {
-      if (modifier === "*") {
-        if (Array.isArray(value)) {
-          value.filter(node_modules_octokit_endpoint_dist_bundle_isDefined).forEach(function(value2) {
-            result.push(
-              node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value2, node_modules_octokit_endpoint_dist_bundle_isKeyOperator(operator) ? key : "")
-            );
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (node_modules_octokit_endpoint_dist_bundle_isDefined(value[k])) {
-              result.push(node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value[k], k));
-            }
-          });
-        }
-      } else {
-        const tmp = [];
-        if (Array.isArray(value)) {
-          value.filter(node_modules_octokit_endpoint_dist_bundle_isDefined).forEach(function(value2) {
-            tmp.push(node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value2));
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (node_modules_octokit_endpoint_dist_bundle_isDefined(value[k])) {
-              tmp.push(node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(k));
-              tmp.push(node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value[k].toString()));
-            }
-          });
-        }
-        if (node_modules_octokit_endpoint_dist_bundle_isKeyOperator(operator)) {
-          result.push(node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(key) + "=" + tmp.join(","));
-        } else if (tmp.length !== 0) {
-          result.push(tmp.join(","));
-        }
-      }
-    }
-  } else {
-    if (operator === ";") {
-      if (node_modules_octokit_endpoint_dist_bundle_isDefined(value)) {
-        result.push(node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(key));
-      }
-    } else if (value === "" && (operator === "&" || operator === "?")) {
-      result.push(node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(key) + "=");
-    } else if (value === "") {
-      result.push("");
-    }
-  }
-  return result;
-}
-function node_modules_octokit_endpoint_dist_bundle_parseUrl(template) {
-  return {
-    expand: node_modules_octokit_endpoint_dist_bundle_expand.bind(null, template)
-  };
-}
-function node_modules_octokit_endpoint_dist_bundle_expand(template, context) {
-  var operators = ["+", "#", ".", "/", ";", "?", "&"];
-  template = template.replace(
-    /\{([^\{\}]+)\}|([^\{\}]+)/g,
-    function(_, expression, literal) {
-      if (expression) {
-        let operator = "";
-        const values = [];
-        if (operators.indexOf(expression.charAt(0)) !== -1) {
-          operator = expression.charAt(0);
-          expression = expression.substr(1);
-        }
-        expression.split(/,/g).forEach(function(variable) {
-          var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-          values.push(node_modules_octokit_endpoint_dist_bundle_getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
-        });
-        if (operator && operator !== "+") {
-          var separator = ",";
-          if (operator === "?") {
-            separator = "&";
-          } else if (operator !== "#") {
-            separator = operator;
-          }
-          return (values.length !== 0 ? operator : "") + values.join(separator);
-        } else {
-          return values.join(",");
-        }
-      } else {
-        return node_modules_octokit_endpoint_dist_bundle_encodeReserved(literal);
-      }
-    }
-  );
-  if (template === "/") {
-    return template;
-  } else {
-    return template.replace(/\/$/, "");
-  }
-}
-
-// pkg/dist-src/parse.js
-function node_modules_octokit_endpoint_dist_bundle_parse(options) {
-  let method = options.method.toUpperCase();
-  let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
-  let headers = Object.assign({}, options.headers);
-  let body;
-  let parameters = node_modules_octokit_endpoint_dist_bundle_omit(options, [
-    "method",
-    "baseUrl",
-    "url",
-    "headers",
-    "request",
-    "mediaType"
-  ]);
-  const urlVariableNames = node_modules_octokit_endpoint_dist_bundle_extractUrlVariableNames(url);
-  url = node_modules_octokit_endpoint_dist_bundle_parseUrl(url).expand(parameters);
-  if (!/^http/.test(url)) {
-    url = options.baseUrl + url;
-  }
-  const omittedParameters = Object.keys(options).filter((option) => urlVariableNames.includes(option)).concat("baseUrl");
-  const remainingParameters = node_modules_octokit_endpoint_dist_bundle_omit(parameters, omittedParameters);
-  const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
-  if (!isBinaryRequest) {
-    if (options.mediaType.format) {
-      headers.accept = headers.accept.split(/,/).map(
-        (format) => format.replace(
-          /application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/,
-          `application/vnd$1$2.${options.mediaType.format}`
-        )
-      ).join(",");
-    }
-    if (url.endsWith("/graphql")) {
-      if (options.mediaType.previews?.length) {
-        const previewsFromAcceptHeader = headers.accept.match(/(?<![\w-])[\w-]+(?=-preview)/g) || [];
-        headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
-          const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
-          return `application/vnd.github.${preview}-preview${format}`;
-        }).join(",");
-      }
-    }
-  }
-  if (["GET", "HEAD"].includes(method)) {
-    url = node_modules_octokit_endpoint_dist_bundle_addQueryParameters(url, remainingParameters);
-  } else {
-    if ("data" in remainingParameters) {
-      body = remainingParameters.data;
-    } else {
-      if (Object.keys(remainingParameters).length) {
-        body = remainingParameters;
-      }
-    }
-  }
-  if (!headers["content-type"] && typeof body !== "undefined") {
-    headers["content-type"] = "application/json; charset=utf-8";
-  }
-  if (["PATCH", "PUT"].includes(method) && typeof body === "undefined") {
-    body = "";
-  }
-  return Object.assign(
-    { method, url, headers },
-    typeof body !== "undefined" ? { body } : null,
-    options.request ? { request: options.request } : null
-  );
-}
-
-// pkg/dist-src/endpoint-with-defaults.js
-function node_modules_octokit_endpoint_dist_bundle_endpointWithDefaults(defaults, route, options) {
-  return node_modules_octokit_endpoint_dist_bundle_parse(node_modules_octokit_endpoint_dist_bundle_merge(defaults, route, options));
-}
-
-// pkg/dist-src/with-defaults.js
-function auth_oauth_device_node_modules_octokit_endpoint_dist_bundle_withDefaults(oldDefaults, newDefaults) {
-  const DEFAULTS2 = node_modules_octokit_endpoint_dist_bundle_merge(oldDefaults, newDefaults);
-  const endpoint2 = node_modules_octokit_endpoint_dist_bundle_endpointWithDefaults.bind(null, DEFAULTS2);
-  return Object.assign(endpoint2, {
-    DEFAULTS: DEFAULTS2,
-    defaults: auth_oauth_device_node_modules_octokit_endpoint_dist_bundle_withDefaults.bind(null, DEFAULTS2),
-    merge: node_modules_octokit_endpoint_dist_bundle_merge.bind(null, DEFAULTS2),
-    parse: node_modules_octokit_endpoint_dist_bundle_parse
-  });
-}
-
-// pkg/dist-src/index.js
-var node_modules_octokit_endpoint_dist_bundle_endpoint = auth_oauth_device_node_modules_octokit_endpoint_dist_bundle_withDefaults(null, node_modules_octokit_endpoint_dist_bundle_DEFAULTS);
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-oauth-device/node_modules/@octokit/request-error/dist-src/index.js
-class node_modules_octokit_request_error_dist_src_RequestError extends Error {
-  name;
-  /**
-   * http status code
-   */
-  status;
-  /**
-   * Request options that lead to the error.
-   */
-  request;
-  /**
-   * Response object if a response was received
-   */
-  response;
-  constructor(message, statusCode, options) {
-    super(message);
-    this.name = "HttpError";
-    this.status = Number.parseInt(statusCode);
-    if (Number.isNaN(this.status)) {
-      this.status = 0;
-    }
-    if ("response" in options) {
-      this.response = options.response;
-    }
-    const requestCopy = Object.assign({}, options.request);
-    if (options.request.headers.authorization) {
-      requestCopy.headers = Object.assign({}, options.request.headers, {
-        authorization: options.request.headers.authorization.replace(
-          /(?<! ) .*$/,
-          " [REDACTED]"
-        )
-      });
-    }
-    requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
-  }
-}
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-oauth-device/node_modules/@octokit/request/dist-bundle/index.js
-// pkg/dist-src/index.js
-
-
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var auth_oauth_device_node_modules_octokit_request_dist_bundle_VERSION = "9.2.4";
-
-// pkg/dist-src/defaults.js
-var node_modules_octokit_request_dist_bundle_defaults_default = {
-  headers: {
-    "user-agent": `octokit-request.js/${auth_oauth_device_node_modules_octokit_request_dist_bundle_VERSION} ${getUserAgent()}`
-  }
-};
-
-// pkg/dist-src/fetch-wrapper.js
-
-
-// pkg/dist-src/is-plain-object.js
-function auth_oauth_device_node_modules_octokit_request_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/fetch-wrapper.js
-
-async function node_modules_octokit_request_dist_bundle_fetchWrapper(requestOptions) {
-  const fetch = requestOptions.request?.fetch || globalThis.fetch;
-  if (!fetch) {
-    throw new Error(
-      "fetch is not set. Please pass a fetch implementation as new Octokit({ request: { fetch }}). Learn more at https://github.com/octokit/octokit.js/#fetch-missing"
-    );
-  }
-  const log = requestOptions.request?.log || console;
-  const parseSuccessResponseBody = requestOptions.request?.parseSuccessResponseBody !== false;
-  const body = auth_oauth_device_node_modules_octokit_request_dist_bundle_isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body) ? JSON.stringify(requestOptions.body) : requestOptions.body;
-  const requestHeaders = Object.fromEntries(
-    Object.entries(requestOptions.headers).map(([name, value]) => [
-      name,
-      String(value)
-    ])
-  );
-  let fetchResponse;
-  try {
-    fetchResponse = await fetch(requestOptions.url, {
-      method: requestOptions.method,
-      body,
-      redirect: requestOptions.request?.redirect,
-      headers: requestHeaders,
-      signal: requestOptions.request?.signal,
-      // duplex must be set if request.body is ReadableStream or Async Iterables.
-      // See https://fetch.spec.whatwg.org/#dom-requestinit-duplex.
-      ...requestOptions.body && { duplex: "half" }
-    });
-  } catch (error) {
-    let message = "Unknown Error";
-    if (error instanceof Error) {
-      if (error.name === "AbortError") {
-        error.status = 500;
-        throw error;
-      }
-      message = error.message;
-      if (error.name === "TypeError" && "cause" in error) {
-        if (error.cause instanceof Error) {
-          message = error.cause.message;
-        } else if (typeof error.cause === "string") {
-          message = error.cause;
-        }
-      }
-    }
-    const requestError = new node_modules_octokit_request_error_dist_src_RequestError(message, 500, {
-      request: requestOptions
-    });
-    requestError.cause = error;
-    throw requestError;
-  }
-  const status = fetchResponse.status;
-  const url = fetchResponse.url;
-  const responseHeaders = {};
-  for (const [key, value] of fetchResponse.headers) {
-    responseHeaders[key] = value;
-  }
-  const octokitResponse = {
-    url,
-    status,
-    headers: responseHeaders,
-    data: ""
-  };
-  if ("deprecation" in responseHeaders) {
-    const matches = responseHeaders.link && responseHeaders.link.match(/<([^<>]+)>; rel="deprecation"/);
-    const deprecationLink = matches && matches.pop();
-    log.warn(
-      `[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${responseHeaders.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`
-    );
-  }
-  if (status === 204 || status === 205) {
-    return octokitResponse;
-  }
-  if (requestOptions.method === "HEAD") {
-    if (status < 400) {
-      return octokitResponse;
-    }
-    throw new node_modules_octokit_request_error_dist_src_RequestError(fetchResponse.statusText, status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status === 304) {
-    octokitResponse.data = await node_modules_octokit_request_dist_bundle_getResponseData(fetchResponse);
-    throw new node_modules_octokit_request_error_dist_src_RequestError("Not modified", status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status >= 400) {
-    octokitResponse.data = await node_modules_octokit_request_dist_bundle_getResponseData(fetchResponse);
-    throw new node_modules_octokit_request_error_dist_src_RequestError(node_modules_octokit_request_dist_bundle_toErrorMessage(octokitResponse.data), status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  octokitResponse.data = parseSuccessResponseBody ? await node_modules_octokit_request_dist_bundle_getResponseData(fetchResponse) : fetchResponse.body;
-  return octokitResponse;
-}
-async function node_modules_octokit_request_dist_bundle_getResponseData(response) {
-  const contentType = response.headers.get("content-type");
-  if (!contentType) {
-    return response.text().catch(() => "");
-  }
-  const mimetype = (0,fast_content_type_parse/* safeParse */.xL)(contentType);
-  if (node_modules_octokit_request_dist_bundle_isJSONResponse(mimetype)) {
-    let text = "";
-    try {
-      text = await response.text();
-      return JSON.parse(text);
-    } catch (err) {
-      return text;
-    }
-  } else if (mimetype.type.startsWith("text/") || mimetype.parameters.charset?.toLowerCase() === "utf-8") {
-    return response.text().catch(() => "");
-  } else {
-    return response.arrayBuffer().catch(() => new ArrayBuffer(0));
-  }
-}
-function node_modules_octokit_request_dist_bundle_isJSONResponse(mimetype) {
-  return mimetype.type === "application/json" || mimetype.type === "application/scim+json";
-}
-function node_modules_octokit_request_dist_bundle_toErrorMessage(data) {
-  if (typeof data === "string") {
-    return data;
-  }
-  if (data instanceof ArrayBuffer) {
-    return "Unknown error";
-  }
-  if ("message" in data) {
-    const suffix = "documentation_url" in data ? ` - ${data.documentation_url}` : "";
-    return Array.isArray(data.errors) ? `${data.message}: ${data.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${data.message}${suffix}`;
-  }
-  return `Unknown error: ${JSON.stringify(data)}`;
-}
-
-// pkg/dist-src/with-defaults.js
-function auth_oauth_device_node_modules_octokit_request_dist_bundle_withDefaults(oldEndpoint, newDefaults) {
-  const endpoint2 = oldEndpoint.defaults(newDefaults);
-  const newApi = function(route, parameters) {
-    const endpointOptions = endpoint2.merge(route, parameters);
-    if (!endpointOptions.request || !endpointOptions.request.hook) {
-      return node_modules_octokit_request_dist_bundle_fetchWrapper(endpoint2.parse(endpointOptions));
-    }
-    const request2 = (route2, parameters2) => {
-      return node_modules_octokit_request_dist_bundle_fetchWrapper(
-        endpoint2.parse(endpoint2.merge(route2, parameters2))
-      );
-    };
-    Object.assign(request2, {
-      endpoint: endpoint2,
-      defaults: auth_oauth_device_node_modules_octokit_request_dist_bundle_withDefaults.bind(null, endpoint2)
-    });
-    return endpointOptions.request.hook(request2, endpointOptions);
-  };
-  return Object.assign(newApi, {
-    endpoint: endpoint2,
-    defaults: auth_oauth_device_node_modules_octokit_request_dist_bundle_withDefaults.bind(null, endpoint2)
-  });
-}
-
-// pkg/dist-src/index.js
-var node_modules_octokit_request_dist_bundle_request = auth_oauth_device_node_modules_octokit_request_dist_bundle_withDefaults(node_modules_octokit_endpoint_dist_bundle_endpoint, node_modules_octokit_request_dist_bundle_defaults_default);
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/oauth-methods/node_modules/@octokit/request-error/dist-src/index.js
-class oauth_methods_node_modules_octokit_request_error_dist_src_RequestError extends Error {
-  name;
-  /**
-   * http status code
-   */
-  status;
-  /**
-   * Request options that lead to the error.
-   */
-  request;
-  /**
-   * Response object if a response was received
-   */
-  response;
-  constructor(message, statusCode, options) {
-    super(message);
-    this.name = "HttpError";
-    this.status = Number.parseInt(statusCode);
-    if (Number.isNaN(this.status)) {
-      this.status = 0;
-    }
-    if ("response" in options) {
-      this.response = options.response;
-    }
-    const requestCopy = Object.assign({}, options.request);
-    if (options.request.headers.authorization) {
-      requestCopy.headers = Object.assign({}, options.request.headers, {
-        authorization: options.request.headers.authorization.replace(
-          /(?<! ) .*$/,
-          " [REDACTED]"
-        )
-      });
-    }
-    requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
-  }
-}
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/oauth-methods/node_modules/@octokit/endpoint/dist-bundle/index.js
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var oauth_methods_node_modules_octokit_endpoint_dist_bundle_VERSION = "0.0.0-development";
-
-// pkg/dist-src/defaults.js
-var oauth_methods_node_modules_octokit_endpoint_dist_bundle_userAgent = `octokit-endpoint.js/${oauth_methods_node_modules_octokit_endpoint_dist_bundle_VERSION} ${getUserAgent()}`;
-var oauth_methods_node_modules_octokit_endpoint_dist_bundle_DEFAULTS = {
-  method: "GET",
-  baseUrl: "https://api.github.com",
-  headers: {
-    accept: "application/vnd.github.v3+json",
-    "user-agent": oauth_methods_node_modules_octokit_endpoint_dist_bundle_userAgent
-  },
-  mediaType: {
-    format: ""
-  }
-};
-
-// pkg/dist-src/util/lowercase-keys.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_lowercaseKeys(object) {
-  if (!object) {
-    return {};
-  }
-  return Object.keys(object).reduce((newObj, key) => {
-    newObj[key.toLowerCase()] = object[key];
-    return newObj;
-  }, {});
-}
-
-// pkg/dist-src/util/is-plain-object.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/util/merge-deep.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_mergeDeep(defaults, options) {
-  const result = Object.assign({}, defaults);
-  Object.keys(options).forEach((key) => {
-    if (oauth_methods_node_modules_octokit_endpoint_dist_bundle_isPlainObject(options[key])) {
-      if (!(key in defaults)) Object.assign(result, { [key]: options[key] });
-      else result[key] = oauth_methods_node_modules_octokit_endpoint_dist_bundle_mergeDeep(defaults[key], options[key]);
-    } else {
-      Object.assign(result, { [key]: options[key] });
-    }
-  });
-  return result;
-}
-
-// pkg/dist-src/util/remove-undefined-properties.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_removeUndefinedProperties(obj) {
-  for (const key in obj) {
-    if (obj[key] === void 0) {
-      delete obj[key];
-    }
-  }
-  return obj;
-}
-
-// pkg/dist-src/merge.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_merge(defaults, route, options) {
-  if (typeof route === "string") {
-    let [method, url] = route.split(" ");
-    options = Object.assign(url ? { method, url } : { url: method }, options);
-  } else {
-    options = Object.assign({}, route);
-  }
-  options.headers = oauth_methods_node_modules_octokit_endpoint_dist_bundle_lowercaseKeys(options.headers);
-  oauth_methods_node_modules_octokit_endpoint_dist_bundle_removeUndefinedProperties(options);
-  oauth_methods_node_modules_octokit_endpoint_dist_bundle_removeUndefinedProperties(options.headers);
-  const mergedOptions = oauth_methods_node_modules_octokit_endpoint_dist_bundle_mergeDeep(defaults || {}, options);
-  if (options.url === "/graphql") {
-    if (defaults && defaults.mediaType.previews?.length) {
-      mergedOptions.mediaType.previews = defaults.mediaType.previews.filter(
-        (preview) => !mergedOptions.mediaType.previews.includes(preview)
-      ).concat(mergedOptions.mediaType.previews);
-    }
-    mergedOptions.mediaType.previews = (mergedOptions.mediaType.previews || []).map((preview) => preview.replace(/-preview/, ""));
-  }
-  return mergedOptions;
-}
-
-// pkg/dist-src/util/add-query-parameters.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_addQueryParameters(url, parameters) {
-  const separator = /\?/.test(url) ? "&" : "?";
-  const names = Object.keys(parameters);
-  if (names.length === 0) {
-    return url;
-  }
-  return url + separator + names.map((name) => {
-    if (name === "q") {
-      return "q=" + parameters.q.split("+").map(encodeURIComponent).join("+");
-    }
-    return `${name}=${encodeURIComponent(parameters[name])}`;
-  }).join("&");
-}
-
-// pkg/dist-src/util/extract-url-variable-names.js
-var oauth_methods_node_modules_octokit_endpoint_dist_bundle_urlVariableRegex = /\{[^{}}]+\}/g;
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_removeNonChars(variableName) {
-  return variableName.replace(/(?:^\W+)|(?:(?<!\W)\W+$)/g, "").split(/,/);
-}
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_extractUrlVariableNames(url) {
-  const matches = url.match(oauth_methods_node_modules_octokit_endpoint_dist_bundle_urlVariableRegex);
-  if (!matches) {
-    return [];
-  }
-  return matches.map(oauth_methods_node_modules_octokit_endpoint_dist_bundle_removeNonChars).reduce((a, b) => a.concat(b), []);
-}
-
-// pkg/dist-src/util/omit.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_omit(object, keysToOmit) {
-  const result = { __proto__: null };
-  for (const key of Object.keys(object)) {
-    if (keysToOmit.indexOf(key) === -1) {
-      result[key] = object[key];
-    }
-  }
-  return result;
-}
-
-// pkg/dist-src/util/url-template.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeReserved(str) {
-  return str.split(/(%[0-9A-Fa-f]{2})/g).map(function(part) {
-    if (!/%[0-9A-Fa-f]/.test(part)) {
-      part = encodeURI(part).replace(/%5B/g, "[").replace(/%5D/g, "]");
-    }
-    return part;
-  }).join("");
-}
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(str) {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
-    return "%" + c.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value, key) {
-  value = operator === "+" || operator === "#" ? oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeReserved(value) : oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(value);
-  if (key) {
-    return oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(key) + "=" + value;
-  } else {
-    return value;
-  }
-}
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_isDefined(value) {
-  return value !== void 0 && value !== null;
-}
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_isKeyOperator(operator) {
-  return operator === ";" || operator === "&" || operator === "?";
-}
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_getValues(context, operator, key, modifier) {
-  var value = context[key], result = [];
-  if (oauth_methods_node_modules_octokit_endpoint_dist_bundle_isDefined(value) && value !== "") {
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      value = value.toString();
-      if (modifier && modifier !== "*") {
-        value = value.substring(0, parseInt(modifier, 10));
-      }
-      result.push(
-        oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value, oauth_methods_node_modules_octokit_endpoint_dist_bundle_isKeyOperator(operator) ? key : "")
-      );
-    } else {
-      if (modifier === "*") {
-        if (Array.isArray(value)) {
-          value.filter(oauth_methods_node_modules_octokit_endpoint_dist_bundle_isDefined).forEach(function(value2) {
-            result.push(
-              oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value2, oauth_methods_node_modules_octokit_endpoint_dist_bundle_isKeyOperator(operator) ? key : "")
-            );
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (oauth_methods_node_modules_octokit_endpoint_dist_bundle_isDefined(value[k])) {
-              result.push(oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value[k], k));
-            }
-          });
-        }
-      } else {
-        const tmp = [];
-        if (Array.isArray(value)) {
-          value.filter(oauth_methods_node_modules_octokit_endpoint_dist_bundle_isDefined).forEach(function(value2) {
-            tmp.push(oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value2));
-          });
-        } else {
-          Object.keys(value).forEach(function(k) {
-            if (oauth_methods_node_modules_octokit_endpoint_dist_bundle_isDefined(value[k])) {
-              tmp.push(oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(k));
-              tmp.push(oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeValue(operator, value[k].toString()));
-            }
-          });
-        }
-        if (oauth_methods_node_modules_octokit_endpoint_dist_bundle_isKeyOperator(operator)) {
-          result.push(oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(key) + "=" + tmp.join(","));
-        } else if (tmp.length !== 0) {
-          result.push(tmp.join(","));
-        }
-      }
-    }
-  } else {
-    if (operator === ";") {
-      if (oauth_methods_node_modules_octokit_endpoint_dist_bundle_isDefined(value)) {
-        result.push(oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(key));
-      }
-    } else if (value === "" && (operator === "&" || operator === "?")) {
-      result.push(oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeUnreserved(key) + "=");
-    } else if (value === "") {
-      result.push("");
-    }
-  }
-  return result;
-}
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_parseUrl(template) {
-  return {
-    expand: oauth_methods_node_modules_octokit_endpoint_dist_bundle_expand.bind(null, template)
-  };
-}
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_expand(template, context) {
-  var operators = ["+", "#", ".", "/", ";", "?", "&"];
-  template = template.replace(
-    /\{([^\{\}]+)\}|([^\{\}]+)/g,
-    function(_, expression, literal) {
-      if (expression) {
-        let operator = "";
-        const values = [];
-        if (operators.indexOf(expression.charAt(0)) !== -1) {
-          operator = expression.charAt(0);
-          expression = expression.substr(1);
-        }
-        expression.split(/,/g).forEach(function(variable) {
-          var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-          values.push(oauth_methods_node_modules_octokit_endpoint_dist_bundle_getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
-        });
-        if (operator && operator !== "+") {
-          var separator = ",";
-          if (operator === "?") {
-            separator = "&";
-          } else if (operator !== "#") {
-            separator = operator;
-          }
-          return (values.length !== 0 ? operator : "") + values.join(separator);
-        } else {
-          return values.join(",");
-        }
-      } else {
-        return oauth_methods_node_modules_octokit_endpoint_dist_bundle_encodeReserved(literal);
-      }
-    }
-  );
-  if (template === "/") {
-    return template;
-  } else {
-    return template.replace(/\/$/, "");
-  }
-}
-
-// pkg/dist-src/parse.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_parse(options) {
-  let method = options.method.toUpperCase();
-  let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
-  let headers = Object.assign({}, options.headers);
-  let body;
-  let parameters = oauth_methods_node_modules_octokit_endpoint_dist_bundle_omit(options, [
-    "method",
-    "baseUrl",
-    "url",
-    "headers",
-    "request",
-    "mediaType"
-  ]);
-  const urlVariableNames = oauth_methods_node_modules_octokit_endpoint_dist_bundle_extractUrlVariableNames(url);
-  url = oauth_methods_node_modules_octokit_endpoint_dist_bundle_parseUrl(url).expand(parameters);
-  if (!/^http/.test(url)) {
-    url = options.baseUrl + url;
-  }
-  const omittedParameters = Object.keys(options).filter((option) => urlVariableNames.includes(option)).concat("baseUrl");
-  const remainingParameters = oauth_methods_node_modules_octokit_endpoint_dist_bundle_omit(parameters, omittedParameters);
-  const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
-  if (!isBinaryRequest) {
-    if (options.mediaType.format) {
-      headers.accept = headers.accept.split(/,/).map(
-        (format) => format.replace(
-          /application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/,
-          `application/vnd$1$2.${options.mediaType.format}`
-        )
-      ).join(",");
-    }
-    if (url.endsWith("/graphql")) {
-      if (options.mediaType.previews?.length) {
-        const previewsFromAcceptHeader = headers.accept.match(/(?<![\w-])[\w-]+(?=-preview)/g) || [];
-        headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
-          const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
-          return `application/vnd.github.${preview}-preview${format}`;
-        }).join(",");
-      }
-    }
-  }
-  if (["GET", "HEAD"].includes(method)) {
-    url = oauth_methods_node_modules_octokit_endpoint_dist_bundle_addQueryParameters(url, remainingParameters);
-  } else {
-    if ("data" in remainingParameters) {
-      body = remainingParameters.data;
-    } else {
-      if (Object.keys(remainingParameters).length) {
-        body = remainingParameters;
-      }
-    }
-  }
-  if (!headers["content-type"] && typeof body !== "undefined") {
-    headers["content-type"] = "application/json; charset=utf-8";
-  }
-  if (["PATCH", "PUT"].includes(method) && typeof body === "undefined") {
-    body = "";
-  }
-  return Object.assign(
-    { method, url, headers },
-    typeof body !== "undefined" ? { body } : null,
-    options.request ? { request: options.request } : null
-  );
-}
-
-// pkg/dist-src/endpoint-with-defaults.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_endpointWithDefaults(defaults, route, options) {
-  return oauth_methods_node_modules_octokit_endpoint_dist_bundle_parse(oauth_methods_node_modules_octokit_endpoint_dist_bundle_merge(defaults, route, options));
-}
-
-// pkg/dist-src/with-defaults.js
-function oauth_methods_node_modules_octokit_endpoint_dist_bundle_withDefaults(oldDefaults, newDefaults) {
-  const DEFAULTS2 = oauth_methods_node_modules_octokit_endpoint_dist_bundle_merge(oldDefaults, newDefaults);
-  const endpoint2 = oauth_methods_node_modules_octokit_endpoint_dist_bundle_endpointWithDefaults.bind(null, DEFAULTS2);
-  return Object.assign(endpoint2, {
-    DEFAULTS: DEFAULTS2,
-    defaults: oauth_methods_node_modules_octokit_endpoint_dist_bundle_withDefaults.bind(null, DEFAULTS2),
-    merge: oauth_methods_node_modules_octokit_endpoint_dist_bundle_merge.bind(null, DEFAULTS2),
-    parse: oauth_methods_node_modules_octokit_endpoint_dist_bundle_parse
-  });
-}
-
-// pkg/dist-src/index.js
-var oauth_methods_node_modules_octokit_endpoint_dist_bundle_endpoint = oauth_methods_node_modules_octokit_endpoint_dist_bundle_withDefaults(null, oauth_methods_node_modules_octokit_endpoint_dist_bundle_DEFAULTS);
-
-
-;// CONCATENATED MODULE: ./node_modules/@octokit/oauth-methods/node_modules/@octokit/request/dist-bundle/index.js
-// pkg/dist-src/index.js
-
-
-// pkg/dist-src/defaults.js
-
-
-// pkg/dist-src/version.js
-var oauth_methods_node_modules_octokit_request_dist_bundle_VERSION = "9.2.4";
-
-// pkg/dist-src/defaults.js
-var oauth_methods_node_modules_octokit_request_dist_bundle_defaults_default = {
-  headers: {
-    "user-agent": `octokit-request.js/${oauth_methods_node_modules_octokit_request_dist_bundle_VERSION} ${getUserAgent()}`
-  }
-};
-
-// pkg/dist-src/fetch-wrapper.js
-
-
-// pkg/dist-src/is-plain-object.js
-function oauth_methods_node_modules_octokit_request_dist_bundle_isPlainObject(value) {
-  if (typeof value !== "object" || value === null) return false;
-  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
-  const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
-  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
-}
-
-// pkg/dist-src/fetch-wrapper.js
-
-async function oauth_methods_node_modules_octokit_request_dist_bundle_fetchWrapper(requestOptions) {
-  const fetch = requestOptions.request?.fetch || globalThis.fetch;
-  if (!fetch) {
-    throw new Error(
-      "fetch is not set. Please pass a fetch implementation as new Octokit({ request: { fetch }}). Learn more at https://github.com/octokit/octokit.js/#fetch-missing"
-    );
-  }
-  const log = requestOptions.request?.log || console;
-  const parseSuccessResponseBody = requestOptions.request?.parseSuccessResponseBody !== false;
-  const body = oauth_methods_node_modules_octokit_request_dist_bundle_isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body) ? JSON.stringify(requestOptions.body) : requestOptions.body;
-  const requestHeaders = Object.fromEntries(
-    Object.entries(requestOptions.headers).map(([name, value]) => [
-      name,
-      String(value)
-    ])
-  );
-  let fetchResponse;
-  try {
-    fetchResponse = await fetch(requestOptions.url, {
-      method: requestOptions.method,
-      body,
-      redirect: requestOptions.request?.redirect,
-      headers: requestHeaders,
-      signal: requestOptions.request?.signal,
-      // duplex must be set if request.body is ReadableStream or Async Iterables.
-      // See https://fetch.spec.whatwg.org/#dom-requestinit-duplex.
-      ...requestOptions.body && { duplex: "half" }
-    });
-  } catch (error) {
-    let message = "Unknown Error";
-    if (error instanceof Error) {
-      if (error.name === "AbortError") {
-        error.status = 500;
-        throw error;
-      }
-      message = error.message;
-      if (error.name === "TypeError" && "cause" in error) {
-        if (error.cause instanceof Error) {
-          message = error.cause.message;
-        } else if (typeof error.cause === "string") {
-          message = error.cause;
-        }
-      }
-    }
-    const requestError = new oauth_methods_node_modules_octokit_request_error_dist_src_RequestError(message, 500, {
-      request: requestOptions
-    });
-    requestError.cause = error;
-    throw requestError;
-  }
-  const status = fetchResponse.status;
-  const url = fetchResponse.url;
-  const responseHeaders = {};
-  for (const [key, value] of fetchResponse.headers) {
-    responseHeaders[key] = value;
-  }
-  const octokitResponse = {
-    url,
-    status,
-    headers: responseHeaders,
-    data: ""
-  };
-  if ("deprecation" in responseHeaders) {
-    const matches = responseHeaders.link && responseHeaders.link.match(/<([^<>]+)>; rel="deprecation"/);
-    const deprecationLink = matches && matches.pop();
-    log.warn(
-      `[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${responseHeaders.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`
-    );
-  }
-  if (status === 204 || status === 205) {
-    return octokitResponse;
-  }
-  if (requestOptions.method === "HEAD") {
-    if (status < 400) {
-      return octokitResponse;
-    }
-    throw new oauth_methods_node_modules_octokit_request_error_dist_src_RequestError(fetchResponse.statusText, status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status === 304) {
-    octokitResponse.data = await oauth_methods_node_modules_octokit_request_dist_bundle_getResponseData(fetchResponse);
-    throw new oauth_methods_node_modules_octokit_request_error_dist_src_RequestError("Not modified", status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  if (status >= 400) {
-    octokitResponse.data = await oauth_methods_node_modules_octokit_request_dist_bundle_getResponseData(fetchResponse);
-    throw new oauth_methods_node_modules_octokit_request_error_dist_src_RequestError(oauth_methods_node_modules_octokit_request_dist_bundle_toErrorMessage(octokitResponse.data), status, {
-      response: octokitResponse,
-      request: requestOptions
-    });
-  }
-  octokitResponse.data = parseSuccessResponseBody ? await oauth_methods_node_modules_octokit_request_dist_bundle_getResponseData(fetchResponse) : fetchResponse.body;
-  return octokitResponse;
-}
-async function oauth_methods_node_modules_octokit_request_dist_bundle_getResponseData(response) {
-  const contentType = response.headers.get("content-type");
-  if (!contentType) {
-    return response.text().catch(() => "");
-  }
-  const mimetype = (0,fast_content_type_parse/* safeParse */.xL)(contentType);
-  if (oauth_methods_node_modules_octokit_request_dist_bundle_isJSONResponse(mimetype)) {
-    let text = "";
-    try {
-      text = await response.text();
-      return JSON.parse(text);
-    } catch (err) {
-      return text;
-    }
-  } else if (mimetype.type.startsWith("text/") || mimetype.parameters.charset?.toLowerCase() === "utf-8") {
-    return response.text().catch(() => "");
-  } else {
-    return response.arrayBuffer().catch(() => new ArrayBuffer(0));
-  }
-}
-function oauth_methods_node_modules_octokit_request_dist_bundle_isJSONResponse(mimetype) {
-  return mimetype.type === "application/json" || mimetype.type === "application/scim+json";
-}
-function oauth_methods_node_modules_octokit_request_dist_bundle_toErrorMessage(data) {
-  if (typeof data === "string") {
-    return data;
-  }
-  if (data instanceof ArrayBuffer) {
-    return "Unknown error";
-  }
-  if ("message" in data) {
-    const suffix = "documentation_url" in data ? ` - ${data.documentation_url}` : "";
-    return Array.isArray(data.errors) ? `${data.message}: ${data.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${data.message}${suffix}`;
-  }
-  return `Unknown error: ${JSON.stringify(data)}`;
-}
-
-// pkg/dist-src/with-defaults.js
-function oauth_methods_node_modules_octokit_request_dist_bundle_withDefaults(oldEndpoint, newDefaults) {
-  const endpoint2 = oldEndpoint.defaults(newDefaults);
-  const newApi = function(route, parameters) {
-    const endpointOptions = endpoint2.merge(route, parameters);
-    if (!endpointOptions.request || !endpointOptions.request.hook) {
-      return oauth_methods_node_modules_octokit_request_dist_bundle_fetchWrapper(endpoint2.parse(endpointOptions));
-    }
-    const request2 = (route2, parameters2) => {
-      return oauth_methods_node_modules_octokit_request_dist_bundle_fetchWrapper(
-        endpoint2.parse(endpoint2.merge(route2, parameters2))
-      );
-    };
-    Object.assign(request2, {
-      endpoint: endpoint2,
-      defaults: oauth_methods_node_modules_octokit_request_dist_bundle_withDefaults.bind(null, endpoint2)
-    });
-    return endpointOptions.request.hook(request2, endpointOptions);
-  };
-  return Object.assign(newApi, {
-    endpoint: endpoint2,
-    defaults: oauth_methods_node_modules_octokit_request_dist_bundle_withDefaults.bind(null, endpoint2)
-  });
-}
-
-// pkg/dist-src/index.js
-var oauth_methods_node_modules_octokit_request_dist_bundle_request = oauth_methods_node_modules_octokit_request_dist_bundle_withDefaults(oauth_methods_node_modules_octokit_endpoint_dist_bundle_endpoint, oauth_methods_node_modules_octokit_request_dist_bundle_defaults_default);
-
-
 ;// CONCATENATED MODULE: ./node_modules/@octokit/oauth-methods/dist-bundle/index.js
 // pkg/dist-src/version.js
 var oauth_methods_dist_bundle_VERSION = "0.0.0-development";
@@ -39677,7 +36975,7 @@ async function oauthRequest(request, route, parameters) {
   };
   const response = await request(route, withOAuthParameters);
   if ("error" in response.data) {
-    const error = new oauth_methods_node_modules_octokit_request_error_dist_src_RequestError(
+    const error = new RequestError(
       `${response.data.error_description} (${response.data.error}, ${response.data.error_uri})`,
       400,
       {
@@ -39708,7 +37006,7 @@ function getWebFlowAuthorizationUrl({
 // pkg/dist-src/exchange-web-flow-code.js
 
 async function exchangeWebFlowCode(options) {
-  const request = options.request || oauth_methods_node_modules_octokit_request_dist_bundle_request;
+  const request = options.request || dist_bundle_request;
   const response = await oauthRequest(
     request,
     "POST /login/oauth/access_token",
@@ -39748,7 +37046,7 @@ function toTimestamp(apiTimeInMs, expirationInSeconds) {
 // pkg/dist-src/create-device-code.js
 
 async function createDeviceCode(options) {
-  const request = options.request || oauth_methods_node_modules_octokit_request_dist_bundle_request;
+  const request = options.request || dist_bundle_request;
   const parameters = {
     client_id: options.clientId
   };
@@ -39761,7 +37059,7 @@ async function createDeviceCode(options) {
 // pkg/dist-src/exchange-device-code.js
 
 async function exchangeDeviceCode(options) {
-  const request = options.request || oauth_methods_node_modules_octokit_request_dist_bundle_request;
+  const request = options.request || dist_bundle_request;
   const response = await oauthRequest(
     request,
     "POST /login/oauth/access_token",
@@ -39802,7 +37100,7 @@ function toTimestamp2(apiTimeInMs, expirationInSeconds) {
 // pkg/dist-src/check-token.js
 
 async function checkToken(options) {
-  const request = options.request || oauth_methods_node_modules_octokit_request_dist_bundle_request;
+  const request = options.request || dist_bundle_request;
   const response = await request("POST /applications/{client_id}/token", {
     headers: {
       authorization: `basic ${btoa(
@@ -39830,7 +37128,7 @@ async function checkToken(options) {
 // pkg/dist-src/refresh-token.js
 
 async function refreshToken(options) {
-  const request = options.request || oauth_methods_node_modules_octokit_request_dist_bundle_request;
+  const request = options.request || dist_bundle_request;
   const response = await oauthRequest(
     request,
     "POST /login/oauth/access_token",
@@ -39898,7 +37196,7 @@ async function scopeToken(options) {
 // pkg/dist-src/reset-token.js
 
 async function resetToken(options) {
-  const request = options.request || oauth_methods_node_modules_octokit_request_dist_bundle_request;
+  const request = options.request || dist_bundle_request;
   const auth = btoa(`${options.clientId}:${options.clientSecret}`);
   const response = await request(
     "PATCH /applications/{client_id}/token",
@@ -39928,7 +37226,7 @@ async function resetToken(options) {
 // pkg/dist-src/delete-token.js
 
 async function deleteToken(options) {
-  const request = options.request || oauth_methods_node_modules_octokit_request_dist_bundle_request;
+  const request = options.request || dist_bundle_request;
   const auth = btoa(`${options.clientId}:${options.clientSecret}`);
   return request(
     "DELETE /applications/{client_id}/token",
@@ -39945,7 +37243,7 @@ async function deleteToken(options) {
 // pkg/dist-src/delete-authorization.js
 
 async function deleteAuthorization(options) {
-  const request = options.request || oauth_methods_node_modules_octokit_request_dist_bundle_request;
+  const request = options.request || dist_bundle_request;
   const auth = btoa(`${options.clientId}:${options.clientSecret}`);
   return request(
     "DELETE /applications/{client_id}/grant",
@@ -40066,7 +37364,7 @@ var auth_oauth_device_dist_bundle_VERSION = "0.0.0-development";
 
 // pkg/dist-src/index.js
 function createOAuthDeviceAuth(options) {
-  const requestWithDefaults = options.request || node_modules_octokit_request_dist_bundle_request.defaults({
+  const requestWithDefaults = options.request || dist_bundle_request.defaults({
     headers: {
       "user-agent": `octokit-auth-oauth-device.js/${auth_oauth_device_dist_bundle_VERSION} ${getUserAgent()}`
     }
@@ -40275,7 +37573,7 @@ function createOAuthUserAuth({
   clientId,
   clientSecret,
   clientType = "oauth-app",
-  request = _octokit_request_dist_bundle_request.defaults({
+  request = dist_bundle_request.defaults({
     headers: {
       "user-agent": `octokit-auth-oauth-app.js/${auth_oauth_user_dist_bundle_VERSION} ${getUserAgent()}`
     }
@@ -40377,7 +37675,7 @@ var auth_oauth_app_dist_bundle_VERSION = "0.0.0-development";
 function createOAuthAppAuth(options) {
   const state = Object.assign(
     {
-      request: request_dist_bundle_request.defaults({
+      request: dist_bundle_request.defaults({
         headers: {
           "user-agent": `octokit-auth-oauth-app.js/${auth_oauth_app_dist_bundle_VERSION} ${getUserAgent()}`
         }
@@ -40607,19 +37905,28 @@ async function githubAppJwt({
 /**
  * toad-cache
  *
- * @copyright 2024 Igor Savin <kibertoad@gmail.com>
+ * @copyright 2026 Igor Savin <kibertoad@gmail.com>
  * @license MIT
- * @version 3.7.0
+ * @version 3.7.3
  */
-class FifoMap {
-  constructor(max = 1000, ttlInMsecs = 0) {
-    if (isNaN(max) || max < 0) {
-      throw new Error('Invalid max value')
-    }
+/**
+ * Validates the shared cache constructor parameters.
+ * Both values must be non-negative integers.
+ *
+ * @param {number} max
+ * @param {number} ttlInMsecs
+ */
+function validateCacheParams(max, ttlInMsecs) {
+  if (typeof max !== 'number' || !Number.isInteger(max) || max < 0) {
+    throw new Error('Invalid max value')
+  }
 
-    if (isNaN(ttlInMsecs) || ttlInMsecs < 0) {
-      throw new Error('Invalid ttl value')
-    }
+  if (typeof ttlInMsecs !== 'number' || !Number.isInteger(ttlInMsecs) || ttlInMsecs < 0) {
+    throw new Error('Invalid ttl value')
+  }
+}class FifoMap {
+  constructor(max = 1000, ttlInMsecs = 0) {
+    validateCacheParams(max, ttlInMsecs);
 
     this.first = null;
     this.items = new Map();
@@ -40633,15 +37940,15 @@ class FifoMap {
   }
 
   clear() {
-    this.items = new Map();
+    this.items.clear();
     this.first = null;
     this.last = null;
   }
 
   delete(key) {
-    if (this.items.has(key)) {
-      const deletedItem = this.items.get(key);
+    const deletedItem = this.items.get(key);
 
+    if (deletedItem !== undefined) {
       this.items.delete(key);
 
       if (deletedItem.prev !== null) {
@@ -40685,15 +37992,17 @@ class FifoMap {
   }
 
   expiresAt(key) {
-    if (this.items.has(key)) {
-      return this.items.get(key).expiry
+    const item = this.items.get(key);
+
+    if (item !== undefined) {
+      return item.expiry
     }
   }
 
   get(key) {
-    if (this.items.has(key)) {
-      const item = this.items.get(key);
+    const item = this.items.get(key);
 
+    if (item !== undefined) {
       if (this.ttl > 0 && item.expiry <= Date.now()) {
         this.delete(key);
         return
@@ -40704,10 +38013,10 @@ class FifoMap {
   }
 
   getMany(keys) {
-    const result = [];
+    const result = new Array(keys.length);
 
     for (var i = 0; i < keys.length; i++) {
-      result.push(this.get(keys[i]));
+      result[i] = this.get(keys[i]);
     }
 
     return result
@@ -40719,17 +38028,17 @@ class FifoMap {
 
   set(key, value) {
     // Replace existing item
-    if (this.items.has(key)) {
-      const item = this.items.get(key);
-      item.value = value;
+    const existing = this.items.get(key);
 
-      item.expiry = this.ttl > 0 ? Date.now() + this.ttl : this.ttl;
+    if (existing !== undefined) {
+      existing.value = value;
+      existing.expiry = this.ttl > 0 ? Date.now() + this.ttl : this.ttl;
 
       return
     }
 
     // Add new item
-    if (this.max > 0 && this.size === this.max) {
+    if (this.max > 0 && this.size >= this.max) {
       this.evict();
     }
 
@@ -40750,15 +38059,185 @@ class FifoMap {
 
     this.last = item;
   }
-}class LruMap {
+}class FifoObject {
   constructor(max = 1000, ttlInMsecs = 0) {
-    if (isNaN(max) || max < 0) {
-      throw new Error('Invalid max value')
+    validateCacheParams(max, ttlInMsecs);
+
+    this.first = null;
+    this.items = Object.create(null);
+    this.last = null;
+    this.size = 0;
+    this.max = max;
+    this.ttl = ttlInMsecs;
+  }
+
+  clear() {
+    this.items = Object.create(null);
+    this.first = null;
+    this.last = null;
+    this.size = 0;
+  }
+
+  delete(key) {
+    const deletedItem = this.items[key];
+
+    if (deletedItem !== undefined) {
+      delete this.items[key];
+      this.size--;
+
+      if (deletedItem.prev !== null) {
+        deletedItem.prev.next = deletedItem.next;
+      }
+
+      if (deletedItem.next !== null) {
+        deletedItem.next.prev = deletedItem.prev;
+      }
+
+      if (this.first === deletedItem) {
+        this.first = deletedItem.next;
+      }
+
+      if (this.last === deletedItem) {
+        this.last = deletedItem.prev;
+      }
+    }
+  }
+
+  deleteMany(keys) {
+    for (var i = 0; i < keys.length; i++) {
+      this.delete(keys[i]);
+    }
+  }
+
+  evict() {
+    if (this.size > 0) {
+      const item = this.first;
+
+      delete this.items[item.key];
+
+      if (--this.size === 0) {
+        this.first = null;
+        this.last = null;
+      } else {
+        this.first = item.next;
+        this.first.prev = null;
+      }
+    }
+  }
+
+  expiresAt(key) {
+    const item = this.items[key];
+
+    if (item !== undefined) {
+      return item.expiry
+    }
+  }
+
+  get(key) {
+    const item = this.items[key];
+
+    if (item !== undefined) {
+      if (this.ttl > 0 && item.expiry <= Date.now()) {
+        this.delete(key);
+        return
+      }
+
+      return item.value
+    }
+  }
+
+  getMany(keys) {
+    const result = new Array(keys.length);
+
+    for (var i = 0; i < keys.length; i++) {
+      result[i] = this.get(keys[i]);
     }
 
-    if (isNaN(ttlInMsecs) || ttlInMsecs < 0) {
-      throw new Error('Invalid ttl value')
+    return result
+  }
+
+  keys() {
+    return Object.keys(this.items)
+  }
+
+  set(key, value) {
+    // Replace existing item
+    const existing = this.items[key];
+
+    if (existing !== undefined) {
+      existing.value = value;
+      existing.expiry = this.ttl > 0 ? Date.now() + this.ttl : this.ttl;
+
+      return
     }
+
+    // Add new item
+    if (this.max > 0 && this.size >= this.max) {
+      this.evict();
+    }
+
+    const item = {
+      expiry: this.ttl > 0 ? Date.now() + this.ttl : this.ttl,
+      key: key,
+      prev: this.last,
+      next: null,
+      value,
+    };
+    this.items[key] = item;
+
+    if (++this.size === 1) {
+      this.first = item;
+    } else {
+      this.last.next = item;
+    }
+
+    this.last = item;
+  }
+}/**
+ * Creates a zeroed statistics record for a single collection window.
+ *
+ * @returns {object}
+ */
+function createEmptyStatisticsRecord() {
+  return {
+    cacheSize: 0,
+    hits: 0,
+    falsyHits: 0,
+    emptyHits: 0,
+    misses: 0,
+    expirations: 0,
+    evictions: 0,
+    invalidateOne: 0,
+    invalidateAll: 0,
+    sets: 0,
+  }
+}class HitStatisticsRecord {
+  constructor() {
+    this.records = {};
+  }
+
+  initForCache(cacheId, currentTimeStamp) {
+    this.records[cacheId] = {
+      [currentTimeStamp]: createEmptyStatisticsRecord(),
+    };
+  }
+
+  resetForCache(cacheId) {
+    if (!this.records[cacheId]) {
+      return
+    }
+
+    for (let key of Object.keys(this.records[cacheId])) {
+      this.records[cacheId][key] = createEmptyStatisticsRecord();
+    }
+  }
+
+  getStatistics() {
+    return this.records
+  }
+}class LruMap {
+  constructor(max = 1000, ttlInMsecs = 0) {
+    validateCacheParams(max, ttlInMsecs);
 
     this.first = null;
     this.items = new Map();
@@ -40792,6 +38271,7 @@ class FifoMap {
       prev.next = next;
     }
 
+    /* v8 ignore next 3 -- next is always non-null here: the early return above guarantees item !== this.last in a well-formed list */
     if (next !== null) {
       next.prev = prev;
     }
@@ -40800,15 +38280,15 @@ class FifoMap {
   }
 
   clear() {
-    this.items = new Map();
+    this.items.clear();
     this.first = null;
     this.last = null;
   }
 
   delete(key) {
-    if (this.items.has(key)) {
-      const item = this.items.get(key);
+    const item = this.items.get(key);
 
+    if (item !== undefined) {
       this.items.delete(key);
 
       if (item.prev !== null) {
@@ -40852,15 +38332,17 @@ class FifoMap {
   }
 
   expiresAt(key) {
-    if (this.items.has(key)) {
-      return this.items.get(key).expiry
+    const item = this.items.get(key);
+
+    if (item !== undefined) {
+      return item.expiry
     }
   }
 
   get(key) {
-    if (this.items.has(key)) {
-      const item = this.items.get(key);
+    const item = this.items.get(key);
 
+    if (item !== undefined) {
       // Item has already expired
       if (this.ttl > 0 && item.expiry <= Date.now()) {
         this.delete(key);
@@ -40874,10 +38356,10 @@ class FifoMap {
   }
 
   getMany(keys) {
-    const result = [];
+    const result = new Array(keys.length);
 
     for (var i = 0; i < keys.length; i++) {
-      result.push(this.get(keys[i]));
+      result[i] = this.get(keys[i]);
     }
 
     return result
@@ -40889,21 +38371,18 @@ class FifoMap {
 
   set(key, value) {
     // Replace existing item
-    if (this.items.has(key)) {
-      const item = this.items.get(key);
-      item.value = value;
+    const existing = this.items.get(key);
 
-      item.expiry = this.ttl > 0 ? Date.now() + this.ttl : this.ttl;
-
-      if (this.last !== item) {
-        this.bumpLru(item);
-      }
+    if (existing !== undefined) {
+      existing.value = value;
+      existing.expiry = this.ttl > 0 ? Date.now() + this.ttl : this.ttl;
+      this.bumpLru(existing);
 
       return
     }
 
     // Add new item
-    if (this.max > 0 && this.size === this.max) {
+    if (this.max > 0 && this.size >= this.max) {
       this.evict();
     }
 
@@ -40926,13 +38405,7 @@ class FifoMap {
   }
 }class LruObject {
   constructor(max = 1000, ttlInMsecs = 0) {
-    if (isNaN(max) || max < 0) {
-      throw new Error('Invalid max value')
-    }
-
-    if (isNaN(ttlInMsecs) || ttlInMsecs < 0) {
-      throw new Error('Invalid ttl value')
-    }
+    validateCacheParams(max, ttlInMsecs);
 
     this.first = null;
     this.items = Object.create(null);
@@ -40963,6 +38436,7 @@ class FifoMap {
       prev.next = next;
     }
 
+    /* v8 ignore next 3 -- next is always non-null here: the early return above guarantees item !== this.last in a well-formed list */
     if (next !== null) {
       next.prev = prev;
     }
@@ -40978,9 +38452,9 @@ class FifoMap {
   }
 
   delete(key) {
-    if (Object.prototype.hasOwnProperty.call(this.items, key)) {
-      const item = this.items[key];
+    const item = this.items[key];
 
+    if (item !== undefined) {
       delete this.items[key];
       this.size--;
 
@@ -41025,15 +38499,17 @@ class FifoMap {
   }
 
   expiresAt(key) {
-    if (Object.prototype.hasOwnProperty.call(this.items, key)) {
-      return this.items[key].expiry
+    const item = this.items[key];
+
+    if (item !== undefined) {
+      return item.expiry
     }
   }
 
   get(key) {
-    if (Object.prototype.hasOwnProperty.call(this.items, key)) {
-      const item = this.items[key];
+    const item = this.items[key];
 
+    if (item !== undefined) {
       // Item has already expired
       if (this.ttl > 0 && item.expiry <= Date.now()) {
         this.delete(key);
@@ -41047,10 +38523,10 @@ class FifoMap {
   }
 
   getMany(keys) {
-    const result = [];
+    const result = new Array(keys.length);
 
     for (var i = 0; i < keys.length; i++) {
-      result.push(this.get(keys[i]));
+      result[i] = this.get(keys[i]);
     }
 
     return result
@@ -41062,21 +38538,18 @@ class FifoMap {
 
   set(key, value) {
     // Replace existing item
-    if (Object.prototype.hasOwnProperty.call(this.items, key)) {
-      const item = this.items[key];
-      item.value = value;
+    const existing = this.items[key];
 
-      item.expiry = this.ttl > 0 ? Date.now() + this.ttl : this.ttl;
-
-      if (this.last !== item) {
-        this.bumpLru(item);
-      }
+    if (existing !== undefined) {
+      existing.value = value;
+      existing.expiry = this.ttl > 0 ? Date.now() + this.ttl : this.ttl;
+      this.bumpLru(existing);
 
       return
     }
 
     // Add new item
-    if (this.max > 0 && this.size === this.max) {
+    if (this.max > 0 && this.size >= this.max) {
       this.evict();
     }
 
@@ -41097,48 +38570,6 @@ class FifoMap {
 
     this.last = item;
   }
-}class HitStatisticsRecord {
-  constructor() {
-    this.records = {};
-  }
-
-  initForCache(cacheId, currentTimeStamp) {
-    this.records[cacheId] = {
-      [currentTimeStamp]: {
-        cacheSize: 0,
-        hits: 0,
-        falsyHits: 0,
-        emptyHits: 0,
-        misses: 0,
-        expirations: 0,
-        evictions: 0,
-        invalidateOne: 0,
-        invalidateAll: 0,
-        sets: 0,
-      },
-    };
-  }
-
-  resetForCache(cacheId) {
-    for (let key of Object.keys(this.records[cacheId])) {
-      this.records[cacheId][key] = {
-        cacheSize: 0,
-        hits: 0,
-        falsyHits: 0,
-        emptyHits: 0,
-        misses: 0,
-        expirations: 0,
-        evictions: 0,
-        invalidateOne: 0,
-        invalidateAll: 0,
-        sets: 0,
-      };
-    }
-  }
-
-  getStatistics() {
-    return this.records
-  }
 }/**
  *
  * @param {Date} date
@@ -41156,32 +38587,24 @@ function getTimestamp(date) {
 
     this.collectionStart = new Date();
     this.currentTimeStamp = getTimestamp(this.collectionStart);
+    this.archiveAfter = this.collectionStart.getTime() + this.statisticTtlInHours * 3_600_000;
 
     this.records = globalStatisticsRecord || new HitStatisticsRecord();
     this.records.initForCache(this.cacheId, this.currentTimeStamp);
   }
 
   get currentRecord() {
+    const cacheRecords = this.records.records[this.cacheId];
     // safety net
-    /* c8 ignore next 14 */
-    if (!this.records.records[this.cacheId][this.currentTimeStamp]) {
-      this.records.records[this.cacheId][this.currentTimeStamp] = {
-        cacheSize: 0,
-        hits: 0,
-        falsyHits: 0,
-        emptyHits: 0,
-        misses: 0,
-        expirations: 0,
-        evictions: 0,
-        sets: 0,
-        invalidateOne: 0,
-        invalidateAll: 0,
-      };
+    /* c8 ignore next 3 */
+    if (!cacheRecords[this.currentTimeStamp]) {
+      cacheRecords[this.currentTimeStamp] = createEmptyStatisticsRecord();
     }
 
-    return this.records.records[this.cacheId][this.currentTimeStamp]
+    return cacheRecords[this.currentTimeStamp]
   }
 
+  /* v8 ignore next 3 -- kept for compatibility, no longer used internally */
   hoursPassed() {
     return (Date.now() - this.collectionStart) / 1000 / 60 / 60
   }
@@ -41240,15 +38663,19 @@ function getTimestamp(date) {
   }
 
   archiveIfNeeded() {
-    if (this.hoursPassed() >= this.statisticTtlInHours) {
+    if (Date.now() >= this.archiveAfter) {
       this.collectionStart = new Date();
       this.currentTimeStamp = getTimestamp(this.collectionStart);
+      this.archiveAfter = this.collectionStart.getTime() + this.statisticTtlInHours * 3_600_000;
       this.records.initForCache(this.cacheId, this.currentTimeStamp);
     }
   }
 }class LruObjectHitStatistics extends LruObject {
   constructor(max, ttlInMsecs, cacheId, globalStatisticsRecord, statisticTtlInHours) {
-    super(max || 1000, ttlInMsecs || 0);
+    // Pass through as-is: the base constructor applies the 1000/0 defaults for
+    // omitted (undefined) values and validates everything else, so explicit 0
+    // stays unlimited and null/NaN are rejected the same way as the base class.
+    super(max, ttlInMsecs);
 
     if (!cacheId) {
       throw new Error('Cache id is mandatory')
@@ -41272,15 +38699,19 @@ function getTimestamp(date) {
   }
 
   evict() {
+    const hadItems = this.size > 0;
     super.evict();
-    this.hitStatistics.addEviction();
+    if (hadItems) {
+      this.hitStatistics.addEviction();
+    }
     this.hitStatistics.setCacheSize(this.size);
   }
 
   delete(key, isExpiration = false) {
+    const existed = this.items[key] !== undefined;
     super.delete(key);
 
-    if (!isExpiration) {
+    if (existed && !isExpiration) {
       this.hitStatistics.addInvalidateOne();
     }
     this.hitStatistics.setCacheSize(this.size);
@@ -41294,9 +38725,9 @@ function getTimestamp(date) {
   }
 
   get(key) {
-    if (Object.prototype.hasOwnProperty.call(this.items, key)) {
-      const item = this.items[key];
+    const item = this.items[key];
 
+    if (item !== undefined) {
       // Item has already expired
       if (this.ttl > 0 && item.expiry <= Date.now()) {
         this.delete(key, true);
@@ -41308,152 +38739,15 @@ function getTimestamp(date) {
       this.bumpLru(item);
       if (!item.value) {
         this.hitStatistics.addFalsyHit();
-      }
-      if (item.value === undefined || item.value === null || item.value === '') {
-        this.hitStatistics.addEmptyHit();
+        // Empty values are a subset of falsy values
+        if (item.value === undefined || item.value === null || item.value === '') {
+          this.hitStatistics.addEmptyHit();
+        }
       }
       this.hitStatistics.addHit();
       return item.value
     }
     this.hitStatistics.addMiss();
-  }
-}class FifoObject {
-  constructor(max = 1000, ttlInMsecs = 0) {
-    if (isNaN(max) || max < 0) {
-      throw new Error('Invalid max value')
-    }
-
-    if (isNaN(ttlInMsecs) || ttlInMsecs < 0) {
-      throw new Error('Invalid ttl value')
-    }
-
-    this.first = null;
-    this.items = Object.create(null);
-    this.last = null;
-    this.size = 0;
-    this.max = max;
-    this.ttl = ttlInMsecs;
-  }
-
-  clear() {
-    this.items = Object.create(null);
-    this.first = null;
-    this.last = null;
-    this.size = 0;
-  }
-
-  delete(key) {
-    if (Object.prototype.hasOwnProperty.call(this.items, key)) {
-      const deletedItem = this.items[key];
-
-      delete this.items[key];
-      this.size--;
-
-      if (deletedItem.prev !== null) {
-        deletedItem.prev.next = deletedItem.next;
-      }
-
-      if (deletedItem.next !== null) {
-        deletedItem.next.prev = deletedItem.prev;
-      }
-
-      if (this.first === deletedItem) {
-        this.first = deletedItem.next;
-      }
-
-      if (this.last === deletedItem) {
-        this.last = deletedItem.prev;
-      }
-    }
-  }
-
-  deleteMany(keys) {
-    for (var i = 0; i < keys.length; i++) {
-      this.delete(keys[i]);
-    }
-  }
-
-  evict() {
-    if (this.size > 0) {
-      const item = this.first;
-
-      delete this.items[item.key];
-
-      if (--this.size === 0) {
-        this.first = null;
-        this.last = null;
-      } else {
-        this.first = item.next;
-        this.first.prev = null;
-      }
-    }
-  }
-
-  expiresAt(key) {
-    if (Object.prototype.hasOwnProperty.call(this.items, key)) {
-      return this.items[key].expiry
-    }
-  }
-
-  get(key) {
-    if (Object.prototype.hasOwnProperty.call(this.items, key)) {
-      const item = this.items[key];
-
-      if (this.ttl > 0 && item.expiry <= Date.now()) {
-        this.delete(key);
-        return
-      }
-
-      return item.value
-    }
-  }
-
-  getMany(keys) {
-    const result = [];
-
-    for (var i = 0; i < keys.length; i++) {
-      result.push(this.get(keys[i]));
-    }
-
-    return result
-  }
-
-  keys() {
-    return Object.keys(this.items)
-  }
-
-  set(key, value) {
-    // Replace existing item
-    if (Object.prototype.hasOwnProperty.call(this.items, key)) {
-      const item = this.items[key];
-      item.value = value;
-
-      item.expiry = this.ttl > 0 ? Date.now() + this.ttl : this.ttl;
-
-      return
-    }
-
-    // Add new item
-    if (this.max > 0 && this.size === this.max) {
-      this.evict();
-    }
-
-    const item = {
-      expiry: this.ttl > 0 ? Date.now() + this.ttl : this.ttl,
-      key: key,
-      prev: this.last,
-      next: null,
-      value,
-    };
-    this.items[key] = item;
-
-    if (++this.size === 1) {
-      this.first = item;
-    } else {
-      this.last.next = item;
-    }
-
-    this.last = item;
   }
 }
 ;// CONCATENATED MODULE: ./node_modules/@octokit/auth-app/dist-node/index.js
@@ -41467,9 +38761,19 @@ function getTimestamp(date) {
 async function getAppAuthentication({
   appId,
   privateKey,
-  timeDifference
+  timeDifference,
+  createJwt
 }) {
   try {
+    if (createJwt) {
+      const { jwt, expiresAt } = await createJwt(appId, timeDifference);
+      return {
+        type: "app",
+        token: jwt,
+        appId,
+        expiresAt
+      };
+    }
     const authOptions = {
       id: appId,
       privateKey
@@ -41778,7 +39082,8 @@ var PATHS = [
   "/marketplace_listing/stubbed/plans/{plan_id}/accounts",
   "/orgs/{org}/installation",
   "/repos/{owner}/{repo}/installation",
-  "/users/{username}/installation"
+  "/users/{username}/installation",
+  "/enterprises/{enterprise}/installation"
 ];
 function routeMatcher(paths) {
   const regexes = paths.map(
@@ -41796,6 +39101,8 @@ function requiresAppAuth(url) {
 var FIVE_SECONDS_IN_MS = 5 * 1e3;
 function isNotTimeSkewError(error) {
   return !(error.message.match(
+    /'Expiration time' claim \('exp'\) is too far in the future/
+  ) || error.message.match(
     /'Expiration time' claim \('exp'\) must be a numeric value representing the future time at which the assertion expires/
   ) || error.message.match(
     /'Issued at' claim \('iat'\) must be an Integer representing the time that the assertion was issued/
@@ -41880,7 +39187,7 @@ async function sendRequestWithRetries(state, request, options, createdAt, retrie
 }
 
 // pkg/dist-src/version.js
-var dist_node_VERSION = "7.2.2";
+var dist_node_VERSION = "8.2.0";
 
 // pkg/dist-src/index.js
 
@@ -41888,8 +39195,12 @@ function createAppAuth(options) {
   if (!options.appId) {
     throw new Error("[@octokit/auth-app] appId option is required");
   }
-  if (!options.privateKey) {
+  if (!options.privateKey && !options.createJwt) {
     throw new Error("[@octokit/auth-app] privateKey option is required");
+  } else if (options.privateKey && options.createJwt) {
+    throw new Error(
+      "[@octokit/auth-app] privateKey and createJwt options are mutually exclusive"
+    );
   }
   if ("installationId" in options && !options.installationId) {
     throw new Error(
@@ -41929,6 +39240,7 @@ function createAppAuth(options) {
 
 
 ;// CONCATENATED MODULE: ./src/index.ts
+
 
 
 
@@ -42014,6 +39326,27 @@ async function withRetry(label, fn) {
     }
     throw lastError;
 }
+function runFormatCommand(command, files) {
+    const trimmed = command.trim();
+    if (!trimmed) {
+        return;
+    }
+    if (files.length === 0) {
+        info('No modified files; skipping format-command');
+        return;
+    }
+    // Single-quote each path so spaces and shell metacharacters survive.
+    const quoted = files.map((f) => `'${f.replace(/'/g, `'\\''`)}'`).join(' ');
+    const resolved = trimmed.split('{files}').join(quoted);
+    info(`Running format-command on ${files.length} file(s)`);
+    try {
+        (0,external_child_process_namespaceObject.execSync)(resolved, { stdio: 'inherit' });
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`format-command failed: ${message}`);
+    }
+}
 function parseNumberFilter(input) {
     const trimmed = input.trim();
     if (!trimmed) {
@@ -42057,6 +39390,117 @@ function parseNumberFilter(input) {
     }
     return Array.from(numbers).sort((a, b) => a - b);
 }
+// Signed attachment URLs GitHub emits in body_html; valid ~5 minutes, so they
+// must be downloaded right after the item is fetched and never written to disk.
+const SIGNED_ATTACHMENT_PATTERN = /https:\/\/private-user-images\.githubusercontent\.com\/\d+\/\d+-([0-9a-fA-F-]{36})\.(\w+)\?jwt=[\w.~+/=-]+/g;
+// Raw-body URL shapes: modern asset uploads, legacy image uploads, file uploads.
+const RAW_ASSET_PATTERN = /https:\/\/github\.com\/user-attachments\/assets\/([0-9a-fA-F-]{36})/g;
+const RAW_LEGACY_PATTERN = /https:\/\/user-images\.githubusercontent\.com\/\d+\/\d+-([0-9a-fA-F-]{36})\.(\w+)/g;
+const RAW_FILE_PATTERN = /https:\/\/github\.com\/user-attachments\/files\/(\d+)\/([\w.%-]+)/g;
+function extractAttachmentAssets(bodyHtml) {
+    const assets = new Map();
+    for (const match of bodyHtml.matchAll(SIGNED_ATTACHMENT_PATTERN)) {
+        const [signedUrl, uuid, ext] = match;
+        if (!assets.has(uuid)) {
+            assets.set(uuid, { uuid, ext, signedUrl });
+        }
+    }
+    return assets;
+}
+function sanitizeAttachmentName(name) {
+    let decoded = name;
+    try {
+        decoded = decodeURIComponent(name);
+    }
+    catch {
+        // Keep the raw name if it is not valid percent-encoding
+    }
+    return decoded.replace(/[^A-Za-z0-9._-]/g, '_').replace(/^\.+/, '_');
+}
+async function downloadAttachment(url, filepath, dir) {
+    await withRetry(`Download attachment ${external_path_namespaceObject.basename(filepath)}`, async () => {
+        const response = await fetch(url);
+        if (!response.ok) {
+            const error = new Error(`HTTP ${response.status} while downloading attachment`);
+            error.status = response.status;
+            throw error;
+        }
+        const data = Buffer.from(await response.arrayBuffer());
+        if (!external_fs_namespaceObject.existsSync(dir)) {
+            external_fs_namespaceObject.mkdirSync(dir, { recursive: true });
+        }
+        external_fs_namespaceObject.writeFileSync(filepath, data);
+    });
+}
+/**
+ * Downloads the attachments referenced in a raw markdown body and rewrites
+ * their URLs to relative paths under the attachments directory. Assets whose
+ * signed URL is unavailable or whose download fails keep their original URL.
+ */
+async function processBodyAttachments(body, bodyHtml, ctx) {
+    if (!body) {
+        return body;
+    }
+    const assets = bodyHtml ? extractAttachmentAssets(bodyHtml) : new Map();
+    const targets = new Map();
+    for (const match of body.matchAll(RAW_ASSET_PATTERN)) {
+        const [rawUrl, uuid] = match;
+        if (targets.has(rawUrl)) {
+            continue;
+        }
+        const asset = assets.get(uuid);
+        if (!asset) {
+            warning(`No signed URL found for attachment ${uuid}; keeping original URL`);
+            targets.set(rawUrl, null);
+            continue;
+        }
+        targets.set(rawUrl, { sourceUrl: asset.signedUrl, filename: `${uuid}.${asset.ext}` });
+    }
+    for (const match of body.matchAll(RAW_LEGACY_PATTERN)) {
+        const [rawUrl, uuid, ext] = match;
+        if (targets.has(rawUrl)) {
+            continue;
+        }
+        // Legacy CDN URLs are directly downloadable; prefer the signed URL when present
+        const asset = assets.get(uuid);
+        targets.set(rawUrl, {
+            sourceUrl: asset ? asset.signedUrl : rawUrl,
+            filename: `${uuid}.${asset ? asset.ext : ext}`,
+        });
+    }
+    for (const match of body.matchAll(RAW_FILE_PATTERN)) {
+        const [rawUrl, id, name] = match;
+        if (targets.has(rawUrl)) {
+            continue;
+        }
+        targets.set(rawUrl, { sourceUrl: rawUrl, filename: `${id}-${sanitizeAttachmentName(name)}` });
+    }
+    let result = body;
+    for (const [rawUrl, target] of targets) {
+        if (!target) {
+            continue;
+        }
+        const filepath = external_path_namespaceObject.join(ctx.dir, target.filename);
+        if (!ctx.handled.has(target.filename)) {
+            if (external_fs_namespaceObject.existsSync(filepath) && !ctx.forceUpdate) {
+                ctx.handled.add(target.filename);
+            }
+            else {
+                try {
+                    await downloadAttachment(target.sourceUrl, filepath, ctx.dir);
+                    ctx.handled.add(target.filename);
+                    ctx.files.push(filepath);
+                }
+                catch (error) {
+                    warning(`Failed to download attachment ${target.filename}: ${formatGitHubError(error)}`);
+                    continue;
+                }
+            }
+        }
+        result = result.split(rawUrl).join(`${ctx.relativePrefix}/${target.filename}`);
+    }
+    return result;
+}
 async function run() {
     try {
         // Get token from input (defaults to github.token via action.yml)
@@ -42097,12 +39541,14 @@ async function run() {
         const includeClosedInput = getInput('include-closed') || 'false';
         const forceUpdateInput = getInput('force-update') || 'false';
         const syncSubIssuesInput = getInput('sync-sub-issues') || 'true';
+        const syncAttachmentsInput = getInput('sync-attachments') || 'false';
         // Convert to boolean (getBooleanInput is strict and throws if input is missing)
         const syncIssues = syncIssuesInput.toLowerCase() === 'true';
         const syncPRs = syncPRsInput.toLowerCase() === 'true';
         const includeClosed = includeClosedInput.toLowerCase() === 'true';
         const forceUpdate = forceUpdateInput.toLowerCase() === 'true';
         const syncSubIssues = syncSubIssuesInput.toLowerCase() === 'true';
+        const syncAttachments = syncAttachmentsInput.toLowerCase() === 'true';
         const updatedSince = resolveUpdatedSince(updatedSinceInput, stateFilePath);
         const issuesFilter = parseNumberFilter(getInput('issues-filter') || '');
         const prsFilter = parseNumberFilter(getInput('prs-filter') || '');
@@ -42119,12 +39565,23 @@ async function run() {
         const issuesDir = external_path_namespaceObject.join(outputDir, 'issues');
         const prsDir = external_path_namespaceObject.join(outputDir, 'pull-requests');
         const modifiedFiles = [];
+        // Attachments live next to issues/ and pull-requests/, so MD files
+        // reference them with the same relative prefix from either directory.
+        const attachmentCtx = syncAttachments
+            ? {
+                dir: external_path_namespaceObject.join(outputDir, 'attachments'),
+                relativePrefix: '../attachments',
+                forceUpdate,
+                handled: new Set(),
+                files: [],
+            }
+            : undefined;
         if (syncIssues) {
             info('Syncing issues...');
             if (!external_fs_namespaceObject.existsSync(issuesDir)) {
                 external_fs_namespaceObject.mkdirSync(issuesDir, { recursive: true });
             }
-            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince, forceUpdate, syncSubIssues, issuesFilter);
+            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince, forceUpdate, syncSubIssues, issuesFilter, attachmentCtx);
             issuesCount = issuesResult.count;
             modifiedFiles.push(...issuesResult.files);
         }
@@ -42133,10 +39590,17 @@ async function run() {
             if (!external_fs_namespaceObject.existsSync(prsDir)) {
                 external_fs_namespaceObject.mkdirSync(prsDir, { recursive: true });
             }
-            const prsResult = await syncPRsToMarkdown(octokit, owner, repo, prsDir, includeClosed, updatedSince, forceUpdate, prsFilter);
+            const prsResult = await syncPRsToMarkdown(octokit, owner, repo, prsDir, includeClosed, updatedSince, forceUpdate, prsFilter, attachmentCtx);
             prsCount = prsResult.count;
             modifiedFiles.push(...prsResult.files);
         }
+        if (attachmentCtx) {
+            modifiedFiles.push(...attachmentCtx.files);
+        }
+        // User formatting hook (#17): runs after files are written and before
+        // outputs are set, so the downstream commit step picks up formatted files.
+        // Binary attachments are excluded — formatters only get markdown.
+        runFormatCommand(getInput('format-command') || '', modifiedFiles.filter((file) => file.endsWith('.md')));
         const lastSyncedAt = new Date().toISOString();
         setOutput('issues-count', issuesCount);
         setOutput('prs-count', prsCount);
@@ -42156,7 +39620,7 @@ async function run() {
         }
     }
 }
-async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = true, filterNumbers) {
+async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = true, filterNumbers, attachments) {
     const allIssues = [];
     if (filterNumbers) {
         for (const issueNumber of filterNumbers) {
@@ -42165,6 +39629,7 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
                     owner,
                     repo,
                     issue_number: issueNumber,
+                    ...(attachments ? { mediaType: { format: 'full' } } : {}),
                 }));
                 if (issue.pull_request) {
                     warning(`Skipping #${issueNumber}: not an issue (pull request).`);
@@ -42230,11 +39695,21 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
                     owner,
                     repo,
                     issue_number: issue.number,
+                    ...(attachments ? { mediaType: { format: 'full' } } : {}),
                 }));
                 fullIssue = data;
             }
-            const comments = await fetchComments(octokit, owner, repo, issue.number);
+            const comments = await fetchComments(octokit, owner, repo, issue.number, !!attachments);
             const relationship = relationships.get(issue.number);
+            if (attachments) {
+                fullIssue = {
+                    ...fullIssue,
+                    body: await processBodyAttachments(fullIssue.body, fullIssue.body_html, attachments),
+                };
+                for (const comment of comments) {
+                    comment.body = await processBodyAttachments(comment.body, comment.body_html, attachments);
+                }
+            }
             const content = formatIssueAsMarkdown(fullIssue, comments, relationship);
             if (forceUpdate || hasContentChanged(content, filepath)) {
                 external_fs_namespaceObject.writeFileSync(filepath, content, 'utf-8');
@@ -42255,15 +39730,27 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
     }
     return { count: allIssues.length - skippedIssues, files };
 }
-async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, filterNumbers) {
+async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, filterNumbers, attachments) {
     let prsCount = 0;
     const files = [];
     let skippedPRs = 0;
     const processPR = async (fullPR) => {
         const filename = `pr-${fullPR.number}.md`;
         const filepath = external_path_namespaceObject.join(outputDir, filename);
-        const comments = await fetchComments(octokit, owner, repo, fullPR.number);
-        const reviewComments = await fetchReviewComments(octokit, owner, repo, fullPR.number);
+        const comments = await fetchComments(octokit, owner, repo, fullPR.number, !!attachments);
+        const reviewComments = await fetchReviewComments(octokit, owner, repo, fullPR.number, !!attachments);
+        if (attachments) {
+            fullPR = {
+                ...fullPR,
+                body: await processBodyAttachments(fullPR.body, fullPR.body_html, attachments),
+            };
+            for (const comment of comments) {
+                comment.body = await processBodyAttachments(comment.body, comment.body_html, attachments);
+            }
+            for (const reviewComment of reviewComments) {
+                reviewComment.body = await processBodyAttachments(reviewComment.body, reviewComment.body_html, attachments);
+            }
+        }
         let commits = [];
         if (fullPR.state === 'closed') {
             commits = await fetchPRCommits(octokit, owner, repo, fullPR.number);
@@ -42286,6 +39773,7 @@ async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed,
                     owner,
                     repo,
                     pull_number: prNumber,
+                    ...(attachments ? { mediaType: { format: 'full' } } : {}),
                 }));
                 if (!includeClosed && fullPR.state === 'closed') {
                     info(`Skipping PR #${prNumber}: closed and include-closed is false.`);
@@ -42340,6 +39828,7 @@ async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed,
                         owner,
                         repo,
                         pull_number: pr.number,
+                        ...(attachments ? { mediaType: { format: 'full' } } : {}),
                     }));
                     await processPR(fullPR);
                 }
@@ -42365,7 +39854,7 @@ async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed,
     }
     return { count: prsCount, files };
 }
-async function fetchComments(octokit, owner, repo, issueNumber) {
+async function fetchComments(octokit, owner, repo, issueNumber, includeHtml = false) {
     const comments = [];
     let page = 1;
     const perPage = 100;
@@ -42378,6 +39867,7 @@ async function fetchComments(octokit, owner, repo, issueNumber) {
                 issue_number: issueNumber,
                 per_page: perPage,
                 page,
+                ...(includeHtml ? { mediaType: { format: 'full' } } : {}),
             }));
             comments.push(...pageComments);
             hasMore = pageComments.length === perPage;
@@ -42515,7 +40005,7 @@ async function fetchPRCommits(octokit, owner, repo, pullNumber) {
     }
     return commits;
 }
-async function fetchReviewComments(octokit, owner, repo, pullNumber) {
+async function fetchReviewComments(octokit, owner, repo, pullNumber, includeHtml = false) {
     const reviewComments = [];
     let page = 1;
     const perPage = 100;
@@ -42528,6 +40018,7 @@ async function fetchReviewComments(octokit, owner, repo, pullNumber) {
                 pull_number: pullNumber,
                 per_page: perPage,
                 page,
+                ...(includeHtml ? { mediaType: { format: 'full' } } : {}),
             }));
             reviewComments.push(...pageComments);
             hasMore = pageComments.length === perPage;

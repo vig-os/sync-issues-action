@@ -4,7 +4,12 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as fs from 'fs';
 import * as path from 'path';
-import { formatDate, formatIssueAsMarkdown, formatPRAsMarkdown, shiftHeadersToMinLevel, fetchIssueRelationships, formatGitHubError, isRetryableError, withRetry, GRAPHQL_BATCH_SIZE, parseNumberFilter, run, } from '../../index';
+import * as childProcess from 'child_process';
+import { formatDate, formatIssueAsMarkdown, formatPRAsMarkdown, shiftHeadersToMinLevel, fetchIssueRelationships, formatGitHubError, isRetryableError, withRetry, GRAPHQL_BATCH_SIZE, parseNumberFilter, runFormatCommand, extractAttachmentAssets, processBodyAttachments, run, } from '../../index';
+jest.mock('child_process', () => ({
+    ...jest.requireActual('child_process'),
+    execSync: jest.fn(),
+}));
 describe('Sync Issues Action', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -1039,6 +1044,348 @@ describe('Sync Issues Action', () => {
         });
         it('should throw on reversed range', () => {
             expect(() => parseNumberFilter('10-5')).toThrow(/range/i);
+        });
+    });
+    describe('runFormatCommand', () => {
+        const mockExecSync = childProcess.execSync;
+        const mockInfo = core.info;
+        beforeEach(() => {
+            jest.clearAllMocks();
+        });
+        it('does nothing when the command is empty or whitespace', () => {
+            runFormatCommand('', ['docs/issues/issue-1.md']);
+            runFormatCommand('   ', ['docs/issues/issue-1.md']);
+            expect(mockExecSync).not.toHaveBeenCalled();
+        });
+        it('does nothing when there are no modified files', () => {
+            runFormatCommand('prettier --write {files}', []);
+            expect(mockExecSync).not.toHaveBeenCalled();
+            expect(mockInfo).toHaveBeenCalledWith('No modified files; skipping format-command');
+        });
+        it('replaces every {files} placeholder with quoted file paths', () => {
+            runFormatCommand('prettier --write {files} && markdownlint {files}', [
+                'docs/issues/issue-1.md',
+                'docs/pull-requests/pr-2.md',
+            ]);
+            expect(mockExecSync).toHaveBeenCalledWith("prettier --write 'docs/issues/issue-1.md' 'docs/pull-requests/pr-2.md' && markdownlint 'docs/issues/issue-1.md' 'docs/pull-requests/pr-2.md'", expect.objectContaining({ stdio: 'inherit' }));
+        });
+        it('shell-quotes paths containing spaces and single quotes', () => {
+            runFormatCommand('fmt {files}', ["docs/it's here/a b.md"]);
+            expect(mockExecSync).toHaveBeenCalledWith("fmt 'docs/it'\\''s here/a b.md'", expect.objectContaining({ stdio: 'inherit' }));
+        });
+        it('runs the command as-is when no placeholder is present', () => {
+            runFormatCommand('pre-commit run --all-files', ['docs/issues/issue-1.md']);
+            expect(mockExecSync).toHaveBeenCalledWith('pre-commit run --all-files', expect.objectContaining({ stdio: 'inherit' }));
+        });
+        it('wraps execution errors with format-command context', () => {
+            mockExecSync.mockImplementation(() => {
+                throw new Error('exit 2');
+            });
+            expect(() => runFormatCommand('bad-tool {files}', ['a.md'])).toThrow(/format-command failed: exit 2/);
+        });
+    });
+    describe('attachment syncing', () => {
+        const UUID = 'cf034d67-6d3d-4ccb-8886-f78543edba77';
+        const UUID2 = '4c301fa9-91c5-4a39-98de-8b3155c582f7';
+        const SIGNED_URL = `https://private-user-images.githubusercontent.com/29624937/596126984-${UUID}.png?jwt=eyJ0eXAiOiJKV1QifQ.payload.sig`;
+        const SIGNED_URL2 = `https://private-user-images.githubusercontent.com/29624937/596126985-${UUID2}.mov?jwt=eyJ0eXAiOiJKV1QifQ.payload2.sig`;
+        const ASSET_URL = `https://github.com/user-attachments/assets/${UUID}`;
+        const LEGACY_URL = `https://user-images.githubusercontent.com/29624937/596126984-${UUID}.png`;
+        const FILE_URL = 'https://github.com/user-attachments/files/12345/debug%20run.log';
+        const mockExistsSync = fs.existsSync;
+        const mockMkdirSync = fs.mkdirSync;
+        const mockWriteFileSync = fs.writeFileSync;
+        const mockPathJoin = path.join;
+        const mockWarning = core.warning;
+        const mockFetch = jest.fn();
+        const okResponse = (bytes = [1, 2, 3]) => ({
+            ok: true,
+            status: 200,
+            arrayBuffer: async () => new Uint8Array(bytes).buffer,
+        });
+        const freshCtx = (forceUpdate = false) => ({
+            dir: 'out/attachments',
+            relativePrefix: '../attachments',
+            forceUpdate,
+            handled: new Set(),
+            files: [],
+        });
+        beforeEach(() => {
+            jest.clearAllMocks();
+            global.fetch = mockFetch;
+            mockFetch.mockReset();
+            mockExistsSync.mockReturnValue(false);
+            mockMkdirSync.mockImplementation(() => undefined);
+            mockWriteFileSync.mockImplementation(() => undefined);
+            mockPathJoin.mockImplementation((...args) => args.join('/'));
+        });
+        describe('extractAttachmentAssets', () => {
+            it('extracts signed attachment URLs keyed by uuid, deduplicated', () => {
+                const html = `<p><a href="${SIGNED_URL}"><img src="${SIGNED_URL}" alt="Image"></a></p><video src="${SIGNED_URL2}"></video>`;
+                const assets = extractAttachmentAssets(html);
+                expect(assets.size).toBe(2);
+                expect(assets.get(UUID)).toEqual({ uuid: UUID, ext: 'png', signedUrl: SIGNED_URL });
+                expect(assets.get(UUID2)).toEqual({ uuid: UUID2, ext: 'mov', signedUrl: SIGNED_URL2 });
+            });
+            it('returns an empty map when no signed attachment URLs are present', () => {
+                const assets = extractAttachmentAssets('<p>Just text and <a href="https://example.com">a link</a></p>');
+                expect(assets.size).toBe(0);
+            });
+        });
+        describe('processBodyAttachments', () => {
+            it('downloads and rewrites a markdown image attachment', async () => {
+                mockFetch.mockResolvedValue(okResponse());
+                const ctx = freshCtx();
+                const body = `Screenshot:\n\n![shot](${ASSET_URL})\n`;
+                const html = `<img src="${SIGNED_URL}" alt="shot">`;
+                const result = await processBodyAttachments(body, html, ctx);
+                expect(result).toContain(`![shot](../attachments/${UUID}.png)`);
+                expect(result).not.toContain('user-attachments');
+                expect(mockFetch).toHaveBeenCalledWith(SIGNED_URL);
+                expect(mockMkdirSync).toHaveBeenCalledWith('out/attachments', { recursive: true });
+                expect(mockWriteFileSync).toHaveBeenCalledWith(`out/attachments/${UUID}.png`, expect.anything());
+                expect(ctx.files).toEqual([`out/attachments/${UUID}.png`]);
+            });
+            it('rewrites HTML img attachments', async () => {
+                mockFetch.mockResolvedValue(okResponse());
+                const ctx = freshCtx();
+                const body = `<img width="1033" height="1347" alt="Image" src="${ASSET_URL}" />`;
+                const html = `<img src="${SIGNED_URL}" alt="Image">`;
+                const result = await processBodyAttachments(body, html, ctx);
+                expect(result).toContain(`src="../attachments/${UUID}.png"`);
+                expect(result).toContain('width="1033"');
+            });
+            it('rewrites legacy user-images URLs via the signed map', async () => {
+                mockFetch.mockResolvedValue(okResponse());
+                const ctx = freshCtx();
+                const body = `![old](${LEGACY_URL})`;
+                const html = `<img src="${SIGNED_URL}">`;
+                const result = await processBodyAttachments(body, html, ctx);
+                expect(result).toContain(`![old](../attachments/${UUID}.png)`);
+                expect(mockFetch).toHaveBeenCalledWith(SIGNED_URL);
+            });
+            it('downloads legacy user-images URLs directly when not in the signed map', async () => {
+                mockFetch.mockResolvedValue(okResponse());
+                const ctx = freshCtx();
+                const body = `![old](${LEGACY_URL})`;
+                const result = await processBodyAttachments(body, undefined, ctx);
+                expect(result).toContain(`![old](../attachments/${UUID}.png)`);
+                expect(mockFetch).toHaveBeenCalledWith(LEGACY_URL);
+            });
+            it('keeps asset URLs unchanged with a warning when no signed URL is available', async () => {
+                const ctx = freshCtx();
+                const body = `![shot](${ASSET_URL})`;
+                const result = await processBodyAttachments(body, undefined, ctx);
+                expect(result).toBe(body);
+                expect(mockFetch).not.toHaveBeenCalled();
+                expect(mockWarning).toHaveBeenCalledWith(expect.stringContaining(UUID));
+            });
+            it('downloads file attachments directly with a sanitized filename', async () => {
+                mockFetch.mockResolvedValue(okResponse());
+                const ctx = freshCtx();
+                const body = `Log: [debug run.log](${FILE_URL})`;
+                const result = await processBodyAttachments(body, undefined, ctx);
+                expect(result).toContain('[debug run.log](../attachments/12345-debug_run.log)');
+                expect(mockFetch).toHaveBeenCalledWith(FILE_URL);
+                expect(mockWriteFileSync).toHaveBeenCalledWith('out/attachments/12345-debug_run.log', expect.anything());
+            });
+            it('keeps the original URL and warns when a download fails', async () => {
+                mockFetch.mockResolvedValue({ ok: false, status: 404 });
+                const ctx = freshCtx();
+                const body = `![shot](${ASSET_URL})`;
+                const html = `<img src="${SIGNED_URL}">`;
+                const result = await processBodyAttachments(body, html, ctx);
+                expect(result).toBe(body);
+                expect(mockWarning).toHaveBeenCalledWith(expect.stringContaining('404'));
+                expect(ctx.files).toEqual([]);
+            });
+            it('skips the download but still rewrites when the file already exists', async () => {
+                mockExistsSync.mockReturnValue(true);
+                const ctx = freshCtx();
+                const body = `![shot](${ASSET_URL})`;
+                const html = `<img src="${SIGNED_URL}">`;
+                const result = await processBodyAttachments(body, html, ctx);
+                expect(result).toContain(`![shot](../attachments/${UUID}.png)`);
+                expect(mockFetch).not.toHaveBeenCalled();
+                expect(ctx.files).toEqual([]);
+            });
+            it('re-downloads existing files when forceUpdate is set', async () => {
+                mockExistsSync.mockReturnValue(true);
+                mockFetch.mockResolvedValue(okResponse());
+                const ctx = freshCtx(true);
+                const body = `![shot](${ASSET_URL})`;
+                const html = `<img src="${SIGNED_URL}">`;
+                await processBodyAttachments(body, html, ctx);
+                expect(mockFetch).toHaveBeenCalledWith(SIGNED_URL);
+                expect(ctx.files).toEqual([`out/attachments/${UUID}.png`]);
+            });
+            it('downloads each asset once across repeated references and bodies', async () => {
+                mockFetch.mockResolvedValue(okResponse());
+                const ctx = freshCtx();
+                const body = `![a](${ASSET_URL})\n<img src="${ASSET_URL}">`;
+                const html = `<img src="${SIGNED_URL}">`;
+                const first = await processBodyAttachments(body, html, ctx);
+                const second = await processBodyAttachments(`![b](${ASSET_URL})`, html, ctx);
+                expect(mockFetch).toHaveBeenCalledTimes(1);
+                expect(first).toContain(`![a](../attachments/${UUID}.png)`);
+                expect(first).toContain(`src="../attachments/${UUID}.png"`);
+                expect(second).toContain(`![b](../attachments/${UUID}.png)`);
+                expect(ctx.files).toEqual([`out/attachments/${UUID}.png`]);
+            });
+            it('leaves bodies without attachments untouched', async () => {
+                const ctx = freshCtx();
+                const body = 'Nothing to see here.\n\n![ext](https://example.com/image.png)';
+                const result = await processBodyAttachments(body, '<p>html</p>', ctx);
+                expect(result).toBe(body);
+                expect(mockFetch).not.toHaveBeenCalled();
+            });
+        });
+        describe('run() integration', () => {
+            const mockGetInput = core.getInput;
+            const mockGetOctokit = github.getOctokit;
+            const setMockOctokit = (mock) => mockGetOctokit.mockReturnValue(mock);
+            const mockSetOutput = core.setOutput;
+            const mockExecSync = childProcess.execSync;
+            const issueWithAttachment = {
+                number: 1,
+                title: 'Issue with image',
+                body: `![shot](${ASSET_URL})`,
+                body_html: `<img src="${SIGNED_URL}" alt="shot">`,
+                state: 'open',
+                labels: [],
+                created_at: '2024-01-01T00:00:00Z',
+                updated_at: '2024-01-02T00:00:00Z',
+                user: { login: 'user1' },
+                html_url: 'https://example.com/issue/1',
+                milestone: null,
+            };
+            const buildOctokit = () => ({
+                rest: {
+                    issues: {
+                        listForRepo: jest.fn().mockResolvedValue({ data: [issueWithAttachment] }),
+                        get: jest.fn().mockResolvedValue({ data: issueWithAttachment }),
+                        listComments: jest.fn().mockResolvedValue({ data: [] }),
+                    },
+                    pulls: {
+                        list: jest.fn().mockResolvedValue({ data: [] }),
+                        get: jest.fn(),
+                        listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+                    },
+                },
+                graphql: jest.fn().mockResolvedValue({ repository: {} }),
+            });
+            it('requests full media type, downloads attachments, and reports them in modified-files', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-attachments')
+                        return 'true';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    if (name === 'sync-sub-issues')
+                        return 'false';
+                    return '';
+                });
+                mockFetch.mockResolvedValue(okResponse());
+                const octokit = buildOctokit();
+                setMockOctokit(octokit);
+                await run();
+                expect(octokit.rest.issues.get).toHaveBeenCalledWith(expect.objectContaining({ mediaType: { format: 'full' } }));
+                expect(octokit.rest.issues.listComments).toHaveBeenCalledWith(expect.objectContaining({ mediaType: { format: 'full' } }));
+                expect(mockWriteFileSync).toHaveBeenCalledWith(`synced-issues/attachments/${UUID}.png`, expect.anything());
+                const mdWrite = mockWriteFileSync.mock.calls.find((call) => call[0] === 'synced-issues/issues/issue-1.md');
+                expect(mdWrite).toBeDefined();
+                expect(mdWrite[1]).toContain(`![shot](../attachments/${UUID}.png)`);
+                const modifiedFiles = mockSetOutput.mock.calls.find((call) => call[0] === 'modified-files')[1];
+                expect(modifiedFiles).toContain('synced-issues/issues/issue-1.md');
+                expect(modifiedFiles).toContain(`synced-issues/attachments/${UUID}.png`);
+            });
+            it('does not request full media type or download anything when disabled', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    if (name === 'sync-sub-issues')
+                        return 'false';
+                    return '';
+                });
+                const octokit = buildOctokit();
+                setMockOctokit(octokit);
+                await run();
+                expect(octokit.rest.issues.get.mock.calls[0][0]).not.toHaveProperty('mediaType');
+                expect(mockFetch).not.toHaveBeenCalled();
+                const mdWrite = mockWriteFileSync.mock.calls.find((call) => call[0] === 'synced-issues/issues/issue-1.md');
+                expect(mdWrite[1]).toContain(ASSET_URL);
+            });
+            it('passes only markdown files to the format command', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-attachments')
+                        return 'true';
+                    if (name === 'sync-prs')
+                        return 'false';
+                    if (name === 'sync-sub-issues')
+                        return 'false';
+                    if (name === 'format-command')
+                        return 'fmt {files}';
+                    return '';
+                });
+                mockFetch.mockResolvedValue(okResponse());
+                const octokit = buildOctokit();
+                setMockOctokit(octokit);
+                await run();
+                expect(mockExecSync).toHaveBeenCalledWith("fmt 'synced-issues/issues/issue-1.md'", expect.objectContaining({ stdio: 'inherit' }));
+            });
+            it('rewrites attachments in PR bodies and review comments', async () => {
+                mockGetInput.mockImplementation((name) => {
+                    if (name === 'token')
+                        return 'test-token';
+                    if (name === 'sync-attachments')
+                        return 'true';
+                    if (name === 'sync-issues')
+                        return 'false';
+                    return '';
+                });
+                mockFetch.mockResolvedValue(okResponse());
+                const pr = {
+                    number: 10,
+                    title: 'PR with image',
+                    body: `![shot](${ASSET_URL})`,
+                    body_html: `<img src="${SIGNED_URL}" alt="shot">`,
+                    state: 'open',
+                    labels: [],
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-02T00:00:00Z',
+                    merged_at: null,
+                    user: { login: 'pr-user' },
+                    html_url: 'https://example.com/pr/10',
+                    head: { ref: 'feature' },
+                    base: { ref: 'main' },
+                };
+                const octokit = {
+                    rest: {
+                        issues: {
+                            listForRepo: jest.fn(),
+                            get: jest.fn(),
+                            listComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                        pulls: {
+                            list: jest.fn().mockResolvedValue({ data: [pr] }),
+                            get: jest.fn().mockResolvedValue({ data: pr }),
+                            listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+                        },
+                    },
+                };
+                setMockOctokit(octokit);
+                await run();
+                expect(octokit.rest.pulls.get).toHaveBeenCalledWith(expect.objectContaining({ mediaType: { format: 'full' } }));
+                expect(octokit.rest.pulls.listReviewComments).toHaveBeenCalledWith(expect.objectContaining({ mediaType: { format: 'full' } }));
+                const mdWrite = mockWriteFileSync.mock.calls.find((call) => call[0] === 'synced-issues/pull-requests/pr-10.md');
+                expect(mdWrite).toBeDefined();
+                expect(mdWrite[1]).toContain(`![shot](../attachments/${UUID}.png)`);
+            });
         });
     });
     describe('Input Parameters', () => {

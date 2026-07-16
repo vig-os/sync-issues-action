@@ -19,6 +19,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [v0.4.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.4.0) - 2026-07-16
+
+### Added
+
+- **User-configurable formatting hook for generated markdown** ([#17](https://github.com/vig-os/sync-issues-action/issues/17))
+  - New optional `format-command` input runs a shell command on the synced files after they are written and before outputs are set, so the downstream commit step picks up formatted files
+  - Every `{files}` placeholder is replaced with the shell-quoted modified paths (e.g. `npx prettier --write {files}`); a failing command fails the action
+- **Fetch images and other attachments from issues and PRs** ([#2](https://github.com/vig-os/sync-issues-action/issues/2))
+  - New optional `sync-attachments` input (default `false`) downloads attachments referenced in issue/PR bodies and comments to `<output-dir>/attachments/<uuid>.<ext>` and rewrites body URLs to relative paths, making the synced tree self-contained offline
+  - Works for public and private repositories via the signed URLs GitHub embeds in the API's HTML body rendering; failed downloads keep the original URL and log a warning
+  - Downloaded attachments are included in the `modified-files` output; `format-command` now only receives markdown files
+
+### Changed
+
+- **Renovate: update `ubuntu` from `22.04` to `24.04`** ([#130](https://github.com/vig-os/sync-issues-action/pull/130))
+- **Renovate dependency update** ([#126](https://github.com/vig-os/sync-issues-action/pull/126))
+  - Update `@types/node` from `25.5.0` to `25.9.5`
+  - Update `@typescript-eslint/eslint-plugin` from `8.57.2` to `8.64.0`
+  - Update `@typescript-eslint/parser` from `8.57.2` to `8.64.0`
+  - Update `@vercel/ncc` from `^0.38.1` to `^0.44.0`
+  - Update `eslint` from `10.1.0` to `10.7.0`
+  - Update `globals` from `17.4.0` to `17.7.0`
+  - Update `jest` from `30.3.0` to `30.4.2`
+  - Update `prettier` from `3.8.1` to `3.9.5`
+  - Update `ts-jest` from `29.4.6` to `29.4.11`
+  - Update `tsx` from `4.21.0` to `4.23.1`
+  - Update `typescript-eslint` from `8.57.2` to `8.64.0`
+
+### Security
+
+- **Pin `@github/local-action` in the local integration test script** ([#122](https://github.com/vig-os/sync-issues-action/issues/122))
+  - `test-local.sh` now installs a fixed version instead of the floating latest, resolving the OpenSSF Scorecard `PinnedDependenciesID` alert
+
 ## [v0.3.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.3.0) - 2026-07-16
 
 ### Added
