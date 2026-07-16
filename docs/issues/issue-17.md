@@ -1,18 +1,19 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-02-23T09:42:03Z
-updated: 2026-02-23T09:42:03Z
+updated: 2026-07-16T15:29:41Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/17
-comments: 0
-labels: feature
+comments: 1
+labels: feature, priority:medium, area:workflow, effort:medium, semver:minor
 assignees: none
-milestone: none
+milestone: 0.4
 projects: none
-relationship: none
-synced: 2026-02-23T09:42:18.470Z
+parent: none
+children: none
+synced: 2026-07-16T18:08:28.824Z
 ---
 
 # [Issue 17]: [[FEATURE] Support user-configurable formatting hook for generated markdown](https://github.com/vig-os/sync-issues-action/issues/17)
@@ -51,3 +52,11 @@ The key architectural constraint: formatting must run **after** files are writte
 - Upstream issue: [vig-os/devcontainer#69](https://github.com/vig-os/devcontainer/issues/69) — documents the repeated CI failures caused by unformatted synced files.
 - The action already outputs `modified-files` (comma-separated paths), which is the natural input for any formatting step.
 - The action is Node.js-based (`node20`), so `child_process.execSync` is available for running external commands.
+---
+
+# [Comment #1]() by [c-vigo]()
+
+_Posted on July 16, 2026 at 03:29 PM_
+
+Implemented in PR #120 with the `format-command` design (option 1 from the proposal): a new optional input runs a consumer-supplied shell command on the synced files after they are written and before outputs are set, with every `{files}` placeholder replaced by the shell-quoted modified paths. Commands without a placeholder run as-is; empty input or an empty change set skips the hook; a failing command fails the action. Covered by 6 unit tests (placeholder substitution, quoting of spaces/single-quotes, skip conditions, error wrapping) and documented in action.yml, the README inputs table, and the changelog. Ships with the next release (0.4).
+

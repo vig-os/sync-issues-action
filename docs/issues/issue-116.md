@@ -1,19 +1,19 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-07-16T11:58:03Z
-updated: 2026-07-16T11:58:03Z
+updated: 2026-07-16T12:53:02Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/116
-comments: 0
+comments: 1
 labels: chore, area:ci, priority:blocking, effort:small
 assignees: none
 milestone: 0.3
 projects: none
 parent: none
 children: none
-synced: 2026-07-16T12:36:42.903Z
+synced: 2026-07-16T18:08:25.238Z
 ---
 
 # [Issue 116]: [[CHORE] Release train finalize times out: sync-issues dispatch runs the old default-branch workflow](https://github.com/vig-os/sync-issues-action/issues/116)
@@ -38,3 +38,11 @@ Hand-patch `release-core.yml` on `release/0.3.0` (managed file; precedent #113 /
 Self-corrects for future releases once `main` carries the devkit scaffold; patch is dropped on the next devkit regeneration. Upstream report to vig-os/devkit to follow.
 
 Refs: #106, #115
+---
+
+# [Comment #1]() by [c-vigo]()
+
+_Posted on July 16, 2026 at 12:53 PM_
+
+Fix shipped via PR #117 and validated live on the final-release retry (run 29498572451): the devkit sync workflow ran on release/0.3.0 (3m30s — the 600s timeout mattered; even the new workflow's first run exceeds the old 120s ceiling) and finalize completed. v0.3.0 published.
+
