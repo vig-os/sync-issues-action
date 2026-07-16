@@ -148,6 +148,117 @@ export function parseNumberFilter(input) {
     }
     return Array.from(numbers).sort((a, b) => a - b);
 }
+// Signed attachment URLs GitHub emits in body_html; valid ~5 minutes, so they
+// must be downloaded right after the item is fetched and never written to disk.
+const SIGNED_ATTACHMENT_PATTERN = /https:\/\/private-user-images\.githubusercontent\.com\/\d+\/\d+-([0-9a-fA-F-]{36})\.(\w+)\?jwt=[\w.~+/=-]+/g;
+// Raw-body URL shapes: modern asset uploads, legacy image uploads, file uploads.
+const RAW_ASSET_PATTERN = /https:\/\/github\.com\/user-attachments\/assets\/([0-9a-fA-F-]{36})/g;
+const RAW_LEGACY_PATTERN = /https:\/\/user-images\.githubusercontent\.com\/\d+\/\d+-([0-9a-fA-F-]{36})\.(\w+)/g;
+const RAW_FILE_PATTERN = /https:\/\/github\.com\/user-attachments\/files\/(\d+)\/([\w.%-]+)/g;
+export function extractAttachmentAssets(bodyHtml) {
+    const assets = new Map();
+    for (const match of bodyHtml.matchAll(SIGNED_ATTACHMENT_PATTERN)) {
+        const [signedUrl, uuid, ext] = match;
+        if (!assets.has(uuid)) {
+            assets.set(uuid, { uuid, ext, signedUrl });
+        }
+    }
+    return assets;
+}
+function sanitizeAttachmentName(name) {
+    let decoded = name;
+    try {
+        decoded = decodeURIComponent(name);
+    }
+    catch {
+        // Keep the raw name if it is not valid percent-encoding
+    }
+    return decoded.replace(/[^A-Za-z0-9._-]/g, '_').replace(/^\.+/, '_');
+}
+async function downloadAttachment(url, filepath, dir) {
+    await withRetry(`Download attachment ${path.basename(filepath)}`, async () => {
+        const response = await fetch(url);
+        if (!response.ok) {
+            const error = new Error(`HTTP ${response.status} while downloading attachment`);
+            error.status = response.status;
+            throw error;
+        }
+        const data = Buffer.from(await response.arrayBuffer());
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filepath, data);
+    });
+}
+/**
+ * Downloads the attachments referenced in a raw markdown body and rewrites
+ * their URLs to relative paths under the attachments directory. Assets whose
+ * signed URL is unavailable or whose download fails keep their original URL.
+ */
+export async function processBodyAttachments(body, bodyHtml, ctx) {
+    if (!body) {
+        return body;
+    }
+    const assets = bodyHtml ? extractAttachmentAssets(bodyHtml) : new Map();
+    const targets = new Map();
+    for (const match of body.matchAll(RAW_ASSET_PATTERN)) {
+        const [rawUrl, uuid] = match;
+        if (targets.has(rawUrl)) {
+            continue;
+        }
+        const asset = assets.get(uuid);
+        if (!asset) {
+            core.warning(`No signed URL found for attachment ${uuid}; keeping original URL`);
+            targets.set(rawUrl, null);
+            continue;
+        }
+        targets.set(rawUrl, { sourceUrl: asset.signedUrl, filename: `${uuid}.${asset.ext}` });
+    }
+    for (const match of body.matchAll(RAW_LEGACY_PATTERN)) {
+        const [rawUrl, uuid, ext] = match;
+        if (targets.has(rawUrl)) {
+            continue;
+        }
+        // Legacy CDN URLs are directly downloadable; prefer the signed URL when present
+        const asset = assets.get(uuid);
+        targets.set(rawUrl, {
+            sourceUrl: asset ? asset.signedUrl : rawUrl,
+            filename: `${uuid}.${asset ? asset.ext : ext}`,
+        });
+    }
+    for (const match of body.matchAll(RAW_FILE_PATTERN)) {
+        const [rawUrl, id, name] = match;
+        if (targets.has(rawUrl)) {
+            continue;
+        }
+        targets.set(rawUrl, { sourceUrl: rawUrl, filename: `${id}-${sanitizeAttachmentName(name)}` });
+    }
+    let result = body;
+    for (const [rawUrl, target] of targets) {
+        if (!target) {
+            continue;
+        }
+        const filepath = path.join(ctx.dir, target.filename);
+        if (!ctx.handled.has(target.filename)) {
+            if (fs.existsSync(filepath) && !ctx.forceUpdate) {
+                ctx.handled.add(target.filename);
+            }
+            else {
+                try {
+                    await downloadAttachment(target.sourceUrl, filepath, ctx.dir);
+                    ctx.handled.add(target.filename);
+                    ctx.files.push(filepath);
+                }
+                catch (error) {
+                    core.warning(`Failed to download attachment ${target.filename}: ${formatGitHubError(error)}`);
+                    continue;
+                }
+            }
+        }
+        result = result.split(rawUrl).join(`${ctx.relativePrefix}/${target.filename}`);
+    }
+    return result;
+}
 async function run() {
     try {
         // Get token from input (defaults to github.token via action.yml)
@@ -188,12 +299,14 @@ async function run() {
         const includeClosedInput = core.getInput('include-closed') || 'false';
         const forceUpdateInput = core.getInput('force-update') || 'false';
         const syncSubIssuesInput = core.getInput('sync-sub-issues') || 'true';
+        const syncAttachmentsInput = core.getInput('sync-attachments') || 'false';
         // Convert to boolean (getBooleanInput is strict and throws if input is missing)
         const syncIssues = syncIssuesInput.toLowerCase() === 'true';
         const syncPRs = syncPRsInput.toLowerCase() === 'true';
         const includeClosed = includeClosedInput.toLowerCase() === 'true';
         const forceUpdate = forceUpdateInput.toLowerCase() === 'true';
         const syncSubIssues = syncSubIssuesInput.toLowerCase() === 'true';
+        const syncAttachments = syncAttachmentsInput.toLowerCase() === 'true';
         const updatedSince = resolveUpdatedSince(updatedSinceInput, stateFilePath);
         const issuesFilter = parseNumberFilter(core.getInput('issues-filter') || '');
         const prsFilter = parseNumberFilter(core.getInput('prs-filter') || '');
@@ -210,12 +323,23 @@ async function run() {
         const issuesDir = path.join(outputDir, 'issues');
         const prsDir = path.join(outputDir, 'pull-requests');
         const modifiedFiles = [];
+        // Attachments live next to issues/ and pull-requests/, so MD files
+        // reference them with the same relative prefix from either directory.
+        const attachmentCtx = syncAttachments
+            ? {
+                dir: path.join(outputDir, 'attachments'),
+                relativePrefix: '../attachments',
+                forceUpdate,
+                handled: new Set(),
+                files: [],
+            }
+            : undefined;
         if (syncIssues) {
             core.info('Syncing issues...');
             if (!fs.existsSync(issuesDir)) {
                 fs.mkdirSync(issuesDir, { recursive: true });
             }
-            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince, forceUpdate, syncSubIssues, issuesFilter);
+            const issuesResult = await syncIssuesToMarkdown(octokit, owner, repo, issuesDir, includeClosed, updatedSince, forceUpdate, syncSubIssues, issuesFilter, attachmentCtx);
             issuesCount = issuesResult.count;
             modifiedFiles.push(...issuesResult.files);
         }
@@ -224,13 +348,17 @@ async function run() {
             if (!fs.existsSync(prsDir)) {
                 fs.mkdirSync(prsDir, { recursive: true });
             }
-            const prsResult = await syncPRsToMarkdown(octokit, owner, repo, prsDir, includeClosed, updatedSince, forceUpdate, prsFilter);
+            const prsResult = await syncPRsToMarkdown(octokit, owner, repo, prsDir, includeClosed, updatedSince, forceUpdate, prsFilter, attachmentCtx);
             prsCount = prsResult.count;
             modifiedFiles.push(...prsResult.files);
         }
+        if (attachmentCtx) {
+            modifiedFiles.push(...attachmentCtx.files);
+        }
         // User formatting hook (#17): runs after files are written and before
         // outputs are set, so the downstream commit step picks up formatted files.
-        runFormatCommand(core.getInput('format-command') || '', modifiedFiles);
+        // Binary attachments are excluded — formatters only get markdown.
+        runFormatCommand(core.getInput('format-command') || '', modifiedFiles.filter((file) => file.endsWith('.md')));
         const lastSyncedAt = new Date().toISOString();
         core.setOutput('issues-count', issuesCount);
         core.setOutput('prs-count', prsCount);
@@ -250,7 +378,7 @@ async function run() {
         }
     }
 }
-async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = true, filterNumbers) {
+async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, syncSubIssues = true, filterNumbers, attachments) {
     const allIssues = [];
     if (filterNumbers) {
         for (const issueNumber of filterNumbers) {
@@ -259,6 +387,7 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
                     owner,
                     repo,
                     issue_number: issueNumber,
+                    ...(attachments ? { mediaType: { format: 'full' } } : {}),
                 }));
                 if (issue.pull_request) {
                     core.warning(`Skipping #${issueNumber}: not an issue (pull request).`);
@@ -324,11 +453,21 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
                     owner,
                     repo,
                     issue_number: issue.number,
+                    ...(attachments ? { mediaType: { format: 'full' } } : {}),
                 }));
                 fullIssue = data;
             }
-            const comments = await fetchComments(octokit, owner, repo, issue.number);
+            const comments = await fetchComments(octokit, owner, repo, issue.number, !!attachments);
             const relationship = relationships.get(issue.number);
+            if (attachments) {
+                fullIssue = {
+                    ...fullIssue,
+                    body: await processBodyAttachments(fullIssue.body, fullIssue.body_html, attachments),
+                };
+                for (const comment of comments) {
+                    comment.body = await processBodyAttachments(comment.body, comment.body_html, attachments);
+                }
+            }
             const content = formatIssueAsMarkdown(fullIssue, comments, relationship);
             if (forceUpdate || hasContentChanged(content, filepath)) {
                 fs.writeFileSync(filepath, content, 'utf-8');
@@ -349,15 +488,27 @@ async function syncIssuesToMarkdown(octokit, owner, repo, outputDir, includeClos
     }
     return { count: allIssues.length - skippedIssues, files };
 }
-async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, filterNumbers) {
+async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed, updatedSince, forceUpdate = false, filterNumbers, attachments) {
     let prsCount = 0;
     const files = [];
     let skippedPRs = 0;
     const processPR = async (fullPR) => {
         const filename = `pr-${fullPR.number}.md`;
         const filepath = path.join(outputDir, filename);
-        const comments = await fetchComments(octokit, owner, repo, fullPR.number);
-        const reviewComments = await fetchReviewComments(octokit, owner, repo, fullPR.number);
+        const comments = await fetchComments(octokit, owner, repo, fullPR.number, !!attachments);
+        const reviewComments = await fetchReviewComments(octokit, owner, repo, fullPR.number, !!attachments);
+        if (attachments) {
+            fullPR = {
+                ...fullPR,
+                body: await processBodyAttachments(fullPR.body, fullPR.body_html, attachments),
+            };
+            for (const comment of comments) {
+                comment.body = await processBodyAttachments(comment.body, comment.body_html, attachments);
+            }
+            for (const reviewComment of reviewComments) {
+                reviewComment.body = await processBodyAttachments(reviewComment.body, reviewComment.body_html, attachments);
+            }
+        }
         let commits = [];
         if (fullPR.state === 'closed') {
             commits = await fetchPRCommits(octokit, owner, repo, fullPR.number);
@@ -380,6 +531,7 @@ async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed,
                     owner,
                     repo,
                     pull_number: prNumber,
+                    ...(attachments ? { mediaType: { format: 'full' } } : {}),
                 }));
                 if (!includeClosed && fullPR.state === 'closed') {
                     core.info(`Skipping PR #${prNumber}: closed and include-closed is false.`);
@@ -434,6 +586,7 @@ async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed,
                         owner,
                         repo,
                         pull_number: pr.number,
+                        ...(attachments ? { mediaType: { format: 'full' } } : {}),
                     }));
                     await processPR(fullPR);
                 }
@@ -459,7 +612,7 @@ async function syncPRsToMarkdown(octokit, owner, repo, outputDir, includeClosed,
     }
     return { count: prsCount, files };
 }
-async function fetchComments(octokit, owner, repo, issueNumber) {
+async function fetchComments(octokit, owner, repo, issueNumber, includeHtml = false) {
     const comments = [];
     let page = 1;
     const perPage = 100;
@@ -472,6 +625,7 @@ async function fetchComments(octokit, owner, repo, issueNumber) {
                 issue_number: issueNumber,
                 per_page: perPage,
                 page,
+                ...(includeHtml ? { mediaType: { format: 'full' } } : {}),
             }));
             comments.push(...pageComments);
             hasMore = pageComments.length === perPage;
@@ -609,7 +763,7 @@ async function fetchPRCommits(octokit, owner, repo, pullNumber) {
     }
     return commits;
 }
-async function fetchReviewComments(octokit, owner, repo, pullNumber) {
+async function fetchReviewComments(octokit, owner, repo, pullNumber, includeHtml = false) {
     const reviewComments = [];
     let page = 1;
     const perPage = 100;
@@ -622,6 +776,7 @@ async function fetchReviewComments(octokit, owner, repo, pullNumber) {
                 pull_number: pullNumber,
                 per_page: perPage,
                 page,
+                ...(includeHtml ? { mediaType: { format: 'full' } } : {}),
             }));
             reviewComments.push(...pageComments);
             hasMore = pageComments.length === perPage;

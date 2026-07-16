@@ -58,6 +58,7 @@ A GitHub Action that syncs all issues and pull requests from a repository to mar
 | `state-file` | Optional path to store last sync timestamp (use with cache) | No | - |
 | `force-update` | Re-write all synced files even if content is unchanged | No | `false` |
 | `sync-sub-issues` | Sync sub-issue relationships (`parent`/`children`) via GraphQL | No | `true` |
+| `sync-attachments` | Download attachments (images, videos, files) referenced in issue/PR bodies and comments to `<output-dir>/attachments/`, rewriting body URLs to relative paths so the synced tree works offline. Failed downloads keep the original URL and log a warning. `format-command` only receives markdown files | No | `false` |
 
 ### Outputs
 
@@ -96,11 +97,24 @@ synced-issues/
 │   ├── issue-1.md
 │   ├── issue-2.md
 │   └── ...
-└── pull-requests/
-    ├── pr-1.md
-    ├── pr-2.md
+├── pull-requests/
+│   ├── pr-1.md
+│   ├── pr-2.md
+│   └── ...
+└── attachments/            # only with sync-attachments: true
+    ├── <uuid>.png
     └── ...
 ```
+
+With `sync-attachments: true`, attachments are stored once per unique asset
+(keyed by GitHub's asset UUID) and referenced from the markdown files as
+`../attachments/<uuid>.<ext>`, so the same image linked from several
+issues/comments is downloaded only once. Works for public and private
+repositories: downloads use the short-lived signed URLs GitHub embeds in the
+API's HTML rendering of each body. Non-image file attachments
+(`user-attachments/files/...`) are downloaded directly, which may fail on
+private repositories — in that case the original URL is kept and a warning is
+logged.
 
 ## Markdown Format
 
