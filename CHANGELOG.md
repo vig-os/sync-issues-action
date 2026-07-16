@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renovate: update `typescript` from `^5.3.2` to `^7.0.0`** ([#128](https://github.com/vig-os/sync-issues-action/pull/128))
+
 ### Deprecated
 
 ### Removed
