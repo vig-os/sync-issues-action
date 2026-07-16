@@ -1,30 +1,5 @@
-# Release Workflow
-#
-# Creates a versioned release from a release branch.
-# Customized for the sync-issues-action project.
-#
-# This is Phase 2 of the release process:
-#   Phase 1 — prepare-release.yml (branch, version bump, CHANGELOG heading, PR)
-#   Phase 2 — release.yml (this file: validate, finalize, test, tag, publish)
-#   Phase 3 — sync-main-to-dev.yml (PR-based dev sync)
-#
-# Prerequisites:
-#   - A release branch (release/X.Y.Z) exists
-#   - CHANGELOG.md contains "## [X.Y.Z] - TBD"
-#   - A PR from release/X.Y.Z to main is open, approved, and CI has passed
-#   - Tag vX.Y.Z does not yet exist
-#
-# Steps:
-#   1. Validate  — Check all prerequisites
-#   2. Finalize  — Bump package.json, set release date in CHANGELOG, commit, push
-#   3. Test      — Build verification and full test suite on finalized code
-#   4. Release   — Create tag (vX.Y.Z), GitHub Release
-#   5. Update floating tags — Job after release: update vX, vX.Y (with on-failure restore)
-#   6. Rollback  — Revert changes and create issue on failure (no floating-tag restore)
-#
-# Trigger:
-#   - Manual workflow_dispatch with version input
-#
+# Managed by vigOS devkit — regenerated on upgrade; local edits are lost.
+# Customize in justfile.project. Bugs / missing tools: https://github.com/vig-os/devkit/issues
 
 name: Release
 
@@ -32,24 +7,39 @@ on:  # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
       version:
-        description: 'Semantic version to release (e.g., 1.2.3)'
+        description: "Semantic version to release (e.g., 1.2.3)"
         required: true
         type: string
+      release-kind:
+        description: "Release mode: candidate publishes X.Y.Z-rcN, final publishes X.Y.Z"
+        required: false
+        default: "candidate"
+        type: string
       dry-run:
-        description: 'Validate without making changes'
+        description: "Validate without making changes"
         required: false
         default: false
         type: boolean
       git-user-name:
-        description: 'Git user name for release commits'
+        description: "Git user name for release commits"
         required: false
-        default: 'github-actions[bot]'
+        default: "github-actions[bot]"
         type: string
       git-user-email:
-        description: 'Git user email for release commits'
+        description: "Git user email for release commits"
         required: false
-        default: '41898282+github-actions[bot]@users.noreply.github.com'
+        default: "41898282+github-actions[bot]@users.noreply.github.com"
         type: string
+      rc-number:
+        description: "Candidate RC index (e.g. 21 for X.Y.Z-rc21). Omit to auto-increment from existing tags."
+        required: false
+        default: ""
+        type: string
+      create-release:
+        description: "For candidates only: create a draft GitHub pre-release (default tag-only)"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: release
@@ -57,592 +47,211 @@ concurrency:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
-  validate:
-    name: Validate Release
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
+  # Resolve the delivery mode + image ONCE for the whole release; every reusable
+  # workflow and the rollback job is threaded these outputs (ADR Option A). Empty
+  # `image` in the host modes makes the container jobs run on the runner.
+  resolve-toolchain:
+    name: Resolve toolchain
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
     outputs:
-      version: ${{ steps.vars.outputs.version }}
-      pr_number: ${{ steps.pr.outputs.pr_number }}
-      release_date: ${{ steps.vars.outputs.release_date }}
-      pre_finalize_sha: ${{ steps.pre_sha.outputs.pre_finalize_sha }}
-
+      mode: ${{ steps.resolve.outputs.mode }}
+      image: ${{ steps.resolve.outputs.image }}
+      image-tag: ${{ steps.resolve.outputs.image-tag }}
+      tag-prefix: ${{ steps.resolve.outputs.tag-prefix }}
     steps:
-      - name: Validate and prepare variables
-        id: vars
-        env:
-          INPUT_VERSION: ${{ github.event.inputs.version }}
-        run: |
-          set -euo pipefail
-          VERSION="$INPUT_VERSION"
-
-          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "ERROR: Invalid version format '$VERSION'"
-            echo "Version must follow semantic versioning: MAJOR.MINOR.PATCH (e.g., 1.2.3)"
-            exit 1
-          fi
-
-          RELEASE_DATE=$(date -u +%Y-%m-%d)
-
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
-
-      - name: Checkout release branch
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
-          ref: release/${{ steps.vars.outputs.version }}
-          fetch-depth: 0
+          sparse-checkout: |
+            .vig-os
+            .github/actions/resolve-toolchain
+          sparse-checkout-cone-mode: false
 
-      - name: Record pre-finalization SHA
-        id: pre_sha
-        run: |
-          PRE_FINALIZE_SHA=$(git rev-parse HEAD)
-          echo "pre_finalize_sha=$PRE_FINALIZE_SHA" >> $GITHUB_OUTPUT
-          echo "Pre-finalization SHA: $PRE_FINALIZE_SHA"
+      - name: Resolve toolchain
+        id: resolve
+        uses: ./.github/actions/resolve-toolchain
+        with:
+          registry-token: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
+          registry-username: ${{ github.actor }}
 
-      - name: Verify CHANGELOG has TBD entry
-        env:
-          VERSION: ${{ steps.vars.outputs.version }}
-        run: |
-          if ! grep -q "## \[$VERSION\] - TBD" CHANGELOG.md; then
-            echo "ERROR: CHANGELOG.md does not contain '## [$VERSION] - TBD'"
-            exit 1
-          fi
-
-      - name: Verify tag does not exist
-        env:
-          VERSION: ${{ steps.vars.outputs.version }}
-        run: |
-          if git tag -l | grep -q "^v${VERSION}$"; then
-            echo "ERROR: Tag v$VERSION already exists"
-            exit 1
-          fi
-
-      - name: Find and verify PR
-        id: pr
-        env:
-          VERSION: ${{ steps.vars.outputs.version }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          PR_JSON=$(gh pr list \
-            --head "release/$VERSION" \
-            --base main \
-            --json number,isDraft,reviewDecision,statusCheckRollup \
-            --limit 1)
-
-          PR_COUNT=$(echo "$PR_JSON" | jq 'length')
-
-          if [ "$PR_COUNT" != "1" ]; then
-            echo "ERROR: Expected exactly 1 PR from release/$VERSION to main, found $PR_COUNT"
-            exit 1
-          fi
-
-          PR_NUMBER=$(echo "$PR_JSON" | jq -r '.[0].number')
-          IS_DRAFT=$(echo "$PR_JSON" | jq -r '.[0].isDraft')
-          REVIEW_DECISION=$(echo "$PR_JSON" | jq -r '.[0].reviewDecision')
-
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-
-          if [ "$IS_DRAFT" = "true" ]; then
-            echo "ERROR: PR #$PR_NUMBER is still in draft"
-            exit 1
-          fi
-
-          if [ "$REVIEW_DECISION" != "APPROVED" ]; then
-            echo "ERROR: PR #$PR_NUMBER is not approved (status: $REVIEW_DECISION)"
-            exit 1
-          fi
-
-          STATUS_ROLLUP=$(echo "$PR_JSON" | jq -r '.[0].statusCheckRollup // []')
-          CI_FAILED=$(echo "$STATUS_ROLLUP" | jq '[.[] | select(.conclusion == "FAILURE" or .conclusion == "ERROR")] | length')
-
-          if [ "$CI_FAILED" != "0" ]; then
-            echo "ERROR: PR #$PR_NUMBER has failed CI checks"
-            exit 1
-          fi
-
-          echo "PR #$PR_NUMBER verified: ready, approved, CI passed"
-
-      - name: Summary
-        env:
-          VERSION: ${{ steps.vars.outputs.version }}
-          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
-          RELEASE_DATE: ${{ steps.vars.outputs.release_date }}
-          DRY_RUN: ${{ github.event.inputs.dry-run }}
-        run: |
-          echo "Validation passed"
-          echo ""
-          echo "  Version:      $VERSION"
-          echo "  Branch:       release/$VERSION"
-          echo "  PR:           #$PR_NUMBER"
-          echo "  Release Date: $RELEASE_DATE"
-          echo "  Dry-run:      $DRY_RUN"
-
-  finalize:
-    name: Finalize Release
-    needs: validate
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
-    if: ${{ github.event.inputs.dry-run != 'true' }}
+  core:
+    name: Release Core
+    needs: [resolve-toolchain]
+    uses: ./.github/workflows/release-core.yml
     permissions:
-      contents: write
-    outputs:
-      finalize_sha: ${{ steps.finalize.outputs.finalize_sha }}
+      actions: read
+      contents: read
+      pull-requests: read
+      packages: read
+    with:
+      version: ${{ inputs.version }}
+      release_kind: ${{ inputs.release-kind }}
+      dry_run: ${{ inputs.dry-run }}
+      git_user_name: ${{ inputs.git-user-name }}
+      git_user_email: ${{ inputs.git-user-email }}
+      rc_number: ${{ inputs.rc-number || '' }}
+      toolchain_mode: ${{ needs.resolve-toolchain.outputs.mode }}
+      toolchain_image: ${{ needs.resolve-toolchain.outputs.image }}
+      devkit_version: ${{ needs.resolve-toolchain.outputs.image-tag }}
+      tag_prefix: ${{ needs.resolve-toolchain.outputs.tag-prefix }}
+    secrets: inherit
 
-    steps:
-      - name: Generate GitHub App Token
-        id: app-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+  extension:
+    name: Release Extension
+    needs: core
+    if: ${{ inputs.dry-run != true }}
+    uses: ./.github/workflows/release-extension.yml
+    with:
+      version: ${{ needs.core.outputs.version }}
+      finalize_sha: ${{ needs.core.outputs.finalize_sha }}
+      release_date: ${{ needs.core.outputs.release_date }}
+      release_kind: ${{ needs.core.outputs.release_kind }}
+      publish_version: ${{ needs.core.outputs.publish_version }}
+    secrets: inherit
 
-      - name: Checkout release branch
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
-        with:
-          ref: release/${{ needs.validate.outputs.version }}
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: true
-
-      - name: Set up environment
-        uses: ./.github/actions/setup-env
-
-      - name: Bump package.json version
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-        run: npm version "$VERSION" --no-git-tag-version
-
-      - name: Set release date in CHANGELOG
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          RELEASE_DATE: ${{ needs.validate.outputs.release_date }}
-        run: |
-          set -euo pipefail
-          python3 .github/prepare_changelog.py finalize "$VERSION" "$RELEASE_DATE" CHANGELOG.md
-
-      - name: Commit and push finalization changes via API
-        uses: vig-os/commit-action@b70c2d87acd0f146c40e8d88a9bda40b76c084b5  # v0.1.3
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          TARGET_BRANCH: refs/heads/release/${{ needs.validate.outputs.version }}
-          COMMIT_MESSAGE: |-
-            chore: finalize release ${{ needs.validate.outputs.version }}
-
-            Set release date to ${{ needs.validate.outputs.release_date }} in CHANGELOG.md
-            Bump package.json version to ${{ needs.validate.outputs.version }}
-
-            Refs: #${{ needs.validate.outputs.pr_number }}
-          FILE_PATHS: CHANGELOG.md,package.json,package-lock.json
-
-      - name: Fetch finalized commit
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-        run: |
-          set -euo pipefail
-          git fetch origin "release/$VERSION"
-          git reset --hard "origin/release/$VERSION"
-
-      - name: Output finalize SHA
-        id: finalize
-        run: |
-          FINALIZE_SHA=$(git rev-parse HEAD)
-          echo "finalize_sha=$FINALIZE_SHA" >> $GITHUB_OUTPUT
-          echo "Finalized at commit: $FINALIZE_SHA"
-
-  test:
-    name: Test (Finalized)
-    needs: [validate, finalize]
-    runs-on: ubuntu-22.04
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout finalized commit
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
-        with:
-          ref: ${{ needs.finalize.outputs.finalize_sha }}
-
-      - name: Set up environment
-        uses: ./.github/actions/setup-env
-
-      - name: Build and verify dist
-        uses: ./.github/actions/build-dist
-
-      - name: Run tests
-        run: npm run test:coverage
-
-  integration-test:
-    name: Integration Test (Finalized)
-    needs: [validate, finalize]
-    uses: ./.github/workflows/integration-test.yml
+  publish:
+    name: Publish Release
+    needs: [resolve-toolchain, core, extension]
+    if: ${{ inputs.dry-run != true }}
+    uses: ./.github/workflows/release-publish.yml
     permissions:
       contents: read
-      issues: read
-      pull-requests: read
+      packages: read
     with:
-      ref: ${{ needs.finalize.outputs.finalize_sha }}
-
-  release:
-    name: Create Release
-    needs: [validate, finalize, test, integration-test]
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
-    permissions:
-      contents: write
-      id-token: write
-      attestations: write
-    steps:
-      - name: Generate GitHub App Token
-        id: app-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
-      - name: Checkout finalized commit
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
-        with:
-          ref: ${{ needs.finalize.outputs.finalize_sha }}
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: true
-
-      - name: Create verified tag via API
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          set -euo pipefail
-          COMMIT_SHA=$(git rev-parse HEAD)
-
-          TAG_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/tags" \
-            -f tag="v$VERSION" \
-            -f message="Release v$VERSION" \
-            -f object="$COMMIT_SHA" \
-            -f type="commit" \
-            --jq '.sha')
-
-          gh api "repos/$GITHUB_REPOSITORY/git/refs" \
-            -f ref="refs/tags/v$VERSION" \
-            -f sha="$TAG_SHA"
-
-          echo "Verified tag v$VERSION created at $COMMIT_SHA"
-
-      - name: Extract release notes from CHANGELOG
-        id: notes
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-        run: |
-          set -euo pipefail
-          python3 .github/prepare_changelog.py extract-notes "$VERSION" CHANGELOG.md \
-            > /tmp/release-notes.md
-
-          echo "Release notes:"
-          cat /tmp/release-notes.md
-
-      - name: Generate checksums
-        run: |
-          set -euo pipefail
-          sha256sum dist/index.js > checksums-sha256.txt
-          echo "Checksums:"
-          cat checksums-sha256.txt
-
-      - name: Create GitHub Release
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          set -euo pipefail
-          gh release create "v$VERSION" checksums-sha256.txt \
-            --title "v$VERSION" \
-            --notes-file /tmp/release-notes.md \
-            --verify-tag
-          echo "GitHub Release v$VERSION created with checksums-sha256.txt attached"
-
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f  # v3
-        with:
-          subject-path: dist/index.js
-
-      - name: Summary
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-        run: |
-          echo "Release published successfully"
-          echo ""
-          echo "  Version: $VERSION"
-          echo "  Tag:     v$VERSION"
-          echo "  Release: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
-          echo ""
-          echo "Floating tags (v${VERSION%%.*}, v${VERSION%.*}) will be updated in the next job."
-          echo ""
-          echo "Phase 3 (sync-main-to-dev.yml) will:"
-          echo "  1. Open a PR to sync main into dev"
-          echo "  2. Require normal protected-branch merge to complete sync"
-
-  update-floating-tags:
-    name: Update Floating Tags
-    needs: [validate, finalize, release]
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - name: Generate GitHub App Token
-        id: app-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
-        with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
-      - name: Capture existing floating tag SHAs
-        id: capture
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          set -euo pipefail
-          FLOAT_MAJOR="v${VERSION%%.*}"
-          FLOAT_MINOR="v${VERSION%.*}"
-
-          get_tag_sha() {
-            local TAG="$1"
-            local SHA
-            SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" \
-              --jq '.object.sha' 2>/dev/null || true)
-            if [ -n "$SHA" ] && echo "$SHA" | grep -qE '^[0-9a-f]{40}$'; then
-              echo "$SHA"
-            fi
-          }
-
-          MAJOR_SHA=$(get_tag_sha "$FLOAT_MAJOR")
-          MINOR_SHA=$(get_tag_sha "$FLOAT_MINOR")
-          echo "floating_major_sha=$MAJOR_SHA" >> $GITHUB_OUTPUT
-          echo "floating_minor_sha=$MINOR_SHA" >> $GITHUB_OUTPUT
-          echo "Captured floating tag SHAs: $FLOAT_MAJOR=$MAJOR_SHA $FLOAT_MINOR=$MINOR_SHA"
-
-      - name: Update floating version tags
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          COMMIT_SHA: ${{ needs.finalize.outputs.finalize_sha }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          set -euo pipefail
-          FLOAT_MAJOR="v${VERSION%%.*}"
-          FLOAT_MINOR="v${VERSION%.*}"
-
-          get_tag_sha() {
-            local TAG="$1"
-            local SHA
-            SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" \
-              --jq '.object.sha' 2>/dev/null || true)
-            if [ -n "$SHA" ] && echo "$SHA" | grep -qE '^[0-9a-f]{40}$'; then
-              echo "$SHA"
-            fi
-          }
-
-          upsert_tag() {
-            local TAG="$1" SHA="$2"
-            local EXISTING
-            EXISTING=$(get_tag_sha "$TAG")
-            if [ -n "$EXISTING" ]; then
-              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
-                --method PATCH -f sha="$SHA" -F force=true
-              echo "Updated $TAG → $SHA (was $EXISTING)"
-            else
-              gh api "repos/$GITHUB_REPOSITORY/git/refs" \
-                -f ref="refs/tags/$TAG" -f sha="$SHA"
-              echo "Created $TAG → $SHA"
-            fi
-          }
-
-          upsert_tag "$FLOAT_MAJOR" "$COMMIT_SHA"
-          upsert_tag "$FLOAT_MINOR" "$COMMIT_SHA"
-
-      - name: Restore floating version tags on failure
-        if: failure()
-        continue-on-error: true
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          PREV_MAJOR_SHA: ${{ steps.capture.outputs.floating_major_sha }}
-          PREV_MINOR_SHA: ${{ steps.capture.outputs.floating_minor_sha }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          FLOAT_MAJOR="v${VERSION%%.*}"
-          FLOAT_MINOR="v${VERSION%.*}"
-
-          restore_or_delete() {
-            local TAG="$1" PREV_SHA="$2"
-            if [ -n "$PREV_SHA" ] && echo "$PREV_SHA" | grep -qE '^[0-9a-f]{40}$'; then
-              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
-                --method PATCH -f sha="$PREV_SHA" -F force=true 2>/dev/null \
-                && echo "Restored $TAG → $PREV_SHA" \
-                || echo "Warning: Could not restore $TAG"
-            elif [ -n "$PREV_SHA" ]; then
-              echo "Warning: Invalid previous SHA for $TAG ($PREV_SHA), skipping restore/delete"
-            else
-              gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" \
-                --method DELETE 2>/dev/null \
-                && echo "Deleted floating tag $TAG" \
-                || echo "No floating tag $TAG to delete"
-            fi
-          }
-
-          restore_or_delete "$FLOAT_MAJOR" "$PREV_MAJOR_SHA"
-          restore_or_delete "$FLOAT_MINOR" "$PREV_MINOR_SHA"
-
-  dry-run-preview:
-    name: Dry-Run Preview
-    needs: validate
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
-    if: ${{ github.event.inputs.dry-run == 'true' }}
-
-    steps:
-      - name: Checkout release branch
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
-        with:
-          ref: release/${{ needs.validate.outputs.version }}
-
-      - name: Preview CHANGELOG finalization
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          RELEASE_DATE: ${{ needs.validate.outputs.release_date }}
-        run: |
-          set -euo pipefail
-          cp CHANGELOG.md CHANGELOG.md.bak
-          python3 .github/prepare_changelog.py finalize "$VERSION" "$RELEASE_DATE" CHANGELOG.md
-          echo "=== CHANGELOG diff ==="
-          diff -u CHANGELOG.md.bak CHANGELOG.md || true
-
-      - name: Preview release notes
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-        run: |
-          set -euo pipefail
-          echo "=== Release notes for v$VERSION ==="
-          echo ""
-          python3 .github/prepare_changelog.py extract-notes "$VERSION" CHANGELOG.md
-
-      - name: Summary
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          RELEASE_DATE: ${{ needs.validate.outputs.release_date }}
-          PR_NUMBER: ${{ needs.validate.outputs.pr_number }}
-        run: |
-          echo "✓ Dry-run preview complete (no changes pushed)"
-          echo ""
-          echo "  Version:       $VERSION"
-          echo "  Release Date:  $RELEASE_DATE"
-          echo "  Tag (would create):    v$VERSION"
-          echo "  Floating (would update): v${VERSION%%.*}, v${VERSION%.*}"
-          echo "  PR:            #$PR_NUMBER"
+      version: ${{ needs.core.outputs.version }}
+      finalize_sha: ${{ needs.core.outputs.finalize_sha }}
+      release_date: ${{ needs.core.outputs.release_date }}
+      publish_version: ${{ needs.core.outputs.publish_version }}
+      release_kind: ${{ needs.core.outputs.release_kind }}
+      git_user_name: ${{ inputs.git-user-name }}
+      git_user_email: ${{ inputs.git-user-email }}
+      tag_already_exists: ${{ needs.core.outputs.tag_already_exists == 'true' }}
+      create_release: ${{ inputs.create-release }}
+      toolchain_mode: ${{ needs.resolve-toolchain.outputs.mode }}
+      toolchain_image: ${{ needs.resolve-toolchain.outputs.image }}
+      devkit_version: ${{ needs.resolve-toolchain.outputs.image-tag }}
+      tag_prefix: ${{ needs.resolve-toolchain.outputs.tag-prefix }}
+    secrets: inherit
 
   rollback:
     name: Rollback on Failure
-    needs: [validate, finalize, test, integration-test, release]
-    runs-on: ubuntu-22.04
+    needs: [resolve-toolchain, core, extension, publish]
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.resolve-toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
     timeout-minutes: 10
-    if: failure()
+    defaults:
+      run:
+        shell: bash
+    if: >-
+      ${{
+        always() &&
+        inputs.dry-run != true &&
+        needs.resolve-toolchain.result == 'success' &&
+        (
+          needs.core.result == 'failure' ||
+          needs.extension.result == 'failure' ||
+          needs.publish.result == 'failure'
+        )
+      }}
     permissions:
-      contents: write
+      contents: read
       issues: write
-
+      packages: read
     steps:
-      - name: Generate GitHub App Token
-        id: app-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf  # v2
+      # Provision the toolchain unconditionally: the failure-issue and
+      # branch-rollback steps below run independently (on different guards) and
+      # both need `retry`/`gh`/`git` — in the host modes those come from the
+      # composite, so it must run even when the guarded release-branch checkout
+      # is skipped. Checkout the workflow ref first so the local composite (and,
+      # in direnv mode, the repo flake) resolves; the guarded checkout below
+      # re-checks out the release branch with the commit token when needed.
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Set up devkit toolchain
+        uses: ./.github/actions/setup-devkit-toolchain
         with:
-          app-id: ${{ secrets.RELEASE_APP_ID }}
+          mode: ${{ needs.resolve-toolchain.outputs.mode }}
+          devkit-version: ${{ needs.resolve-toolchain.outputs.image-tag }}
+
+      - name: Generate release app token
+        id: release_app_token
+        if: ${{ needs.core.outputs.version != '' }}
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - name: Generate commit app token
+        id: commit_app_token
+        if: ${{ needs.core.outputs.pre_finalize_sha != '' }}
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3
         with:
-          token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: true
+          client-id: ${{ secrets.COMMIT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.COMMIT_APP_PRIVATE_KEY }}
+
+      - name: Checkout release branch
+        if: ${{ needs.core.outputs.pre_finalize_sha != '' }}
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+          token: ${{ steps.commit_app_token.outputs.token }}
 
       - name: Configure git
+        if: ${{ needs.core.outputs.pre_finalize_sha != '' }}
         env:
-          GIT_USER_NAME: ${{ github.event.inputs.git-user-name }}
-          GIT_USER_EMAIL: ${{ github.event.inputs.git-user-email }}
+          GIT_USER_NAME: ${{ inputs.git-user-name }}
+          GIT_USER_EMAIL: ${{ inputs.git-user-email }}
         run: |
           git config user.name "$GIT_USER_NAME"
           git config user.email "$GIT_USER_EMAIL"
 
       - name: Rollback release branch
+        if: ${{ needs.core.outputs.pre_finalize_sha != '' }}
         continue-on-error: true
         env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          PRE_SHA: ${{ needs.validate.outputs.pre_finalize_sha }}
+          VERSION: ${{ needs.core.outputs.version }}
+          PRE_SHA: ${{ needs.core.outputs.pre_finalize_sha }}
         run: |
           set -euo pipefail
-          git fetch origin "release/$VERSION"
+          retry --retries 3 --backoff 3 --max-backoff 20 -- git fetch origin "release/$VERSION"
           git checkout "release/$VERSION"
-
           if git reset --hard "$PRE_SHA" 2>/dev/null; then
-            if git push --force-with-lease origin "release/$VERSION"; then
+            if retry --retries 3 --backoff 5 --max-backoff 30 -- git push --force-with-lease origin "release/$VERSION"; then
               echo "Release branch rolled back"
-            else
-              echo "Warning: Could not push rollback"
             fi
           fi
 
-      - name: Delete GitHub Release if created
-        continue-on-error: true
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          gh release delete "v$VERSION" --repo "$GITHUB_REPOSITORY" --yes 2>/dev/null \
-            && echo "GitHub Release deleted" \
-            || echo "No GitHub Release to delete"
-
-      - name: Delete tag if created
-        continue-on-error: true
-        env:
-          VERSION: ${{ needs.validate.outputs.version }}
-        run: |
-          if git ls-remote origin "refs/tags/v$VERSION" | grep -q "v$VERSION"; then
-            git push origin ":refs/tags/v$VERSION" && echo "Tag deleted" || echo "Warning: Could not delete tag"
-          else
-            echo "Tag does not exist (not created yet)"
-          fi
-
       - name: Create failure issue
+        if: ${{ needs.core.outputs.version != '' }}
         env:
-          VERSION: ${{ needs.validate.outputs.version }}
-          PR_NUMBER: ${{ needs.validate.outputs.pr_number }}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ needs.core.outputs.version }}
+          PR_NUMBER: ${{ needs.core.outputs.pr_number }}
+          GH_TOKEN: ${{ steps.release_app_token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-          gh issue create \
+          retry --retries 3 --backoff 5 --max-backoff 30 -- gh issue create \
             --title "Release $VERSION failed — automatic rollback" \
             --label "bug" \
-            --body "Release $VERSION encountered an error during the automated release workflow.
+            --body "Release $VERSION failed during the automated release workflow.
 
           **Workflow Run:** [View logs]($WORKFLOW_URL)
           **Release PR:** #$PR_NUMBER
 
           **Automatic rollback attempted:**
-          - Release branch reset to pre-finalization state
-          - Release tag and GitHub Release deleted (if created)
+          - Release branch reset to pre-finalization state (best-effort)
 
-          **Next steps:**
-          1. Review the workflow logs to identify the root cause
-          2. Verify rollback completed cleanly
-          3. Fix the issue on the release branch
-          4. Re-run the release workflow"
-
-      - name: Summary
-        run: |
-          echo "Release workflow failed"
-          echo ""
-          echo "Automatic rollback completed."
-          echo "A GitHub issue has been created for investigation."
-          echo "Check the workflow logs for details."
+          **Tag status (forward-fix policy):**
+          - Release tags are not deleted by automation (workflow choice; GitHub immutable-release lock-in applies only after a release is **published** when that setting is enabled). If a tag was pushed before the failure, it remains on the remote.
+          - Use a new release candidate to validate fixes, then re-run the final release when ready.
+          - If a draft GitHub Release exists, manage it from the Releases UI; **publishing** locks the linked tag and assets when **immutable releases** are enabled."

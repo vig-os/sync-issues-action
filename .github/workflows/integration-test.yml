@@ -7,19 +7,27 @@
 #   - ci.yml (on PRs, to catch regressions)
 #   - release.yml test job (on finalized code, before tagging)
 #
-# Jobs (all run in parallel):
-#   sync-issues-only  — verify issues-count > 0, output files, frontmatter, github-token
-#   sync-prs-only     — verify prs-count > 0 and output files exist
-#   force-update      — no-op baseline (zero mods) then force (non-zero mods)
-#   include-closed    — verify closed items count >= open-only count
-#   sub-issues        — verify parent/children frontmatter on issues 13/15
-#   sub-issues-off    — verify parent/children are "none" when sync-sub-issues=false
-#   updated-since     — verify future-dated filter produces zero results
-#   state-file        — verify state file creation and ISO8601 content
-#   default-mode      — verify both issues and PRs synced together
+# Fixed subset (issues-filter / prs-filter) — keeps runtime bounded as the repo grows.
+# Update this list if any referenced issue or PR is removed.
+#
+#   Stable CLOSED issues: 4, 8, 13, 15
+#   Stable OPEN issues:   2, 17  (must stay open for include-closed job)
+#   Stable MERGED PRs:    1, 3   (used with include-closed: true)
+#
+# Jobs (all run in parallel; each uses a subset via issues-filter and/or prs-filter):
+#   sync-issues-only  — issues 4,8; verify count, output files, frontmatter, github-token
+#   sync-prs-only     — PRs 1,3; verify prs-count > 0 and output files exist
+#   force-update      — issues 4,8; no-op baseline (zero mods) then force (non-zero mods)
+#   include-closed    — issues 2,17,4,8; verify closed count >= open-only count
+#   sub-issues        — issues 13,15; verify parent/children frontmatter
+#   sub-issues-off    — issues 13,15; verify parent/children are "none" when sync-sub-issues=false
+#   updated-since     — issues 2,17,4,8; verify future-dated filter produces zero results
+#   state-file        — issues 4,8; verify state file creation and ISO8601 content
+#   default-mode      — issues 4,8 + PRs 1,3; verify both issues and PRs synced together
 #
 # Refs: https://github.com/vig-os/sync-issues-action/issues/13
 #       https://github.com/vig-os/sync-issues-action/issues/15
+#       https://github.com/vig-os/sync-issues-action/issues/56
 
 name: Integration Test
 
@@ -46,7 +54,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -57,7 +65,8 @@ jobs:
           output-dir: test-output/issues-only
           sync-issues: 'true'
           sync-prs: 'false'
-          include-closed: 'false'
+          include-closed: 'true'
+          issues-filter: '4,8'
 
       - name: Verify — sync issues only
         env:
@@ -145,7 +154,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -156,7 +165,8 @@ jobs:
           output-dir: test-output/prs-only
           sync-issues: 'false'
           sync-prs: 'true'
-          include-closed: 'false'
+          include-closed: 'true'
+          prs-filter: '1,3'
 
       - name: Verify — sync PRs only
         env:
@@ -213,7 +223,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -223,6 +233,8 @@ jobs:
           output-dir: test-output/force-update
           sync-issues: 'true'
           sync-prs: 'false'
+          include-closed: 'true'
+          issues-filter: '4,8'
 
       - name: Test — re-sync without force (no-op baseline)
         id: sync-noop
@@ -231,6 +243,8 @@ jobs:
           output-dir: test-output/force-update
           sync-issues: 'true'
           sync-prs: 'false'
+          include-closed: 'true'
+          issues-filter: '4,8'
           force-update: 'false'
 
       - name: Verify — no-op produced zero modifications
@@ -253,6 +267,8 @@ jobs:
           output-dir: test-output/force-update
           sync-issues: 'true'
           sync-prs: 'false'
+          include-closed: 'true'
+          issues-filter: '4,8'
           force-update: 'true'
 
       - name: Verify — force update re-wrote files
@@ -278,7 +294,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -290,6 +306,7 @@ jobs:
           sync-issues: 'true'
           sync-prs: 'false'
           include-closed: 'false'
+          issues-filter: '2,17,4,8'
 
       - name: Test — sync with closed included
         id: sync-closed
@@ -299,6 +316,7 @@ jobs:
           sync-issues: 'true'
           sync-prs: 'false'
           include-closed: 'true'
+          issues-filter: '2,17,4,8'
 
       - name: Verify — closed count >= open count
         env:
@@ -330,7 +348,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -343,6 +361,7 @@ jobs:
           sync-prs: 'false'
           sync-sub-issues: 'true'
           include-closed: 'true'
+          issues-filter: '13,15'
 
       - name: Verify — sub-issue relationships
         run: |
@@ -390,7 +409,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -402,6 +421,7 @@ jobs:
           sync-prs: 'false'
           sync-sub-issues: 'false'
           include-closed: 'true'
+          issues-filter: '13,15'
 
       - name: Verify — parent/children are "none" when disabled
         run: |
@@ -437,7 +457,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -448,6 +468,7 @@ jobs:
           output-dir: test-output/updated-since-future
           sync-issues: 'true'
           sync-prs: 'false'
+          issues-filter: '2,17,4,8'
           updated-since: '2099-01-01T00:00:00Z'
 
       - name: Verify — future date produced zero issues
@@ -480,7 +501,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -491,6 +512,8 @@ jobs:
           output-dir: test-output/state-file
           sync-issues: 'true'
           sync-prs: 'false'
+          include-closed: 'true'
+          issues-filter: '4,8'
           state-file: test-output/state-file/.sync-state
 
       - name: Verify — state file exists with ISO8601 timestamp
@@ -531,7 +554,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -540,6 +563,9 @@ jobs:
         uses: ./
         with:
           output-dir: test-output/default-mode
+          include-closed: 'true'
+          issues-filter: '4,8'
+          prs-filter: '1,3'
 
       - name: Verify — both issues and PRs synced
         env:

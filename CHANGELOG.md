@@ -7,8 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
 ### Changed
 
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [v0.3.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.3.0) - 2026-07-16
+
+### Added
+
+- **Sync specific issues/PRs by number or range** ([#55](https://github.com/vig-os/sync-issues-action/issues/55))
+  - New optional `issues-filter` and `prs-filter` inputs accept comma-separated numbers and inclusive ranges (e.g. `1,5,10-20`)
+  - When set, the action fetches only the requested items directly instead of paginating through all issues or pull requests
+
+### Changed
+
+- **Run the action on the Node.js 24 runtime** ([#77](https://github.com/vig-os/sync-issues-action/issues/77))
+  - `action.yml` `runs.using` switched from `node20` to `node24` ahead of GitHub's June 2026 forced default
+  - `.nvmrc` updated to 24, matching the flake dev-shell (node 24.16) the suite already runs on
+
+- **Adopt vigOS devkit 1.3.0 (direnv mode)** ([#106](https://github.com/vig-os/sync-issues-action/issues/106))
+  - Replace the bespoke CI/release stack with the devkit scaffold (managed ci/release/promote workflows; native dist prep, tag prefix `v`, and floating `v0`/`v0.X` tags)
+  - Nix flake dev-shell (direnv) with flake-generated pre-commit hooks replaces the devcontainer image and `scripts/setup-node.sh` provisioning
+  - Keep the 8-scenario integration-test matrix (new PR-gate and published-tag-smoke callers); re-home provenance attestation in `attest-release.yml`; add Dist Check and JS Quality gates ported from commit-action
+  - Retire the placeholder `security-scan.yml`, `CODEOWNERS`, the bespoke changelog/release helper scripts, and Dependabot (Renovate takes over)
+
+- **Adopt vigOS v0.3.5 devcontainer and realign project tooling to Node** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
+  - Provision Node via `scripts/setup-node.sh` and `just` recipes; run lint, build, and test inside the devcontainer
+  - Adapt release workflows and label taxonomy to the standardized vigOS layout
+  - Drop Python scaffolding and the legacy `setup-env`/`build-dist` composite actions
+- **`just test` runs the full local suite; add `just test-unit` for unit-only runs**
+  - `just test` runs unit tests plus integration when a GitHub token is available; integration is skipped with a warning otherwise
+  - `just test-unit` replaces the previous unit-only `just test` behavior and accepts Jest filter args
+- **Upgrade GitHub Actions toolkit to ESM-only releases** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
+  - Adopt `@actions/github` v9 (Octokit v7) and `@actions/core` v3 for current toolkit HTTP client and type support
+  - Update TypeScript module resolution and Jest module mocks for ESM toolkit packages
+- **Stop committing tsc emit under dist/** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
+  - Only `dist/index.js` and `dist/licenses.txt` are tracked; `verify-dist` checks those files only
 - **Post-release replaced by PR-based main-to-dev sync** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
   - Remove `post-release.yml` workflow; add `sync-main-to-dev.yml` that opens a PR to sync `main` into `dev`, satisfying branch protection on both branches
   - Harden sync checks by failing clearly when `origin/main` or `origin/dev` is missing instead of silently treating branches as up to date
@@ -19,8 +61,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sync workflow uses commit-scoped app secrets and manual output target**
   - Update `sync-issues.yml` to use `COMMIT_APP_ID`/`COMMIT_APP_PRIVATE_KEY` for both checkout token generation and action app auth inputs
   - Respect `workflow_dispatch` `output-dir` input in the action call, with `'docs'` as the default fallback
+- **Bound integration test runtime to a fixed subset** ([#56](https://github.com/vig-os/sync-issues-action/issues/56))
+  - Integration test workflow and local test scripts now pass `issues-filter`/`prs-filter` so only a small, stable set of issues and PRs is synced
+  - Keeps test duration bounded as the repository's issue/PR count grows
+
+### Fixed
+
+- **Retry transient GitHub 5xx errors and skip failing items during sync** ([#96](https://github.com/vig-os/sync-issues-action/issues/96))
+  - Add `withRetry` helper with exponential backoff for 5xx, rate-limit, and network errors
+  - Sanitize GitHub "Unicorn!" HTML error pages into concise messages
+  - Skip individual issues/PRs that fail persistently instead of aborting the entire sync run
+
+### Security
+
+- **Bump bundled `undici` to 6.27.0** ([#111](https://github.com/vig-os/sync-issues-action/issues/111))
+  - Clears the high-severity WebSocket DoS advisory (GHSA-vxpw-j846-p89q) and three related `undici` advisories flagged by dependency review, plus dev-only `@babel/core` and `js-yaml` audit findings
+
+- **Resolve npm audit vulnerabilities** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
+  - Upgrade `@actions/github` to v9 and `@actions/core` to v3, resolving high-severity `undici` advisories in the bundled action
+  - Apply non-breaking audit fixes for dev/build-only dependencies (`handlebars`, `flatted`, `picomatch`, `brace-expansion`)
 
 ## [0.2.2] - 2026-02-26
+
+### Added
+
+- **Sync workflow: configurable output-dir and commit-msg** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
+  - New workflow inputs `output-dir` (default `docs`) and `commit-msg` (default `chore: sync issues and PRs`) for dispatch runs
+
+### Changed
+
+- **Sync workflow: safe defaults and pinned action ref** ([#52](https://github.com/vig-os/sync-issues-action/issues/52))
+  - Checkout and commit step use `target-branch || 'dev'` and `commit-msg` input so defaults apply when inputs are omitted
+  - Workflow uses pinned action ref (v0.2.2) instead of local checkout
+  - Cache delete step uses `github.token`; `force-update` no longer passed to action (only `updated-since` used)
+- **ESLint toolchain upgrade** ([#72](https://github.com/vig-os/sync-issues-action/issues/72))
+  - Upgrade `eslint` to v10 and `@typescript-eslint/*` packages to v8
+  - Migrate from legacy `.eslintrc.json` to flat config via `eslint.config.mjs`
+- **Dependabot dependency updates**
+  - GitHub Actions: bump `actions/checkout` from v4 to v6 ([#51](https://github.com/vig-os/sync-issues-action/pull/51))
+  - GitHub Actions: bump grouped minor/patch updates ([#64](https://github.com/vig-os/sync-issues-action/pull/64))
+  - GitHub Actions: bump `actions/attest-build-provenance` from v3.2.0 to v4.1.0 ([#65](https://github.com/vig-os/sync-issues-action/pull/65))
+  - GitHub Actions: bump `actions/upload-artifact` from v4.6.2 to v7.0.0 ([#66](https://github.com/vig-os/sync-issues-action/pull/66))
+  - GitHub Actions: bump pinned `vig-os/sync-issues-action` SHA ([#68](https://github.com/vig-os/sync-issues-action/pull/68))
+  - npm dev dependencies: bump grouped minor/patch updates ([#61](https://github.com/vig-os/sync-issues-action/pull/61))
+  - npm dev dependencies: bump `@types/node` from v20.19.25 to v25.3.3 ([#69](https://github.com/vig-os/sync-issues-action/pull/69))
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.2.2](https://github.com/vig-os/sync-issues-action/releases/tag/v0.2.2) - 2026-02-26
 
 ### Added
 

@@ -1,0 +1,115 @@
+# ===============================================================================
+# PROJECT RECIPES - Team-shared customizations
+# This file is git-tracked and preserved during devcontainer upgrades.
+# Add team-shared recipes here that everyone on the project should use.
+# ===============================================================================
+# ===============================================================================
+# PROJECT VARIABLES
+# ===============================================================================
+
+project := "sync_issues_action"
+
+# ===============================================================================
+# INFO
+# ===============================================================================
+
+# Show project information
+[group('info')]
+info:
+    @echo "Project: {{ project }}"
+
+# -------------------------------------------------------------------------------
+# CODE QUALITY
+# -------------------------------------------------------------------------------
+
+# Run all linters
+[group('quality')]
+lint:
+    npm run lint
+
+# Format code
+[group('quality')]
+format:
+    npm run format
+
+# Check formatting without rewriting (the CI gate; `format` is the local fix)
+[group('quality')]
+format-check:
+    npm run format:check
+
+# Run pre-commit hooks on all files
+[group('quality')]
+precommit:
+    prek run --all-files
+
+# -------------------------------------------------------------------------------
+# TESTING
+# -------------------------------------------------------------------------------
+
+# Run the full local suite (unit + integration; integration skipped without a token)
+[group('test')]
+test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just test-unit
+    if [ -n "${GITHUB_TOKEN:-}" ] || gh auth token >/dev/null 2>&1; then
+        just test-integration
+    else
+        echo "[warn] Skipping integration tests: no GITHUB_TOKEN and 'gh auth token' unavailable."
+        echo "       Run 'gh auth login' then 'just test-integration' to include them."
+    fi
+
+# Run unit tests
+[group('test')]
+test-unit *args:
+    npm test -- {{ args }}
+
+# Run unit tests with coverage
+[group('test')]
+test-cov *args:
+    npm run test:coverage -- {{ args }}
+
+# Run integration tests
+[group('test')]
+test-integration:
+    npm run test:integration
+
+# -------------------------------------------------------------------------------
+# DEPENDENCIES
+# -------------------------------------------------------------------------------
+
+# Sync dependencies (npm ci; node itself comes from the flake dev shell)
+[group('deps')]
+sync *args:
+    npm ci
+
+# Update all dependencies
+[group('deps')]
+update:
+    npm update
+    @just sync
+
+# -------------------------------------------------------------------------------
+# BUILD
+# -------------------------------------------------------------------------------
+
+# Type-check / compile (tsc)
+[group('build')]
+build:
+    npm run build
+
+# Bundle the action into dist/ with ncc (committed; required for the action to run)
+[group('build')]
+bundle:
+    npm run bundle
+
+# Verify shipped bundle matches source (fails if out of sync)
+[group('build')]
+verify-dist:
+    npm run bundle
+    @git diff --exit-code dist/index.js dist/licenses.txt || (echo "dist bundle is out of sync. Run 'just bundle' and commit dist/index.js and dist/licenses.txt." && exit 1)
+
+# Clean build artifacts
+[group('build')]
+clean-artifacts:
+    rm -rf coverage node_modules/.cache

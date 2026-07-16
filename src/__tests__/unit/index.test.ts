@@ -10,7 +10,11 @@ import {
   formatPRAsMarkdown,
   shiftHeadersToMinLevel,
   fetchIssueRelationships,
+  formatGitHubError,
+  isRetryableError,
+  withRetry,
   GRAPHQL_BATCH_SIZE,
+  parseNumberFilter,
   run,
 } from '../../index';
 
@@ -1188,6 +1192,37 @@ describe('Sync Issues Action', () => {
       const content = '# Title\n\n###### Max';
       const result = shiftHeadersToMinLevel(content, 4);
       expect(result).toBe('#### Title\n\n###### Max');
+    });
+  });
+
+  describe('parseNumberFilter', () => {
+    it('should return undefined for empty input', () => {
+      expect(parseNumberFilter('')).toBeUndefined();
+      expect(parseNumberFilter('   ')).toBeUndefined();
+    });
+
+    it('should parse single number', () => {
+      expect(parseNumberFilter('42')).toEqual([42]);
+    });
+
+    it('should parse comma-separated numbers and ranges', () => {
+      expect(parseNumberFilter('1,5,10-12')).toEqual([1, 5, 10, 11, 12]);
+    });
+
+    it('should handle whitespace around tokens', () => {
+      expect(parseNumberFilter(' 1 , 5 , 10 - 12 ')).toEqual([1, 5, 10, 11, 12]);
+    });
+
+    it('should deduplicate overlapping ranges and numbers', () => {
+      expect(parseNumberFilter('1,2-3,3,2')).toEqual([1, 2, 3]);
+    });
+
+    it('should throw on invalid token', () => {
+      expect(() => parseNumberFilter('1,abc,5')).toThrow(/invalid/i);
+    });
+
+    it('should throw on reversed range', () => {
+      expect(() => parseNumberFilter('10-5')).toThrow(/range/i);
     });
   });
 
@@ -3125,8 +3160,440 @@ describe('Sync Issues Action', () => {
       });
     });
 
+    describe('retry helpers', () => {
+      it('formatGitHubError sanitizes Unicorn HTML responses', () => {
+        const error = Object.assign(
+          new Error('<!DOCTYPE html><title>Unicorn! &middot; GitHub</title>'),
+          { status: 502 }
+        );
+
+        expect(formatGitHubError(error)).toBe('GitHub returned a 502 server error');
+      });
+
+      it('isRetryableError returns true for 5xx and 429 responses', () => {
+        expect(isRetryableError(Object.assign(new Error('Server error'), { status: 502 }))).toBe(
+          true
+        );
+        expect(isRetryableError(Object.assign(new Error('Rate limited'), { status: 429 }))).toBe(
+          true
+        );
+        expect(isRetryableError(Object.assign(new Error('Not found'), { status: 404 }))).toBe(
+          false
+        );
+      });
+
+      it('withRetry succeeds after a transient 5xx', async () => {
+        jest.useFakeTimers();
+        const fn = jest
+          .fn()
+          .mockRejectedValueOnce(Object.assign(new Error('Server error'), { status: 502 }))
+          .mockResolvedValueOnce('ok');
+
+        const promise = withRetry('test operation', fn);
+        await jest.runAllTimersAsync();
+        await expect(promise).resolves.toBe('ok');
+        expect(fn).toHaveBeenCalledTimes(2);
+        jest.useRealTimers();
+      });
+    });
+
+    describe('issues-filter and prs-filter inputs', () => {
+      const createIssue = (number: number, overrides: Record<string, unknown> = {}) => ({
+        number,
+        title: `Issue ${number}`,
+        body: 'Body',
+        state: 'open',
+        labels: [],
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+        user: { login: 'user1' },
+        html_url: `https://example.com/issue/${number}`,
+        milestone: null,
+        ...overrides,
+      });
+
+      const createPR = (number: number, overrides: Record<string, unknown> = {}) => ({
+        number,
+        title: `PR ${number}`,
+        body: 'PR Body',
+        state: 'open',
+        labels: [],
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+        merged_at: null,
+        user: { login: 'pr-user' },
+        html_url: `https://example.com/pr/${number}`,
+        head: { ref: 'feature' },
+        base: { ref: 'main' },
+        ...overrides,
+      });
+
+      it('should fetch only filtered issues by number without listing', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-prs') return 'false';
+          if (name === 'issues-filter') return '1,3';
+          return '';
+        });
+
+        const issue1 = createIssue(1);
+        const issue3 = createIssue(3);
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn().mockImplementation(({ issue_number }) => {
+                if (issue_number === 1) return Promise.resolve({ data: issue1 });
+                if (issue_number === 3) return Promise.resolve({ data: issue3 });
+                return Promise.reject(new Error('Not Found'));
+              }),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn(),
+              get: jest.fn(),
+            },
+          },
+          graphql: jest.fn().mockResolvedValue({ repository: {} }),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockOctokit.rest.issues.listForRepo).not.toHaveBeenCalled();
+        expect(mockOctokit.rest.issues.get).toHaveBeenCalledTimes(2);
+        expect(mockOctokit.rest.issues.get).toHaveBeenCalledWith(
+          expect.objectContaining({ issue_number: 1 })
+        );
+        expect(mockOctokit.rest.issues.get).toHaveBeenCalledWith(
+          expect.objectContaining({ issue_number: 3 })
+        );
+        expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 2);
+      });
+
+      it('should fetch only filtered PRs by number without listing', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-issues') return 'false';
+          if (name === 'prs-filter') return '10-11';
+          return '';
+        });
+
+        const pr10 = createPR(10);
+        const pr11 = createPR(11);
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn(),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn(),
+              get: jest.fn().mockImplementation(({ pull_number }) => {
+                if (pull_number === 10) return Promise.resolve({ data: pr10 });
+                if (pull_number === 11) return Promise.resolve({ data: pr11 });
+                return Promise.reject(new Error('Not Found'));
+              }),
+              listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+          },
+          graphql: jest.fn(),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockOctokit.rest.pulls.list).not.toHaveBeenCalled();
+        expect(mockOctokit.rest.pulls.get).toHaveBeenCalledTimes(2);
+        expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 2);
+      });
+
+      it('should skip filtered numbers that are pull requests when syncing issues', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-prs') return 'false';
+          if (name === 'issues-filter') return '5';
+          return '';
+        });
+
+        const prAsIssue = createIssue(5, { pull_request: { url: 'https://example.com/pr/5' } });
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn().mockResolvedValue({ data: prAsIssue }),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn(),
+              get: jest.fn(),
+            },
+          },
+          graphql: jest.fn().mockResolvedValue({ repository: {} }),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockWarning).toHaveBeenCalledWith('Skipping #5: not an issue (pull request).');
+        expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
+      });
+
+      it('should skip closed filtered issues when include-closed is false', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-prs') return 'false';
+          if (name === 'issues-filter') return '7';
+          if (name === 'include-closed') return 'false';
+          return '';
+        });
+
+        const closedIssue = createIssue(7, { state: 'closed' });
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn().mockResolvedValue({ data: closedIssue }),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn(),
+              get: jest.fn(),
+            },
+          },
+          graphql: jest.fn().mockResolvedValue({ repository: {} }),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockInfo).toHaveBeenCalledWith(
+          'Skipping issue #7: closed and include-closed is false.'
+        );
+        expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
+      });
+
+      it('should sync closed filtered issues when include-closed is true', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-prs') return 'false';
+          if (name === 'issues-filter') return '7';
+          if (name === 'include-closed') return 'true';
+          return '';
+        });
+
+        const closedIssue = createIssue(7, { state: 'closed' });
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn().mockResolvedValue({ data: closedIssue }),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn(),
+              get: jest.fn(),
+            },
+          },
+          graphql: jest.fn().mockResolvedValue({ repository: {} }),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 1);
+      });
+
+      it('should skip filtered issues not updated since updated-since', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-prs') return 'false';
+          if (name === 'issues-filter') return '8';
+          if (name === 'updated-since') return '2024-02-01T00:00:00Z';
+          return '';
+        });
+
+        const oldIssue = createIssue(8, { updated_at: '2024-01-01T00:00:00Z' });
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn().mockResolvedValue({ data: oldIssue }),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn(),
+              get: jest.fn(),
+            },
+          },
+          graphql: jest.fn().mockResolvedValue({ repository: {} }),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockInfo).toHaveBeenCalledWith(
+          'Skipping issue #8: not updated since 2024-02-01T00:00:00Z.'
+        );
+        expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
+      });
+
+      it('should warn and continue when a filtered issue does not exist', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-prs') return 'false';
+          if (name === 'issues-filter') return '99';
+          return '';
+        });
+
+        const notFoundError = Object.assign(new Error('Not Found'), { status: 404 });
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn().mockRejectedValue(notFoundError),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn(),
+              get: jest.fn(),
+            },
+          },
+          graphql: jest.fn().mockResolvedValue({ repository: {} }),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockSetFailed).not.toHaveBeenCalled();
+        expect(mockWarning).toHaveBeenCalledWith('Skipping issue #99: Not Found');
+        expect(mockSetOutput).toHaveBeenCalledWith('issues-count', 0);
+      });
+
+      it('should fail when issues-filter contains invalid tokens', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'issues-filter') return '1,abc';
+          return '';
+        });
+
+        await run();
+
+        expect(mockSetFailed).toHaveBeenCalledWith(expect.stringMatching(/invalid/i));
+      });
+    });
+
+    describe('transient API error resilience', () => {
+      const createPR = (number: number) => ({
+        number,
+        title: `PR ${number}`,
+        body: 'PR Body',
+        state: 'open',
+        labels: [],
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+        merged_at: null,
+        user: { login: 'pr-user' },
+        html_url: `https://example.com/pr/${number}`,
+        head: { ref: 'feature' },
+        base: { ref: 'main' },
+      });
+
+      it('retries transient 5xx on pulls.get and completes sync', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-issues') return 'false';
+          return '';
+        });
+
+        const pr = createPR(10);
+        const unicornError = Object.assign(
+          new Error('<!DOCTYPE html><title>Unicorn!</title>'),
+          { status: 502 }
+        );
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn(),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn().mockResolvedValue({ data: [pr] }),
+              get: jest
+                .fn()
+                .mockRejectedValueOnce(unicornError)
+                .mockResolvedValueOnce({ data: pr }),
+              listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+          },
+          graphql: jest.fn(),
+        };
+        setMockOctokit(mockOctokit);
+
+        jest.useFakeTimers();
+        const runPromise = run();
+        await jest.runAllTimersAsync();
+        await runPromise;
+        jest.useRealTimers();
+
+        expect(mockSetFailed).not.toHaveBeenCalled();
+        expect(mockOctokit.rest.pulls.get).toHaveBeenCalledTimes(2);
+        expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
+      });
+
+      it('skips persistently failing PR and syncs remaining PRs', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'sync-issues') return 'false';
+          return '';
+        });
+
+        const pr10 = createPR(10);
+        const pr11 = createPR(11);
+        const notFoundError = Object.assign(new Error('Not Found'), { status: 404 });
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn(),
+              get: jest.fn(),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn().mockResolvedValue({ data: [pr10, pr11] }),
+              get: jest.fn().mockImplementation(({ pull_number }) => {
+                if (pull_number === 11) {
+                  return Promise.reject(notFoundError);
+                }
+                return Promise.resolve({ data: pr10 });
+              }),
+              listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+          },
+          graphql: jest.fn(),
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockSetFailed).not.toHaveBeenCalled();
+        expect(mockWarning).toHaveBeenCalledWith('Skipping PR #11: Not Found');
+        expect(mockSetOutput).toHaveBeenCalledWith('prs-count', 1);
+      });
+    });
+
     describe('error handling', () => {
-      it('should handle errors and call setFailed', async () => {
+      it('should warn and continue when issue listing fails', async () => {
         mockGetInput.mockImplementation((name: string): string => {
           if (name === 'token') return 'test-token';
           return '';
@@ -3145,15 +3612,19 @@ describe('Sync Issues Action', () => {
               listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
             },
           },
+          graphql: jest.fn(),
         };
         setMockOctokit(mockOctokit);
 
         await run();
 
-        expect(mockSetFailed).toHaveBeenCalledWith('API Error');
+        expect(mockSetFailed).not.toHaveBeenCalled();
+        expect(mockWarning).toHaveBeenCalledWith(
+          'Failed to list issues (page 1): API Error. Stopping issue sync.'
+        );
       });
 
-      it('should handle unknown errors', async () => {
+      it('should warn and continue when issue listing fails with unknown errors', async () => {
         mockGetInput.mockImplementation((name: string): string => {
           if (name === 'token') return 'test-token';
           return '';
@@ -3171,12 +3642,16 @@ describe('Sync Issues Action', () => {
               get: jest.fn(),
             },
           },
+          graphql: jest.fn(),
         };
         setMockOctokit(mockOctokit);
 
         await run();
 
-        expect(mockSetFailed).toHaveBeenCalledWith('Unknown error occurred');
+        expect(mockSetFailed).not.toHaveBeenCalled();
+        expect(mockWarning).toHaveBeenCalledWith(
+          'Failed to list issues (page 1): Unknown error. Stopping issue sync.'
+        );
       });
     });
   });

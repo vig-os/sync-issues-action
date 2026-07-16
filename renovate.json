@@ -1,0 +1,7 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>vig-os/sync-issues-action//.github/renovate-default"
+  ],
+  "enabledManagers": ["github-actions", "npm"]
+}

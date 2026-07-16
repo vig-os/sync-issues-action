@@ -1,0 +1,126 @@
+# Release Extension — dist freshness verification (consumer-owned)
+#
+# The devkit release pipeline's designed project extension point: release.yml
+# calls this reusable workflow after finalize_sha is computed and before
+# release-publish tags it. A failure here fails the `extension` job in
+# release.yml, which triggers the existing rollback via `needs` — so this is
+# the last gate before a tag is cut.
+#
+# This project uses it to guarantee the tagged commit ships a fresh ncc bundle:
+# it checks out inputs.finalize_sha, rebuilds with the pinned dev-shell
+# toolchain, and diffs the committed dist/. A stale bundle fails the job and
+# rolls the release back. Read-only verification (contents: read) — the CI
+# dist-check gate is what keeps dist/ fresh on the branch; this is the
+# release-time backstop that a merge did not slip a stale bundle through.
+#
+# History: before the devkit migration (#106) this file held the repo's own
+# floating-tag mover. The managed promote-release.yml now moves floating tags
+# natively (DEVKIT_FLOATING_TAGS in .vig-os), so that job was retired and the
+# seam re-purposed — ported from vig-os/commit-action.
+#
+# NOTE on attestation: it cannot live in this seam — the managed release.yml
+# calls it under a `contents: read, packages: read` token ceiling, and a called
+# workflow cannot elevate GITHUB_TOKEN (`id-token: write` would be denied).
+# Provenance attestation therefore lives in attest-release.yml (tag push).
+#
+# The workflow_call inputs contract is fixed — release.yml passes these by
+# name. Toolchain inputs are NOT part of that contract, so this workflow
+# self-resolves the delivery mode from .vig-os (mirroring ci.yml).
+
+name: Release Extension
+
+on:  # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        type: string
+      finalize_sha:
+        description: "Finalized commit SHA"
+        required: true
+        type: string
+      release_date:
+        description: "Release date"
+        required: true
+        type: string
+      release_kind:
+        description: "Release kind (candidate or final)"
+        required: true
+        type: string
+      publish_version:
+        description: "Version tag that will be published (vX.Y.Z or vX.Y.Z-rcN)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-toolchain:
+    name: Resolve toolchain
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      mode: ${{ steps.resolve.outputs.mode }}
+      image: ${{ steps.resolve.outputs.image }}
+      image-tag: ${{ steps.resolve.outputs.image-tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          ref: ${{ inputs.finalize_sha }}
+          sparse-checkout: |
+            .vig-os
+            .github/actions/resolve-toolchain
+          sparse-checkout-cone-mode: false
+
+      - name: Resolve toolchain
+        id: resolve
+        uses: ./.github/actions/resolve-toolchain
+        with:
+          registry-token: ${{ github.token }}
+          registry-username: ${{ github.actor }}
+
+  verify-dist:
+    name: Verify dist bundle
+    needs: [resolve-toolchain]
+    runs-on: ubuntu-24.04
+    # Empty image (direnv/bare) => runs on the host; non-empty => in-container.
+    container:
+      image: ${{ needs.resolve-toolchain.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout finalized commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          ref: ${{ inputs.finalize_sha }}
+
+      - name: Set up devkit toolchain
+        uses: ./.github/actions/setup-devkit-toolchain
+        with:
+          mode: ${{ needs.resolve-toolchain.outputs.mode }}
+          devkit-version: ${{ needs.resolve-toolchain.outputs.image-tag }}
+
+      - name: Install dependencies
+        run: just sync
+
+      - name: Rebuild bundle
+        run: just bundle
+
+      - name: Verify committed bundle is fresh
+        env:
+          FINALIZE_SHA: ${{ inputs.finalize_sha }}
+          PUBLISH_VERSION: ${{ inputs.publish_version }}
+        run: |
+          if [ -n "$(git status --porcelain -- dist/)" ]; then
+            git --no-pager diff -- dist/
+            git status --short -- dist/
+            echo "::error::dist/ at $FINALIZE_SHA (publishing $PUBLISH_VERSION) is stale relative to src/. Run 'just bundle', commit the refreshed bundle, and re-run the release."
+            exit 1
+          fi
