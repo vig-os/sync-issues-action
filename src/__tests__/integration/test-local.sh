@@ -12,7 +12,7 @@ echo "🧪 Testing sync-issues action locally..."
 if ! command -v local-action &> /dev/null; then
     echo "❌ @github/local-action is not installed"
     echo "📦 Installing @github/local-action..."
-    npm install -g @github/local-action
+    npm install -g @github/local-action@7.0.1
 fi
 
 # Build the action first
