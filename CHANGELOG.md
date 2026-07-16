@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renovate dependency update** ([#126](https://github.com/vig-os/sync-issues-action/pull/126))
+  - Update `@types/node` from `25.5.0` to `25.9.5`
+  - Update `@typescript-eslint/eslint-plugin` from `8.57.2` to `8.64.0`
+  - Update `@typescript-eslint/parser` from `8.57.2` to `8.64.0`
+  - Update `@vercel/ncc` from `^0.38.1` to `^0.44.0`
+  - Update `eslint` from `10.1.0` to `10.7.0`
+  - Update `globals` from `17.4.0` to `17.7.0`
+  - Update `jest` from `30.3.0` to `30.4.2`
+  - Update `prettier` from `3.8.1` to `3.9.5`
+  - Update `ts-jest` from `29.4.6` to `29.4.11`
+  - Update `tsx` from `4.21.0` to `4.23.1`
+  - Update `typescript-eslint` from `8.57.2` to `8.64.0`
+
 ### Deprecated
 
 ### Removed
