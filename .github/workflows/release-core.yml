@@ -502,8 +502,14 @@ jobs:
           VERSION: ${{ needs.validate.outputs.version }}
         run: |
           set -euo pipefail
+          # Hand-patched (#116): without --ref, workflow_dispatch resolves
+          # sync-issues.yml on the DEFAULT branch (main), which carries the
+          # pre-devkit workflow until the first devkit release merges. Pin the
+          # dispatch to the release branch so the devkit workflow (incremental
+          # cutoff self-heal) runs. Safe to drop once main has the scaffold.
           retry --retries 2 --backoff 5 --max-backoff 20 -- \
-            gh workflow run sync-issues.yml -f "target-branch=release/$VERSION"
+            gh workflow run sync-issues.yml --ref "release/$VERSION" \
+              -f "target-branch=release/$VERSION"
 
       - name: Wait for sync-issues completion
         if: ${{ inputs.release_kind == 'final' }}
@@ -512,7 +518,10 @@ jobs:
           GH_TOKEN: ${{ steps.auth.outputs.token }}
         run: |
           set -euo pipefail
-          TIMEOUT=120
+          # Hand-patched (#116): TIMEOUT raised 120 -> 600 (a cold-cache sync
+          # exceeds 120 s) and the poll filters by the dispatched branch so a
+          # concurrent scheduled run cannot be mistaken for ours.
+          TIMEOUT=600
           ELAPSED=0
           INTERVAL=10
           RUN_STATUS="unknown"
@@ -522,6 +531,7 @@ jobs:
           while [ $ELAPSED -lt $TIMEOUT ]; do
             RUN_STATUS=$(gh run list \
               --workflow sync-issues.yml \
+              --branch "release/${{ needs.validate.outputs.version }}" \
               --limit 1 \
               --json status,conclusion \
               --jq '.[0].status' 2>/dev/null || echo "unknown")
@@ -541,6 +551,7 @@ jobs:
 
           RUN_CONCLUSION=$(gh run list \
             --workflow sync-issues.yml \
+            --branch "release/${{ needs.validate.outputs.version }}" \
             --limit 1 \
             --json conclusion \
             --jq '.[0].conclusion' 2>/dev/null || echo "unknown")

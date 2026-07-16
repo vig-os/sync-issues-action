@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## [0.3.0] - TBD
+## [v0.3.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.3.0) - 2026-07-16
 
 ### Added
 
@@ -73,6 +73,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Skip individual issues/PRs that fail persistently instead of aborting the entire sync run
 
 ### Security
+
+- **Bump bundled `undici` to 6.27.0** ([#111](https://github.com/vig-os/sync-issues-action/issues/111))
+  - Clears the high-severity WebSocket DoS advisory (GHSA-vxpw-j846-p89q) and three related `undici` advisories flagged by dependency review, plus dev-only `@babel/core` and `js-yaml` audit findings
 
 - **Resolve npm audit vulnerabilities** ([#6](https://github.com/vig-os/sync-issues-action/issues/6))
   - Upgrade `@actions/github` to v9 and `@actions/core` to v3, resolving high-severity `undici` advisories in the bundled action

@@ -206,6 +206,19 @@ jobs:
         run: |
           set -euo pipefail
           BASE_SHA="$(git merge-base "origin/${BASE_REF}" "${HEAD_SHA}")"
+          # One-time migration waiver (#113): pre-devkit commit 9574ee12
+          # (PR #97, merged 2026-06-10 before this gate existed) lacks the
+          # mandatory Refs line and is immutable history on dev. Advance the
+          # base past it when the computed range would re-validate it (only
+          # the first release train over pre-gate history does). The ancestor
+          # guard means this can only tighten a range that already contains
+          # the commit — dev-PR ranges start later and are unaffected. Safe to
+          # drop once 0.3.0 is on main (a devkit ci.yml regeneration will).
+          WAIVED=9574ee12ed3c7b80f5e287bc1a274db2e97aa2d2
+          if git merge-base --is-ancestor "${BASE_SHA}" "${WAIVED}" 2>/dev/null; then
+            BASE_SHA="${WAIVED}"
+            echo "Waiver active: base advanced to ${WAIVED} (#113)"
+          fi
           echo "Validating ${BASE_SHA}..${HEAD_SHA} (base: ${BASE_REF})"
           uv run validate-commit-range \
             --base "${BASE_SHA}" \
