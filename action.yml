@@ -54,6 +54,10 @@ inputs:
     description: 'Whether to sync sub-issue relationships via GraphQL'
     required: false
     default: 'true'
+  sync-attachments:
+    description: 'Download issue/PR attachments (images, videos, files) to <output-dir>/attachments and rewrite body URLs to relative paths'
+    required: false
+    default: 'false'
 
 outputs:
   issues-count:

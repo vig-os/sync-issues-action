@@ -2,6 +2,7 @@ import * as github from '@actions/github';
 interface Comment {
     id: number;
     body: string;
+    body_html?: string | null;
     user: {
         login: string;
         html_url: string;
@@ -14,6 +15,7 @@ interface Issue {
     number: number;
     title: string;
     body: string;
+    body_html?: string | null;
     state: string;
     labels: Array<{
         name: string;
@@ -36,6 +38,7 @@ interface PullRequest {
     number: number;
     title: string;
     body: string;
+    body_html?: string | null;
     state: string;
     labels: Array<{
         name: string;
@@ -64,6 +67,7 @@ interface PullRequest {
 interface ReviewComment {
     id: number;
     body: string;
+    body_html?: string | null;
     user: {
         login: string;
         html_url: string;
@@ -89,6 +93,25 @@ export declare function isRetryableError(error: unknown): boolean;
 export declare function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T>;
 export declare function runFormatCommand(command: string, files: string[]): void;
 export declare function parseNumberFilter(input: string): number[] | undefined;
+export interface AttachmentAsset {
+    uuid: string;
+    ext: string;
+    signedUrl: string;
+}
+export interface AttachmentContext {
+    dir: string;
+    relativePrefix: string;
+    forceUpdate: boolean;
+    handled: Set<string>;
+    files: string[];
+}
+export declare function extractAttachmentAssets(bodyHtml: string): Map<string, AttachmentAsset>;
+/**
+ * Downloads the attachments referenced in a raw markdown body and rewrites
+ * their URLs to relative paths under the attachments directory. Assets whose
+ * signed URL is unavailable or whose download fails keep their original URL.
+ */
+export declare function processBodyAttachments(body: string, bodyHtml: string | null | undefined, ctx: AttachmentContext): Promise<string>;
 declare function run(): Promise<void>;
 export declare const GRAPHQL_BATCH_SIZE = 50;
 export declare function fetchIssueRelationships(octokit: ReturnType<typeof github.getOctokit>, owner: string, repo: string, issueNumbers: number[]): Promise<Map<number, IssueRelationship>>;

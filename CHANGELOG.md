@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **User-configurable formatting hook for generated markdown** ([#17](https://github.com/vig-os/sync-issues-action/issues/17))
   - New optional `format-command` input runs a shell command on the synced files after they are written and before outputs are set, so the downstream commit step picks up formatted files
   - Every `{files}` placeholder is replaced with the shell-quoted modified paths (e.g. `npx prettier --write {files}`); a failing command fails the action
+- **Fetch images and other attachments from issues and PRs** ([#2](https://github.com/vig-os/sync-issues-action/issues/2))
+  - New optional `sync-attachments` input (default `false`) downloads attachments referenced in issue/PR bodies and comments to `<output-dir>/attachments/<uuid>.<ext>` and rewrites body URLs to relative paths, making the synced tree self-contained offline
+  - Works for public and private repositories via the signed URLs GitHub embeds in the API's HTML body rendering; failed downloads keep the original URL and log a warning
+  - Downloaded attachments are included in the `modified-files` output; `format-command` now only receives markdown files
 
 ### Changed
 
