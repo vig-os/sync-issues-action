@@ -1,0 +1,149 @@
+import * as github from '@actions/github';
+interface Comment {
+    id: number;
+    body: string;
+    body_html?: string | null;
+    user: {
+        login: string;
+        html_url: string;
+    };
+    created_at: string;
+    updated_at: string;
+    html_url: string;
+}
+interface Issue {
+    number: number;
+    title: string;
+    body: string;
+    body_html?: string | null;
+    state: string;
+    labels: Array<{
+        name: string;
+    }>;
+    created_at: string;
+    updated_at: string;
+    user: {
+        login: string;
+    };
+    html_url: string;
+    assignees?: Array<{
+        login: string;
+    }>;
+    milestone?: {
+        title: string;
+        number: number;
+    } | null;
+}
+interface PullRequest {
+    number: number;
+    title: string;
+    body: string;
+    body_html?: string | null;
+    state: string;
+    labels: Array<{
+        name: string;
+    }>;
+    created_at: string;
+    updated_at: string;
+    user: {
+        login: string;
+    };
+    html_url: string;
+    merged_at: string | null;
+    head: {
+        ref: string;
+    };
+    base: {
+        ref: string;
+    };
+    assignees?: Array<{
+        login: string;
+    }>;
+    milestone?: {
+        title: string;
+        number: number;
+    } | null;
+}
+interface ReviewComment {
+    id: number;
+    body: string;
+    body_html?: string | null;
+    user: {
+        login: string;
+        html_url: string;
+    };
+    created_at: string;
+    updated_at: string;
+    html_url: string;
+    path?: string;
+    line?: number | null;
+    side?: string | null;
+    in_reply_to_id?: number | null;
+    pull_request_review_id?: number | null;
+    diff_hunk?: string | null;
+    original_line?: number | null;
+    original_commit_id?: string | null;
+}
+interface IssueRelationship {
+    parent: number | null;
+    children: number[];
+}
+export declare function formatGitHubError(error: unknown): string;
+export declare function isRetryableError(error: unknown): boolean;
+export declare function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T>;
+export declare function runFormatCommand(command: string, files: string[]): void;
+export declare function parseNumberFilter(input: string): number[] | undefined;
+export interface AttachmentAsset {
+    uuid: string;
+    ext: string;
+    signedUrl: string;
+}
+export interface AttachmentContext {
+    dir: string;
+    relativePrefix: string;
+    forceUpdate: boolean;
+    handled: Set<string>;
+    files: string[];
+}
+export declare function extractAttachmentAssets(bodyHtml: string): Map<string, AttachmentAsset>;
+/**
+ * Downloads the attachments referenced in a raw markdown body and rewrites
+ * their URLs to relative paths under the attachments directory. Assets whose
+ * signed URL is unavailable or whose download fails keep their original URL.
+ */
+export declare function processBodyAttachments(body: string, bodyHtml: string | null | undefined, ctx: AttachmentContext): Promise<string>;
+declare function run(): Promise<void>;
+export declare const GRAPHQL_BATCH_SIZE = 50;
+export declare function fetchIssueRelationships(octokit: ReturnType<typeof github.getOctokit>, owner: string, repo: string, issueNumbers: number[]): Promise<Map<number, IssueRelationship>>;
+export declare function formatIssueAsMarkdown(issue: Issue, comments?: Comment[], relationship?: IssueRelationship): string;
+export declare function formatPRAsMarkdown(pr: PullRequest, comments?: Comment[], reviewComments?: ReviewComment[], commits?: Array<{
+    sha: string;
+    commit: {
+        message: string;
+        author: {
+            name: string;
+            date: string;
+        };
+    };
+    author: {
+        login: string;
+        html_url: string;
+    } | null;
+    html_url: string;
+    stats?: {
+        total?: number;
+        additions?: number;
+        deletions?: number;
+    };
+    files?: Array<{
+        filename: string;
+    }>;
+}>): string;
+export declare function formatDate(dateString: string): string;
+/**
+ * Shifts all markdown headers so the shallowest header in the content is at `minLevel`.
+ * If the shallowest header already meets or exceeds `minLevel`, the content is returned unchanged.
+ * Headers are capped at the maximum markdown level of 6.
+ */
+export declare function shiftHeadersToMinLevel(content: string, minLevel: number): string;
+export { run };
