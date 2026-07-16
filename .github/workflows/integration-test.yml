@@ -46,7 +46,7 @@ permissions:
 jobs:
   sync-issues-only:
     name: Sync issues only
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -146,7 +146,7 @@ jobs:
 
   sync-prs-only:
     name: Sync PRs only
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -215,7 +215,7 @@ jobs:
 
   force-update:
     name: Force update
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -286,7 +286,7 @@ jobs:
 
   include-closed:
     name: Include closed
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -340,7 +340,7 @@ jobs:
 
   sub-issues:
     name: Sub-issue relationships
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -401,7 +401,7 @@ jobs:
 
   sub-issues-off:
     name: Sub-issues disabled
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -449,7 +449,7 @@ jobs:
 
   updated-since:
     name: Updated-since filter
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -493,7 +493,7 @@ jobs:
 
   state-file:
     name: State file persistence
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -545,7 +545,7 @@ jobs:
 
   default-mode:
     name: Default mode (issues + PRs)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
