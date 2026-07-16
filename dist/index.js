@@ -29476,6 +29476,7 @@ __nccwpck_require__.d(__webpack_exports__, {
   isRetryableError: () => (/* binding */ isRetryableError),
   parseNumberFilter: () => (/* binding */ parseNumberFilter),
   run: () => (/* binding */ run),
+  runFormatCommand: () => (/* binding */ runFormatCommand),
   shiftHeadersToMinLevel: () => (/* binding */ shiftHeadersToMinLevel),
   withRetry: () => (/* binding */ withRetry)
 });
@@ -41934,6 +41935,7 @@ function createAppAuth(options) {
 
 
 
+
 const MAX_RETRY_ATTEMPTS = 4;
 const INITIAL_RETRY_DELAY_MS = 1000;
 function getErrorStatus(error) {
@@ -42013,6 +42015,27 @@ async function withRetry(label, fn) {
         }
     }
     throw lastError;
+}
+function runFormatCommand(command, files) {
+    const trimmed = command.trim();
+    if (!trimmed) {
+        return;
+    }
+    if (files.length === 0) {
+        info('No modified files; skipping format-command');
+        return;
+    }
+    // Single-quote each path so spaces and shell metacharacters survive.
+    const quoted = files.map((f) => `'${f.replace(/'/g, `'\\''`)}'`).join(' ');
+    const resolved = trimmed.split('{files}').join(quoted);
+    info(`Running format-command on ${files.length} file(s)`);
+    try {
+        (0,external_child_process_namespaceObject.execSync)(resolved, { stdio: 'inherit' });
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`format-command failed: ${message}`);
+    }
 }
 function parseNumberFilter(input) {
     const trimmed = input.trim();
@@ -42137,6 +42160,9 @@ async function run() {
             prsCount = prsResult.count;
             modifiedFiles.push(...prsResult.files);
         }
+        // User formatting hook (#17): runs after files are written and before
+        // outputs are set, so the downstream commit step picks up formatted files.
+        runFormatCommand(getInput('format-command') || '', modifiedFiles);
         const lastSyncedAt = new Date().toISOString();
         setOutput('issues-count', issuesCount);
         setOutput('prs-count', prsCount);

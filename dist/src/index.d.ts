@@ -87,6 +87,7 @@ interface IssueRelationship {
 export declare function formatGitHubError(error: unknown): string;
 export declare function isRetryableError(error: unknown): boolean;
 export declare function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T>;
+export declare function runFormatCommand(command: string, files: string[]): void;
 export declare function parseNumberFilter(input: string): number[] | undefined;
 declare function run(): Promise<void>;
 export declare const GRAPHQL_BATCH_SIZE = 50;

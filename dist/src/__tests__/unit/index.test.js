@@ -4,7 +4,12 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as fs from 'fs';
 import * as path from 'path';
-import { formatDate, formatIssueAsMarkdown, formatPRAsMarkdown, shiftHeadersToMinLevel, fetchIssueRelationships, formatGitHubError, isRetryableError, withRetry, GRAPHQL_BATCH_SIZE, parseNumberFilter, run, } from '../../index';
+import * as childProcess from 'child_process';
+import { formatDate, formatIssueAsMarkdown, formatPRAsMarkdown, shiftHeadersToMinLevel, fetchIssueRelationships, formatGitHubError, isRetryableError, withRetry, GRAPHQL_BATCH_SIZE, parseNumberFilter, runFormatCommand, run, } from '../../index';
+jest.mock('child_process', () => ({
+    ...jest.requireActual('child_process'),
+    execSync: jest.fn(),
+}));
 describe('Sync Issues Action', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -1039,6 +1044,44 @@ describe('Sync Issues Action', () => {
         });
         it('should throw on reversed range', () => {
             expect(() => parseNumberFilter('10-5')).toThrow(/range/i);
+        });
+    });
+    describe('runFormatCommand', () => {
+        const mockExecSync = childProcess.execSync;
+        const mockInfo = core.info;
+        beforeEach(() => {
+            jest.clearAllMocks();
+        });
+        it('does nothing when the command is empty or whitespace', () => {
+            runFormatCommand('', ['docs/issues/issue-1.md']);
+            runFormatCommand('   ', ['docs/issues/issue-1.md']);
+            expect(mockExecSync).not.toHaveBeenCalled();
+        });
+        it('does nothing when there are no modified files', () => {
+            runFormatCommand('prettier --write {files}', []);
+            expect(mockExecSync).not.toHaveBeenCalled();
+            expect(mockInfo).toHaveBeenCalledWith('No modified files; skipping format-command');
+        });
+        it('replaces every {files} placeholder with quoted file paths', () => {
+            runFormatCommand('prettier --write {files} && markdownlint {files}', [
+                'docs/issues/issue-1.md',
+                'docs/pull-requests/pr-2.md',
+            ]);
+            expect(mockExecSync).toHaveBeenCalledWith("prettier --write 'docs/issues/issue-1.md' 'docs/pull-requests/pr-2.md' && markdownlint 'docs/issues/issue-1.md' 'docs/pull-requests/pr-2.md'", expect.objectContaining({ stdio: 'inherit' }));
+        });
+        it('shell-quotes paths containing spaces and single quotes', () => {
+            runFormatCommand('fmt {files}', ["docs/it's here/a b.md"]);
+            expect(mockExecSync).toHaveBeenCalledWith("fmt 'docs/it'\\''s here/a b.md'", expect.objectContaining({ stdio: 'inherit' }));
+        });
+        it('runs the command as-is when no placeholder is present', () => {
+            runFormatCommand('pre-commit run --all-files', ['docs/issues/issue-1.md']);
+            expect(mockExecSync).toHaveBeenCalledWith('pre-commit run --all-files', expect.objectContaining({ stdio: 'inherit' }));
+        });
+        it('wraps execution errors with format-command context', () => {
+            mockExecSync.mockImplementation(() => {
+                throw new Error('exit 2');
+            });
+            expect(() => runFormatCommand('bad-tool {files}', ['a.md'])).toThrow(/format-command failed: exit 2/);
         });
     });
     describe('Input Parameters', () => {

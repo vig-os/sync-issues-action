@@ -3,6 +3,7 @@ import * as github from '@actions/github';
 import { createAppAuth } from '@octokit/auth-app';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 const MAX_RETRY_ATTEMPTS = 4;
 const INITIAL_RETRY_DELAY_MS = 1000;
 function getErrorStatus(error) {
@@ -82,6 +83,27 @@ export async function withRetry(label, fn) {
         }
     }
     throw lastError;
+}
+export function runFormatCommand(command, files) {
+    const trimmed = command.trim();
+    if (!trimmed) {
+        return;
+    }
+    if (files.length === 0) {
+        core.info('No modified files; skipping format-command');
+        return;
+    }
+    // Single-quote each path so spaces and shell metacharacters survive.
+    const quoted = files.map((f) => `'${f.replace(/'/g, `'\\''`)}'`).join(' ');
+    const resolved = trimmed.split('{files}').join(quoted);
+    core.info(`Running format-command on ${files.length} file(s)`);
+    try {
+        execSync(resolved, { stdio: 'inherit' });
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`format-command failed: ${message}`);
+    }
 }
 export function parseNumberFilter(input) {
     const trimmed = input.trim();
@@ -206,6 +228,9 @@ async function run() {
             prsCount = prsResult.count;
             modifiedFiles.push(...prsResult.files);
         }
+        // User formatting hook (#17): runs after files are written and before
+        // outputs are set, so the downstream commit step picks up formatted files.
+        runFormatCommand(core.getInput('format-command') || '', modifiedFiles);
         const lastSyncedAt = new Date().toISOString();
         core.setOutput('issues-count', issuesCount);
         core.setOutput('prs-count', prsCount);
