@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Pin `@github/local-action` in the local integration test script** ([#122](https://github.com/vig-os/sync-issues-action/issues/122))
+  - `test-local.sh` now installs a fixed version instead of the floating latest, resolving the OpenSSF Scorecard `PinnedDependenciesID` alert
+
 ## [v0.3.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.3.0) - 2026-07-16
 
 ### Added
