@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Adopt vigOS devkit 1.3.1** ([#138](https://github.com/vig-os/sync-issues-action/issues/138))
+  - Re-scaffold from devkit 1.3.0 to 1.3.1 (direnv mode); pin the `vigos` flake input to `?ref=1.3.1` and re-lock `flake.lock` (previously floated on the devkit default branch)
+  - CodeQL push-to-main `paths:` filter now renders the Node globs natively (`**.ts`, `**.js`, `**.mjs`, `**.cjs`, `.github/workflows/**`), retiring the hand patch ([vig-os/devkit#1142](https://github.com/vig-os/devkit/issues/1142))
+- **Move build-provenance attestation into the release-extension seam** ([#138](https://github.com/vig-os/sync-issues-action/issues/138))
+  - The SLSA build-provenance attestation of `dist/index.js` now runs as a final-release job in the consumer-owned `release-extension.yml`, using the token ceiling devkit 1.3.1 grants the seam ([vig-os/devkit#1144](https://github.com/vig-os/devkit/issues/1144)); the standalone `attest-release.yml` tag-push workflow is removed (resolves the deviation tracked in [#106](https://github.com/vig-os/sync-issues-action/issues/106))
+
 ### Deprecated
 
 ### Removed

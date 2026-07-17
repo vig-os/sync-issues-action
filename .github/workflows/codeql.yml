@@ -44,12 +44,11 @@ on:  # yamllint disable-line rule:truthy
   push:
     branches:
       - main
-    # Hand-patched for this Node repo (devkit renders only the language matrix,
-    # not this filter — vig-os/devkit#1142; re-apply after every devkit upgrade
-    # until fixed upstream).
     paths:
       - '**.ts'
       - '**.js'
+      - '**.mjs'
+      - '**.cjs'
       - '.github/workflows/**'
   schedule:
     - cron: '15 2 * * 1'  # Monday at 02:15 UTC
