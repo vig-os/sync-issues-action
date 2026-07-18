@@ -2,18 +2,18 @@
 type: issue
 state: closed
 created: 2026-07-15T20:12:01Z
-updated: 2026-07-16T14:53:54Z
+updated: 2026-07-17T07:54:40Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/106
-comments: 2
+comments: 3
 labels: chore, area:ci, priority:high, effort:small
 assignees: none
 milestone: none
 projects: none
 parent: none
 children: 77, 96, 95
-synced: 2026-07-16T18:08:26.716Z
+synced: 2026-07-18T04:49:58.419Z
 ---
 
 # [Issue 106]: [[CHORE] Adopt vigOS devkit 1.3.0 (direnv) — replace bespoke CI/release stack](https://github.com/vig-os/sync-issues-action/issues/106)
@@ -75,4 +75,18 @@ Floating-tag assertion complete — all boxes ticked, closing.
 `v0` and `v0.3` now point at `f530c0f` (the finalized v0.3.0 release commit), verified via `git ls-remote`. The move required a temporary `RepositoryRole: admin` bypass on the Tag protection ruleset (added, used for exactly two tag operations, reverted — final state re-verified identical to the imported original with the Release App as sole bypass actor).
 
 Full first-train deviations, for the record: manual promote (vig-os/devkit#1151), manual floating-tag bootstrap (vig-os/devkit#1152), commit-lint waiver (#113 → vig-os/devkit#1149), sync-dispatch fix (#116 → vig-os/devkit#1150). Steady-state releases from here on run the registered promote workflow with app-exclusive tag moves, as designed.
+
+---
+
+# [Comment #3]() by [c-vigo]()
+
+_Posted on July 17, 2026 at 07:54 AM_
+
+### Attestation deviation resolved
+
+The provenance-attestation deviation documented here (SLSA build-provenance of `dist/index.js` re-homed in a consumer-owned `attest-release.yml` because the 1.3.0 release-extension seam was called under a `contents: read, packages: read` ceiling and a called reusable workflow cannot elevate `GITHUB_TOKEN`) is now **resolved**.
+
+Devkit **1.3.1** (vig-os/devkit#1144) raises the managed `release.yml` `extension` caller job to a `contents: read, packages: write, id-token: write, attestations: write` **ceiling**. The attestation has been moved into the consumer-owned `release-extension.yml` as a final-release `attest` job declaring exactly `id-token: write` + `attestations: write` (no `packages: write`), gated on `verify-dist`, and `attest-release.yml` has been deleted.
+
+Tracked in #138 → PR #139 (base `dev`). **Live attestation proof is pending the next sync-issues final release** through the devkit release train; the migration is statically validated (actionlint clean, full pre-commit green) but not yet exercised end-to-end.
 
