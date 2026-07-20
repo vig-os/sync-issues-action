@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Adopt vigOS devkit 1.4.0** ([#142](https://github.com/vig-os/sync-issues-action/issues/142))
+  - Re-scaffold from devkit 1.3.1 to 1.4.0 (direnv mode); pin the `vigos` flake input to `?ref=1.4.0` and re-lock `flake.lock`
+  - Managed workflows adopt the devkit-owned `zizmor` security baseline (new `zizmor.yml`) and its upstream fixes: `persist-credentials: false` on the read-only checkouts (`ci.yml` resolve/lint/test/dependency-review, `codeql.yml`, `renovate-changelog-build.yml`, `sync-issues.yml`) and the `sync-main-to-dev.yml` template-injection fix (release-app token moved to step `env:`) ([vig-os/devkit#1182](https://github.com/vig-os/devkit/issues/1182))
+  - Managed `ci.yml` toolchain jobs (`lint`, `test`, `commit-checks`, `summary`) route `runs-on` through the new `resolve-toolchain` `runner-json` output driven by the optional `.vig-os` `DEVKIT_CI_RUNNER` key; absent here, so the jobs keep `ubuntu-24.04` ([vig-os/devkit#1173](https://github.com/vig-os/devkit/issues/1173))
+  - direnv CI toolchain now forwards the flake `shellHook` environment to `GITHUB_ENV` ([vig-os/devkit#1180](https://github.com/vig-os/devkit/issues/1180)) and the base `justfile` ships a `with-native-libs` recipe for uvx native wheels ([vig-os/devkit#1181](https://github.com/vig-os/devkit/issues/1181))
 - **Adopt vigOS devkit 1.3.1** ([#138](https://github.com/vig-os/sync-issues-action/issues/138))
   - Re-scaffold from devkit 1.3.0 to 1.3.1 (direnv mode); pin the `vigos` flake input to `?ref=1.3.1` and re-lock `flake.lock` (previously floated on the devkit default branch)
   - CodeQL push-to-main `paths:` filter now renders the Node globs natively (`**.ts`, `**.js`, `**.mjs`, `**.cjs`, `.github/workflows/**`), retiring the hand patch ([vig-os/devkit#1142](https://github.com/vig-os/devkit/issues/1142))
