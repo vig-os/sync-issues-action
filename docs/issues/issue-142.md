@@ -1,19 +1,19 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-07-17T14:42:48Z
-updated: 2026-07-17T14:42:48Z
+updated: 2026-07-20T16:34:33Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/142
-comments: 0
+comments: 1
 labels: chore, area:ci, priority:medium
 assignees: none
 milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-07-18T04:49:57.076Z
+synced: 2026-07-21T05:21:47.898Z
 ---
 
 # [Issue 142]: [[CHORE] Adopt vigOS devkit 1.4.0](https://github.com/vig-os/sync-issues-action/issues/142)
@@ -77,4 +77,12 @@ a config file only).
 
 - vig-os/devkit#1170, vig-os/devkit#1173, vig-os/devkit#1182
 - Follows the 1.3.1 adoption (#138)
+
+---
+
+# [Comment #1]() by [c-vigo]()
+
+_Posted on July 20, 2026 at 04:34 PM_
+
+devkit 1.4.0 adopted via PR #143 (merged). Validated across rc5/rc6 (release-extension seam intact throughout) and bumped to the final release with floating vigos input.
 
