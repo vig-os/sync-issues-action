@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renovate: update `astral-sh/setup-uv` from `v8.3.2` to `v9.0.0`** ([#151](https://github.com/vig-os/sync-issues-action/pull/151))
 - **Renovate dependency update** ([#149](https://github.com/vig-os/sync-issues-action/pull/149))
   - Update `actions/attest` from `v4.1.1` to `v4.2.0`
   - Update `actions/checkout` from `v7.0.0` to `v7.0.1`
