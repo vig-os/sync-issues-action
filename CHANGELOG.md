@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renovate dependency update** ([#149](https://github.com/vig-os/sync-issues-action/pull/149))
+  - Update `actions/attest` from `v4.1.1` to `v4.2.0`
+  - Update `actions/checkout` from `v7.0.0` to `v7.0.1`
+  - Update `ossf/scorecard-action` from `v2.4.3` to `v2.4.4`
 - **Adopt vigOS devkit 1.4.0** ([#142](https://github.com/vig-os/sync-issues-action/issues/142))
   - Re-scaffold from devkit 1.3.1 to 1.4.0 (direnv mode); pin the `vigos` flake input to `?ref=1.4.0` and re-lock `flake.lock`
   - Managed workflows adopt the devkit-owned `zizmor` security baseline (new `zizmor.yml`) and its upstream fixes: `persist-credentials: false` on the read-only checkouts (`ci.yml` resolve/lint/test/dependency-review, `codeql.yml`, `renovate-changelog-build.yml`, `sync-issues.yml`) and the `sync-main-to-dev.yml` template-injection fix (release-app token moved to step `env:`) ([vig-os/devkit#1182](https://github.com/vig-os/devkit/issues/1182))
