@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Update `prettier` from `3.9.5` to `3.9.6`
   - Update `ts-jest` from `29.4.11` to `29.4.12`
   - Update `typescript-eslint` from `8.64.0` to `8.65.0`
+- **Renovate: update `github/codeql-action` from `7188fc3` to `e4fba86`** ([#147](https://github.com/vig-os/sync-issues-action/pull/147))
 - **Adopt vigOS devkit 1.4.0** ([#142](https://github.com/vig-os/sync-issues-action/issues/142))
   - Re-scaffold from devkit 1.3.1 to 1.4.0 (direnv mode); pin the `vigos` flake input to `?ref=1.4.0` and re-lock `flake.lock`
   - Managed workflows adopt the devkit-owned `zizmor` security baseline (new `zizmor.yml`) and its upstream fixes: `persist-credentials: false` on the read-only checkouts (`ci.yml` resolve/lint/test/dependency-review, `codeql.yml`, `renovate-changelog-build.yml`, `sync-issues.yml`) and the `sync-main-to-dev.yml` template-injection fix (release-app token moved to step `env:`) ([vig-os/devkit#1182](https://github.com/vig-os/devkit/issues/1182))
