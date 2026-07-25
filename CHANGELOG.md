@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Update `prettier` from `3.9.5` to `3.9.6`
   - Update `ts-jest` from `29.4.11` to `29.4.12`
   - Update `typescript-eslint` from `8.64.0` to `8.65.0`
+- **Renovate: update `astral-sh/setup-uv` from `v8.3.2` to `v9.0.0`** ([#151](https://github.com/vig-os/sync-issues-action/pull/151))
+- **Renovate dependency update** ([#149](https://github.com/vig-os/sync-issues-action/pull/149))
+  - Update `actions/attest` from `v4.1.1` to `v4.2.0`
+  - Update `actions/checkout` from `v7.0.0` to `v7.0.1`
+  - Update `ossf/scorecard-action` from `v2.4.3` to `v2.4.4`
 - **Renovate: update `github/codeql-action` from `7188fc3` to `e4fba86`** ([#147](https://github.com/vig-os/sync-issues-action/pull/147))
 - **Adopt vigOS devkit 1.4.0** ([#142](https://github.com/vig-os/sync-issues-action/issues/142))
   - Re-scaffold from devkit 1.3.1 to 1.4.0 (direnv mode); pin the `vigos` flake input to `?ref=1.4.0` and re-lock `flake.lock`
