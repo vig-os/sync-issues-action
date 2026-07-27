@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-07-25T17:49:15Z
+updated: 2026-07-27T04:57:50Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,18 +13,24 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-07-26T05:33:32.746Z
+synced: 2026-07-27T05:51:56.491Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Awaiting Schedule
+## PR Edited (Blocked)
 
-The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
+The following updates have been manually edited so Renovate will no longer make changes. To discard all commits and start over, click on a checkbox below.
 
- - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+ - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update dependency globals to v17.8.0](../pull/155)
+
+## Open
+
+The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
+
+ - [ ] <!-- rebase-branch=renovate/lock-file-maintenance -->[build(npm): lock file maintenance](../pull/156)
 
 ## Detected Dependencies
 
@@ -269,7 +275,7 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `@typescript-eslint/parser ^8.57.2`
  - `@vercel/ncc ^0.44.0`
  - `eslint ^10.1.0`
- - `globals ^17.4.0`
+ - `globals ^17.4.0` → [Updates: `^17.4.0`]
  - `jest ^30.3.0`
  - `prettier ^3.8.1`
  - `ts-jest ^29.4.6`
