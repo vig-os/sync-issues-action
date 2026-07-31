@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-07-30T00:51:38Z
+updated: 2026-07-30T15:43:45Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-07-30T05:10:06.612Z
+synced: 2026-07-31T05:37:14.862Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,9 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
+ - [ ] <!-- unschedule-branch=renovate/github-codeql-action-digest -->chore(deps): update github/codeql-action digest to f205ea1
  - [ ] <!-- unschedule-branch=renovate/github-actions-(minor-and-patch) -->ci(actions): update actions/attest action to v4.2.1
+ - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
 ## PR Edited (Blocked)
 
@@ -67,8 +69,8 @@ The following updates have all been created. To force a retry/rebase of any, cli
 <details><summary>.github/workflows/codeql.yml (4)</summary>
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `github/codeql-action v4@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81`
- - `github/codeql-action v4@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81`
+ - `github/codeql-action v4@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81` → [Updates: `v4`]
+ - `github/codeql-action v4@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81` → [Updates: `v4`]
  - `ubuntu 24.04`
 
 </details>
@@ -231,7 +233,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `ossf/scorecard-action v2.4.4@2d1146689b8cda280b9bc96326124645441f03bc`
- - `github/codeql-action v4@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81`
+ - `github/codeql-action v4@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81` → [Updates: `v4`]
  - `ubuntu 24.04`
 
 </details>
