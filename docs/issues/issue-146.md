@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-08-03T02:58:29Z
+updated: 2026-08-03T18:52:13Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,33 +13,27 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-08-03T05:42:58.642Z
+synced: 2026-08-04T05:16:12.337Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Rate-Limited
-
-The following updates are currently rate-limited. To force their creation now, click on a checkbox below.
-
- - [ ] <!-- unlimit-branch=renovate/npm-(minor-and-patch) -->build(npm): update dependency @octokit/auth-app to v8.3.0
-
 ## PR Edited (Blocked)
 
 The following updates have been manually edited so Renovate will no longer make changes. To discard all commits and start over, click on a checkbox below.
 
- - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/155) (`globals`, `tsx`)
+ - [ ] <!-- rebase-branch=renovate/github-codeql-action-digest -->[chore(deps): update github/codeql-action digest to d1ba80a](../pull/157)
+ - [ ] <!-- rebase-branch=renovate/github-actions-(minor-and-patch) -->[ci(actions): update actions/attest action to v4.2.1](../pull/158)
+ - [ ] <!-- rebase-branch=renovate/npm-(minor-and-patch) -->[build(npm): update dependency @octokit/auth-app to v8.3.0](../pull/159)
+ - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/155) (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `globals`, `tsx`, `typescript-eslint`)
 
 ## Open
 
 The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
 
- - [ ] <!-- rebase-branch=renovate/github-codeql-action-digest -->[chore(deps): update github/codeql-action digest to f205ea1](../pull/157)
- - [ ] <!-- rebase-branch=renovate/github-actions-(minor-and-patch) -->[ci(actions): update actions/attest action to v4.2.1](../pull/158)
  - [ ] <!-- rebase-branch=renovate/lock-file-maintenance -->[build(npm): lock file maintenance](../pull/156)
- - [ ] <!-- rebase-all-open-prs -->**Click on this checkbox to rebase all open PRs at once**
 
 ## Detected Dependencies
 
@@ -280,8 +274,8 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
  - `@types/node ^25.5.0`
- - `@typescript-eslint/eslint-plugin ^8.57.2`
- - `@typescript-eslint/parser ^8.57.2`
+ - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `^8.57.2`]
+ - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
  - `@vercel/ncc ^0.44.0`
  - `eslint ^10.1.0`
  - `globals ^17.4.0` → [Updates: `^17.4.0`]
@@ -290,7 +284,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `ts-jest ^29.4.6`
  - `tsx ^4.7.0` → [Updates: `^4.7.0`]
  - `typescript ^6.0.0`
- - `typescript-eslint ^8.57.2`
+ - `typescript-eslint ^8.57.2` → [Updates: `^8.57.2`]
 
 </details>
 
