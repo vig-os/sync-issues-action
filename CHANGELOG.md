@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renovate: update `actions/attest` from `v4.2.0` to `v4.2.2`** ([#158](https://github.com/vig-os/sync-issues-action/pull/158))
 - **Renovate: update `globals` from `17.7.0` to `17.8.0`** ([#155](https://github.com/vig-os/sync-issues-action/pull/155))
 - **Renovate: update `typescript` from `^5.3.2` to `^6.0.0`** ([#150](https://github.com/vig-os/sync-issues-action/pull/150))
 - **Renovate dependency update** ([#148](https://github.com/vig-os/sync-issues-action/pull/148))
