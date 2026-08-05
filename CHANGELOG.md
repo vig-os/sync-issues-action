@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renovate dependency update** ([#162](https://github.com/vig-os/sync-issues-action/pull/162))
+  - Update `@typescript-eslint/eslint-plugin` from `8.65.0` to `8.66.0`
+  - Update `@typescript-eslint/parser` from `8.65.0` to `8.66.0`
+  - Update `globals` from `17.8.0` to `17.9.0`
+  - Update `tsx` from `4.23.1` to `4.23.7`
+  - Update `typescript-eslint` from `8.65.0` to `8.66.0`
 - **Renovate: update `@octokit/auth-app` from `8.2.0` to `8.3.0`** ([#159](https://github.com/vig-os/sync-issues-action/pull/159))
 - **Renovate: update `actions/attest` from `v4.2.0` to `v4.2.2`** ([#158](https://github.com/vig-os/sync-issues-action/pull/158))
 - **Renovate: update `globals` from `17.7.0` to `17.8.0`** ([#155](https://github.com/vig-os/sync-issues-action/pull/155))
