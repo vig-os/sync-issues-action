@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-08-04T21:36:21Z
+updated: 2026-08-05T10:00:02Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-08-05T05:16:05.249Z
+synced: 2026-08-05T10:27:59.050Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -25,7 +25,7 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
  - [ ] <!-- unschedule-branch=renovate/github-codeql-action-digest -->chore(deps): update github/codeql-action digest to 5595cca
- - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `globals`, `tsx`, `typescript-eslint`)
+ - [ ] <!-- unschedule-branch=renovate/github-actions-(minor-and-patch) -->ci(actions): update vig-os/commit-action action to v0.3.2
  - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
  - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
@@ -125,12 +125,12 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864`
+ - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864` → [Updates: `v0.3.2`]
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864`
+ - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864` → [Updates: `v0.3.2`]
  - `ubuntu 24.04`
  - `ubuntu 24.04`
  - `ubuntu 24.04`
@@ -167,7 +167,7 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864`
+ - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864` → [Updates: `v0.3.2`]
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `ubuntu 24.04`
@@ -222,7 +222,7 @@ The following updates are awaiting their schedule. To get an update now, click o
 
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
  - `actions/download-artifact v8.0.1@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c`
- - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864`
+ - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864` → [Updates: `v0.3.2`]
  - `ubuntu 24.04`
 
 </details>
@@ -243,7 +243,7 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/cache v6.1.0@55cc8345863c7cc4c66a329aec7e433d2d1c52a9`
  - `vig-os/sync-issues-action v0.4.0@285a0af876bac99a0e914a64a1cb925dd913f38a`
- - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864`
+ - `vig-os/commit-action v0.3.1@3a0588ec060d9647bf406e064cf9e6192a431864` → [Updates: `v0.3.2`]
  - `actions/cache v6.1.0@55cc8345863c7cc4c66a329aec7e433d2d1c52a9`
  - `ubuntu 24.04`
  - `ubuntu 24.04`
@@ -277,17 +277,17 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
  - `@types/node ^25.5.0`
- - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `^8.57.2`]
- - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
+ - `@typescript-eslint/eslint-plugin ^8.57.2`
+ - `@typescript-eslint/parser ^8.57.2`
  - `@vercel/ncc ^0.44.0`
  - `eslint ^10.1.0`
- - `globals ^17.4.0` → [Updates: `^17.4.0`]
+ - `globals ^17.4.0`
  - `jest ^30.3.0`
  - `prettier ^3.8.1`
  - `ts-jest ^29.4.6`
- - `tsx ^4.7.0` → [Updates: `^4.7.0`]
+ - `tsx ^4.7.0`
  - `typescript ^6.0.0`
- - `typescript-eslint ^8.57.2` → [Updates: `^8.57.2`]
+ - `typescript-eslint ^8.57.2`
 
 </details>
 
