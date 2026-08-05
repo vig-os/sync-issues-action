@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.4.1] - TBD
+
+### Changed
+
 - **Renovate dependency update** ([#162](https://github.com/vig-os/sync-issues-action/pull/162))
   - Update `@typescript-eslint/eslint-plugin` from `8.65.0` to `8.66.0`
   - Update `@typescript-eslint/parser` from `8.65.0` to `8.66.0`
@@ -45,18 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Move build-provenance attestation into the release-extension seam** ([#138](https://github.com/vig-os/sync-issues-action/issues/138))
   - The SLSA build-provenance attestation of `dist/index.js` now runs as a final-release job in the consumer-owned `release-extension.yml`, using the token ceiling devkit 1.3.1 grants the seam ([vig-os/devkit#1144](https://github.com/vig-os/devkit/issues/1144)); the standalone `attest-release.yml` tag-push workflow is removed (resolves the deviation tracked in [#106](https://github.com/vig-os/sync-issues-action/issues/106))
 
-### Deprecated
-
-### Removed
-
 ### Fixed
 
 - **Refresh the committed `dist/` bundle and untrack stray tsc emit** ([#164](https://github.com/vig-os/sync-issues-action/issues/164))
   - Rebuild `dist/index.js` so the shipped bundle picks up the runtime/toolchain bumps that landed on `dev` without a rebundle (`@octokit/auth-app` 8.3.0, TypeScript 6)
   - `git rm --cached` the gitignored-but-tracked `dist/src/**` and `dist/tsconfig.tsbuildinfo` re-added by the v0.4.0 finalize; the devkit 1.6.0 finalize ([vig-os/devkit#1159](https://github.com/vig-os/devkit/issues/1159)) no longer force-adds them, so the untrack now persists
   - Align the stale `package.json` version (`0.2.2`) with the release train
-
-### Security
 
 ## [v0.4.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.4.0) - 2026-07-16
 
