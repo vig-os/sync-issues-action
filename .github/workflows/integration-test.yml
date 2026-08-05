@@ -11,14 +11,18 @@
 # Update this list if any referenced issue or PR is removed.
 #
 #   Stable CLOSED issues: 4, 8, 13, 15
-#   Stable OPEN issues:   2, 17  (must stay open for include-closed job)
 #   Stable MERGED PRs:    1, 3   (used with include-closed: true)
+#
+# Note: issues 2 and 17 also appear in some filters, but no job depends on their
+# open/closed state — "closed" is the durable state (open issues drift closed),
+# so scenarios assert against the stable-CLOSED issues instead. See issue #140.
 #
 # Jobs (all run in parallel; each uses a subset via issues-filter and/or prs-filter):
 #   sync-issues-only  — issues 4,8; verify count, output files, frontmatter, github-token
 #   sync-prs-only     — PRs 1,3; verify prs-count > 0 and output files exist
 #   force-update      — issues 4,8; no-op baseline (zero mods) then force (non-zero mods)
-#   include-closed    — issues 2,17,4,8; verify closed count >= open-only count
+#   include-closed    — issues 2,17,4,8; verify with-closed count > open-only count
+#                       (closed issues 4,8 are added by include-closed=true)
 #   sub-issues        — issues 13,15; verify parent/children frontmatter
 #   sub-issues-off    — issues 13,15; verify parent/children are "none" when sync-sub-issues=false
 #   updated-since     — issues 2,17,4,8; verify future-dated filter produces zero results
@@ -54,7 +58,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -154,7 +158,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -223,7 +227,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -294,7 +298,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -318,25 +322,33 @@ jobs:
           include-closed: 'true'
           issues-filter: '2,17,4,8'
 
-      - name: Verify — closed count >= open count
+      - name: Verify — closed issues appear only when include-closed=true
         env:
           OPEN_COUNT: ${{ steps.sync-open.outputs.issues-count }}
           CLOSED_COUNT: ${{ steps.sync-closed.outputs.issues-count }}
         run: |
           set -euo pipefail
+          OPEN_COUNT="${OPEN_COUNT:-0}"
+          CLOSED_COUNT="${CLOSED_COUNT:-0}"
           echo "Open-only count: $OPEN_COUNT"
           echo "With-closed count: $CLOSED_COUNT"
 
-          if [ -z "$OPEN_COUNT" ] || [ "$OPEN_COUNT" -eq 0 ]; then
-            echo "ERROR: Expected open-only issues-count > 0 (repo must have open issues)"
+          # State-independent invariant: the filter contains issues 4 and 8, which
+          # are stably CLOSED (closed is the natural, durable state — open issues
+          # drift closed over time, see file header). include-closed=true must
+          # therefore return strictly more issues than include-closed=false,
+          # because at least the closed issues are added while open-only omits them.
+          # This holds regardless of how many filtered issues are currently open.
+          if [ "$CLOSED_COUNT" -eq 0 ]; then
+            echo "ERROR: Expected with-closed issues-count > 0 (filter must match closed issues)"
             exit 1
           fi
 
-          if [ "$CLOSED_COUNT" -lt "$OPEN_COUNT" ]; then
-            echo "ERROR: include-closed count ($CLOSED_COUNT) should be >= open-only count ($OPEN_COUNT)"
+          if [ "$CLOSED_COUNT" -le "$OPEN_COUNT" ]; then
+            echo "ERROR: include-closed count ($CLOSED_COUNT) should be > open-only count ($OPEN_COUNT); closed issues (4, 8) must be added when include-closed=true"
             exit 1
           fi
-          echo "OK: include-closed count ($CLOSED_COUNT) >= open-only count ($OPEN_COUNT)"
+          echo "OK: include-closed count ($CLOSED_COUNT) > open-only count ($OPEN_COUNT)"
 
   sub-issues:
     name: Sub-issue relationships
@@ -348,7 +360,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -409,7 +421,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -457,7 +469,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -501,7 +513,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
 
@@ -554,7 +566,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
 

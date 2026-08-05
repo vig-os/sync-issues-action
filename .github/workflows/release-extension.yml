@@ -1,4 +1,4 @@
-# Release Extension — dist freshness verification (consumer-owned)
+# Release Extension — dist freshness + build-provenance attestation (consumer-owned)
 #
 # The devkit release pipeline's designed project extension point: release.yml
 # calls this reusable workflow after finalize_sha is computed and before
@@ -6,22 +6,32 @@
 # release.yml, which triggers the existing rollback via `needs` — so this is
 # the last gate before a tag is cut.
 #
-# This project uses it to guarantee the tagged commit ships a fresh ncc bundle:
-# it checks out inputs.finalize_sha, rebuilds with the pinned dev-shell
-# toolchain, and diffs the committed dist/. A stale bundle fails the job and
-# rolls the release back. Read-only verification (contents: read) — the CI
-# dist-check gate is what keeps dist/ fresh on the branch; this is the
-# release-time backstop that a merge did not slip a stale bundle through.
+# Two jobs run here:
+#   1. verify-dist — guarantees the tagged commit ships a fresh ncc bundle: it
+#      checks out inputs.finalize_sha, rebuilds with the pinned dev-shell
+#      toolchain, and diffs the committed dist/. A stale bundle fails the job
+#      and rolls the release back. The CI dist-check gate keeps dist/ fresh on
+#      the branch; this is the release-time backstop that a merge did not slip a
+#      stale bundle through.
+#   2. attest (final releases only) — emits an SLSA build-provenance attestation
+#      for dist/index.js (the file a consumer pinning `@<tag>` executes:
+#      action.yml -> main: dist/index.js). It runs only after verify-dist has
+#      confirmed the committed bundle is fresh, so provenance is attached to the
+#      exact artifact the tag will carry (the tag points at finalize_sha).
 #
 # History: before the devkit migration (#106) this file held the repo's own
 # floating-tag mover. The managed promote-release.yml now moves floating tags
 # natively (DEVKIT_FLOATING_TAGS in .vig-os), so that job was retired and the
 # seam re-purposed — ported from vig-os/commit-action.
 #
-# NOTE on attestation: it cannot live in this seam — the managed release.yml
-# calls it under a `contents: read, packages: read` token ceiling, and a called
-# workflow cannot elevate GITHUB_TOKEN (`id-token: write` would be denied).
-# Provenance attestation therefore lives in attest-release.yml (tag push).
+# Attestation used to live in a consumer-owned attest-release.yml (push: tags)
+# because the 1.3.0 seam was called under a `contents: read, packages: read`
+# ceiling and a called workflow cannot ELEVATE GITHUB_TOKEN, so `id-token: write`
+# was denied. Devkit 1.3.1 (vig-os/devkit#1144) raises the managed release.yml
+# `extension` caller job to a `contents: read, packages: write, id-token: write,
+# attestations: write` CEILING, so the attest job below declares exactly the
+# `id-token: write` + `attestations: write` it needs (no packages: write —
+# nothing is published to a registry) and attest-release.yml was removed.
 #
 # The workflow_call inputs contract is fixed — release.yml passes these by
 # name. Toolchain inputs are NOT part of that contract, so this workflow
@@ -68,7 +78,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.finalize_sha }}
           sparse-checkout: |
@@ -97,7 +107,7 @@ jobs:
 
     steps:
       - name: Checkout finalized commit
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: ${{ inputs.finalize_sha }}
 
@@ -124,3 +134,39 @@ jobs:
             echo "::error::dist/ at $FINALIZE_SHA (publishing $PUBLISH_VERSION) is stale relative to src/. Run 'just bundle', commit the refreshed bundle, and re-run the release."
             exit 1
           fi
+
+  attest:
+    name: Attest build provenance
+    # Final releases only: candidates (X.Y.Z-rcN) publish disposable RC tags, so
+    # provenance is attached to the immutable X.Y.Z artifact a consumer pins.
+    # Mirrors the intent of the retired attest-release.yml (final version tags).
+    if: ${{ inputs.release_kind == 'final' }}
+    # Gate on verify-dist so provenance is only ever attached to a bundle already
+    # proven fresh at finalize_sha (which is the commit the published tag points
+    # at) — never a stale one.
+    needs: [verify-dist]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # Exactly the scopes the attestation needs, within the #1144 seam ceiling
+    # (contents:read, packages:write, id-token:write, attestations:write). No
+    # packages:write — nothing is published to a registry.
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Checkout finalized commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.finalize_sha }}
+
+      # actions/attest with only subject-path set emits the same SLSA
+      # build-provenance predicate the attest-build-provenance wrapper produces,
+      # under the id-token + attestations grant above (#70). The subject is the
+      # committed dist/index.js AT finalize_sha — exactly the file a consumer
+      # pinning `@<tag>` executes (action.yml -> main: dist/index.js).
+      - name: Attest build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6  # v4.2.2
+        with:
+          subject-path: dist/index.js
