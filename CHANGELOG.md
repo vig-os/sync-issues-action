@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`client-id` input as the preferred GitHub App credential** ([#168](https://github.com/vig-os/sync-issues-action/issues/168))
   - Forwarded to `createAppAuth` exactly as `app-id` is; setting both inputs fails with an explicit error
 
+### Changed
+
+- **Renovate: update `tsx` from `4.23.7` to `4.23.11`** ([#169](https://github.com/vig-os/sync-issues-action/pull/169))
+
 ### Deprecated
 
 - **`app-id` input** ([#168](https://github.com/vig-os/sync-issues-action/issues/168))
