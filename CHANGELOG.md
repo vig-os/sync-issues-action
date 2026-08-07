@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## [0.5.0] - TBD
+## [v0.5.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.5.0) - 2026-08-07
 
 ### Added
 
