@@ -2,6 +2,7 @@
 // Mocks are set up in setup.ts which runs before this file
 import * as core from '@actions/core';
 import * as github from '@actions/github';
+import { createAppAuth } from '@octokit/auth-app';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as childProcess from 'child_process';
@@ -2446,7 +2447,7 @@ describe('Sync Issues Action', () => {
 
         expect(mockSetFailed).toHaveBeenCalledWith(
           expect.stringContaining(
-            'GitHub App authentication requires both app-id and app-private-key'
+            'GitHub App authentication requires both client-id and app-private-key'
           )
         );
       });
@@ -2510,6 +2511,110 @@ describe('Sync Issues Action', () => {
 
         expect(mockSetOutput).toHaveBeenCalledWith('app-token', 'mock-installation-token');
         expect(mockSetOutput).toHaveBeenCalledWith('github-token', 'test-token');
+      });
+
+      it('should generate app token when client-id and app-private-key provided', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'client-id') return 'Iv23liMockClientId';
+          if (name === 'app-private-key') return 'MOCK_PRIVATE_KEY_FOR_TESTING_ONLY';
+          return '';
+        });
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn().mockResolvedValue({ data: [] }),
+              get: jest.fn(),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn().mockResolvedValue({ data: [] }),
+              get: jest.fn(),
+              listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            apps: {
+              getRepoInstallation: jest.fn().mockResolvedValue({ data: { id: 67890 } }),
+            },
+          },
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(createAppAuth).toHaveBeenCalledWith({
+          appId: 'Iv23liMockClientId',
+          privateKey: 'MOCK_PRIVATE_KEY_FOR_TESTING_ONLY',
+        });
+        expect(mockSetOutput).toHaveBeenCalledWith('app-token', 'mock-installation-token');
+        expect(mockWarning).not.toHaveBeenCalledWith(expect.stringContaining('deprecated'));
+      });
+
+      it('should warn that app-id is deprecated when used', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'app-id') return '12345';
+          if (name === 'app-private-key') return 'MOCK_PRIVATE_KEY_FOR_TESTING_ONLY';
+          return '';
+        });
+
+        const mockOctokit = {
+          rest: {
+            issues: {
+              listForRepo: jest.fn().mockResolvedValue({ data: [] }),
+              get: jest.fn(),
+              listComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            pulls: {
+              list: jest.fn().mockResolvedValue({ data: [] }),
+              get: jest.fn(),
+              listReviewComments: jest.fn().mockResolvedValue({ data: [] }),
+            },
+            apps: {
+              getRepoInstallation: jest.fn().mockResolvedValue({ data: { id: 67890 } }),
+            },
+          },
+        };
+        setMockOctokit(mockOctokit);
+
+        await run();
+
+        expect(mockWarning).toHaveBeenCalledWith(
+          expect.stringContaining('app-id input is deprecated')
+        );
+        expect(mockSetOutput).toHaveBeenCalledWith('app-token', 'mock-installation-token');
+      });
+
+      it('should throw error when both client-id and app-id provided', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'client-id') return 'Iv23liMockClientId';
+          if (name === 'app-id') return '12345';
+          if (name === 'app-private-key') return 'MOCK_PRIVATE_KEY_FOR_TESTING_ONLY';
+          return '';
+        });
+
+        await run();
+
+        expect(mockSetFailed).toHaveBeenCalledWith(
+          expect.stringContaining('Both client-id and app-id were provided')
+        );
+      });
+
+      it('should throw error when only client-id provided', async () => {
+        mockGetInput.mockImplementation((name: string): string => {
+          if (name === 'token') return 'test-token';
+          if (name === 'client-id') return 'Iv23liMockClientId';
+          return '';
+        });
+
+        await run();
+
+        expect(mockSetFailed).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'GitHub App authentication requires both client-id and app-private-key'
+          )
+        );
       });
     });
 
