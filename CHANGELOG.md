@@ -9,9 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`client-id` input as the preferred GitHub App credential** ([#168](https://github.com/vig-os/sync-issues-action/issues/168))
+  - Forwarded to `createAppAuth` exactly as `app-id` is; setting both inputs fails with an explicit error
+
 ### Changed
 
 ### Deprecated
+
+- **`app-id` input** ([#168](https://github.com/vig-os/sync-issues-action/issues/168))
+  - Still works unchanged, but emits a runtime deprecation warning; use `client-id` instead
 
 ### Removed
 
