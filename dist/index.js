@@ -39649,14 +39649,23 @@ async function run() {
         if (!githubToken) {
             throw new Error('GitHub token is required. Provide it via the action input "token" or ensure GITHUB_TOKEN is available.');
         }
-        // Check if GitHub App credentials are provided
-        const appId = getInput('app-id') || '';
+        // Check if GitHub App credentials are provided (client-id preferred, app-id deprecated)
+        const clientId = getInput('client-id') || '';
+        const legacyAppId = getInput('app-id') || '';
+        if (clientId && legacyAppId) {
+            throw new Error('Both client-id and app-id were provided. Set only client-id (app-id is deprecated).');
+        }
+        if (legacyAppId) {
+            warning('The app-id input is deprecated. Use client-id instead.');
+        }
+        const appId = clientId || legacyAppId;
         const appPrivateKey = getInput('app-private-key') || '';
         let appToken;
         let tokenToUse = githubToken;
         // Validate app credentials: both must be provided together, or neither
         if ((appId && !appPrivateKey) || (!appId && appPrivateKey)) {
-            throw new Error('GitHub App authentication requires both app-id and app-private-key. Provide both or neither.');
+            const credInputName = legacyAppId ? 'app-id' : 'client-id';
+            throw new Error(`GitHub App authentication requires both ${credInputName} and app-private-key. Provide both or neither.`);
         }
         if (appId && appPrivateKey) {
             info('GitHub App credentials provided. Generating installation token...');

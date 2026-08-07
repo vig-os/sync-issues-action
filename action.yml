@@ -25,8 +25,11 @@ inputs:
     description: 'Whether to include closed issues/PRs'
     required: false
     default: 'false'
+  client-id:
+    description: 'GitHub App Client ID (optional, preferred App credential)'
+    required: false
   app-id:
-    description: 'GitHub App ID (optional)'
+    description: 'GitHub App ID (optional, deprecated: use client-id instead)'
     required: false
   app-private-key:
     description: 'GitHub App private key (PEM, optional)'

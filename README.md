@@ -38,15 +38,16 @@ A GitHub Action that syncs all issues and pull requests from a repository to mar
   uses: vig-os/sync-issues-action@abc123def456
 ```
 
-**Note:** `${{ github.token }}` is provided automatically by GitHub Actions and is used by default. You can override it by passing your own `token` input if needed or using GitHub App authentication.
+**Note:** `${{ github.token }}` is provided automatically by GitHub Actions and is used by default. You can override it by passing your own `token` input if needed or using GitHub App authentication (`client-id` + `app-private-key`).
 
 ### Options
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
 | `token` | GitHub token with repo access. | No | `${{ github.token }}` |
-| `app-id` | GitHub App ID. If provided with `app-private-key`, will use app authentication. | No | - |
-| `app-private-key` | GitHub App private key. If provided with `app-id`, will use app authentication. | No | - |
+| `client-id` | GitHub App Client ID (preferred). If provided with `app-private-key`, will use app authentication. | No | - |
+| `app-id` | GitHub App ID. **Deprecated:** use `client-id` instead. Do not set both. | No | - |
+| `app-private-key` | GitHub App private key. If provided with `client-id` (or `app-id`), will use app authentication. | No | - |
 | `output-dir` | Directory to store markdown files | No | `synced-issues` |
 | `sync-issues` | Whether to sync issues | No | `true` |
 | `sync-prs` | Whether to sync pull requests | No | `true` |
