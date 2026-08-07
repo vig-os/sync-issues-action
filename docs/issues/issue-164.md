@@ -1,19 +1,19 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-08-05T10:07:43Z
-updated: 2026-08-05T10:07:43Z
+updated: 2026-08-05T10:41:56Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/164
-comments: 0
+comments: 1
 labels: none
 assignees: none
 milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-08-05T10:27:58.559Z
+synced: 2026-08-06T05:19:40.540Z
 ---
 
 # [Issue 164]: [Stale committed dist bundle and stray tracked tsc emit block the v0.4.1 release train](https://github.com/vig-os/sync-issues-action/issues/164)
@@ -30,3 +30,11 @@ The release PR's **Dist Check** (\`dist-check.yml\`) will fail on the next relea
 - \`git rm -r --cached dist/src dist/tsconfig.tsbuildinfo\` — one-time untrack; the devkit 1.6.0 finalize only commits non-ignored dist files, so this now persists across releases.
 - Rebuild and commit a fresh \`dist/index.js\`.
 - Align the stale \`package.json\` version (\`0.2.2\`) with the upcoming release.
+---
+
+# [Comment #1]() by [c-vigo]()
+
+_Posted on August 5, 2026 at 10:41 AM_
+
+Fixed by #165 and shipped in v0.4.1. The release train ran end-to-end with Dist Check green and native floating-tag moves — no manual intervention needed.
+
