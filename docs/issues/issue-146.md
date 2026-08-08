@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-08-07T13:47:09Z
+updated: 2026-08-07T22:14:29Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,18 +13,20 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-08-07T14:06:08.000Z
+synced: 2026-08-08T03:26:34.620Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Rate-Limited
+## Awaiting Schedule
 
-The following updates are currently rate-limited. To force their creation now, click on a checkbox below.
+The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- unlimit-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update dependency eslint to v10.8.1
+ - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+ - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
 ## Detected Dependencies
 
@@ -177,7 +179,7 @@ The following updates are currently rate-limited. To force their creation now, c
  - `@typescript-eslint/eslint-plugin ^8.57.2`
  - `@typescript-eslint/parser ^8.57.2`
  - `@vercel/ncc ^0.44.0`
- - `eslint ^10.1.0`
+ - `eslint ^10.1.0` → [Updates: `^10.1.0`]
  - `globals ^17.4.0`
  - `jest ^30.3.0`
  - `prettier ^3.8.1`
