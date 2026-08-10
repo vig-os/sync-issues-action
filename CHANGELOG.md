@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renovate: update `eslint` from `10.8.0` to `10.8.1`** ([#177](https://github.com/vig-os/sync-issues-action/pull/177))
+
 ### Deprecated
 
 ### Removed
