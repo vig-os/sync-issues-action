@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-08-11T22:37:17Z
+updated: 2026-08-13T10:15:46Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-08-12T04:09:01.549Z
+synced: 2026-08-14T04:09:46.511Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,7 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `globals`, `tsx`, `typescript-eslint`)
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `@vercel/ncc`, `globals`, `tsx`, `typescript-eslint`)
  - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
  - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
@@ -178,7 +178,7 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `@types/node ^25.5.0`
  - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `^8.57.2`]
  - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
- - `@vercel/ncc ^0.44.0`
+ - `@vercel/ncc ^0.44.0` → [Updates: `^0.45.0`]
  - `eslint ^10.1.0`
  - `globals ^17.4.0` → [Updates: `^17.4.0`]
  - `jest ^30.3.0`
