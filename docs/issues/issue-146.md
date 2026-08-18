@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-08-17T02:14:38Z
+updated: 2026-08-17T15:41:45Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,28 +13,36 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-08-17T03:00:23.990Z
+synced: 2026-08-18T02:56:22.166Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Open
+## Awaiting Schedule
 
-The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
+The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/181) (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `@vercel/ncc`, `globals`, `tsx`, `typescript-eslint`)
- - [ ] <!-- rebase-branch=renovate/lock-file-maintenance -->[build(npm): lock file maintenance](../pull/182)
- - [ ] <!-- rebase-all-open-prs -->**Click on this checkbox to rebase all open PRs at once**
+ - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
 
 ## Detected Dependencies
 
-<details><summary>github-actions (19)</summary>
+<details><summary>github-actions (18)</summary>
 <blockquote>
 
 <details><summary>.github/actions/setup-devkit-toolchain/action.yml</summary>
 
+
+</details>
+
+<details><summary>.github/workflows/abandon-release.yml (5)</summary>
+
+ - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
+ - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
+ - `ubuntu 24.04`
+ - `ubuntu 24.04`
+ - `ubuntu 24.04`
 
 </details>
 
@@ -137,16 +145,6 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
 </details>
 
-<details><summary>.github/workflows/renovate-changelog-build.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/renovate-changelog-commit.yml</summary>
-
-
-</details>
-
 <details><summary>.github/workflows/scorecard.yml</summary>
 
 
@@ -176,17 +174,17 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
  - `@types/node ^25.5.0`
- - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `^8.57.2`]
- - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
- - `@vercel/ncc ^0.44.0` → [Updates: `^0.45.0`]
+ - `@typescript-eslint/eslint-plugin ^8.57.2`
+ - `@typescript-eslint/parser ^8.57.2`
+ - `@vercel/ncc ^0.45.0`
  - `eslint ^10.1.0`
- - `globals ^17.4.0` → [Updates: `^17.4.0`]
+ - `globals ^17.4.0`
  - `jest ^30.3.0`
  - `prettier ^3.8.1`
  - `ts-jest ^29.4.6`
- - `tsx ^4.7.0` → [Updates: `^4.7.0`]
+ - `tsx ^4.7.0`
  - `typescript ^6.0.0`
- - `typescript-eslint ^8.57.2` → [Updates: `^8.57.2`]
+ - `typescript-eslint ^8.57.2`
 
 </details>
 
