@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-08-17T15:41:45Z
+updated: 2026-08-21T16:11:11Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-08-18T02:56:22.166Z
+synced: 2026-08-22T02:54:29.604Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,9 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update dependency eslint to v10.9.0
  - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+ - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
 ## Detected Dependencies
 
@@ -177,7 +179,7 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `@typescript-eslint/eslint-plugin ^8.57.2`
  - `@typescript-eslint/parser ^8.57.2`
  - `@vercel/ncc ^0.45.0`
- - `eslint ^10.1.0`
+ - `eslint ^10.1.0` → [Updates: `^10.1.0`]
  - `globals ^17.4.0`
  - `jest ^30.3.0`
  - `prettier ^3.8.1`
