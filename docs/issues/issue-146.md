@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-08-31T20:29:06Z
+updated: 2026-09-01T23:01:38Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-09-01T07:22:41.154Z
+synced: 2026-09-02T06:52:45.853Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,8 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies to v8.69.0 (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `typescript-eslint`)
+ - [ ] <!-- unschedule-branch=renovate/npm-(minor-and-patch) -->build(npm): update dependency @octokit/auth-app to v8.3.1
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `globals`, `jest`, `typescript-eslint`)
  - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
  - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
@@ -172,7 +173,7 @@ The following updates are awaiting their schedule. To get an update now, click o
 
  - `@actions/core ^3.0.1`
  - `@actions/github ^9.1.1`
- - `@octokit/auth-app ^8.0.0`
+ - `@octokit/auth-app ^8.0.0` → [Updates: `^8.0.0`]
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
  - `@types/node ^25.5.0`
@@ -180,8 +181,8 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
  - `@vercel/ncc ^0.45.0`
  - `eslint ^10.1.0`
- - `globals ^17.4.0`
- - `jest ^30.3.0`
+ - `globals ^17.4.0` → [Updates: `^17.4.0`]
+ - `jest ^30.3.0` → [Updates: `^30.3.0`]
  - `prettier ^3.8.1`
  - `ts-jest ^29.4.6`
  - `tsx ^4.7.0`
