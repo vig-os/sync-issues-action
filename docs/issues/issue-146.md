@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-09-04T17:12:26Z
+updated: 2026-09-07T02:33:54Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,21 +13,26 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-09-05T06:44:39.178Z
+synced: 2026-09-07T07:04:41.012Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Awaiting Schedule
+## Rate-Limited
 
-The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
+The following updates are currently rate-limited. To force their creation now, click on a checkbox below.
 
- - [ ] <!-- unschedule-branch=renovate/npm-(minor-and-patch) -->build(npm): update dependency @octokit/auth-app to v8.3.1
- - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint`, `globals`, `jest`, `typescript-eslint`)
- - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
- - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
+ - [ ] <!-- unlimit-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+
+## Open
+
+The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
+
+ - [ ] <!-- rebase-branch=renovate/npm-(minor-and-patch) -->[build(npm): update dependency @octokit/auth-app to v8.3.1](../pull/194)
+ - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/195) (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint`, `globals`, `jest`, `typescript-eslint`)
+ - [ ] <!-- rebase-all-open-prs -->**Click on this checkbox to rebase all open PRs at once**
 
 ## Detected Dependencies
 
