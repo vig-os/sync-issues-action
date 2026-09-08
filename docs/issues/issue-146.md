@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-09-07T02:33:54Z
+updated: 2026-09-07T23:01:55Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,26 +13,24 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-09-07T07:04:41.012Z
+synced: 2026-09-08T06:59:16.372Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Rate-Limited
+## Awaiting Schedule
 
-The following updates are currently rate-limited. To force their creation now, click on a checkbox below.
+The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- unlimit-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies to v8.70.0 (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `typescript-eslint`)
 
 ## Open
 
 The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
 
- - [ ] <!-- rebase-branch=renovate/npm-(minor-and-patch) -->[build(npm): update dependency @octokit/auth-app to v8.3.1](../pull/194)
- - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/195) (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint`, `globals`, `jest`, `typescript-eslint`)
- - [ ] <!-- rebase-all-open-prs -->**Click on this checkbox to rebase all open PRs at once**
+ - [ ] <!-- rebase-branch=renovate/lock-file-maintenance -->[build(npm): lock file maintenance](../pull/196)
 
 ## Detected Dependencies
 
@@ -178,16 +176,16 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
  - `@actions/core ^3.0.1`
  - `@actions/github ^9.1.1`
- - `@octokit/auth-app ^8.0.0` → [Updates: `^8.0.0`]
+ - `@octokit/auth-app ^8.0.0`
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
  - `@types/node ^25.5.0`
  - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `^8.57.2`]
  - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
  - `@vercel/ncc ^0.45.0`
- - `eslint ^10.1.0` → [Updates: `^10.1.0`]
- - `globals ^17.4.0` → [Updates: `^17.4.0`]
- - `jest ^30.3.0` → [Updates: `^30.3.0`]
+ - `eslint ^10.1.0`
+ - `globals ^17.4.0`
+ - `jest ^30.3.0`
  - `prettier ^3.8.1`
  - `ts-jest ^29.4.6`
  - `tsx ^4.7.0`
