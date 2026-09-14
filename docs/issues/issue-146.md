@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-09-10T02:27:59Z
+updated: 2026-09-14T06:46:57Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,24 +13,18 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-09-10T07:04:48.298Z
+synced: 2026-09-14T07:38:08.023Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Awaiting Schedule
+## Other Branches
 
-The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
+The following updates are pending. To force the creation of a PR, click on a checkbox below.
 
- - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@types/node`, `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `typescript-eslint`)
-
-## Open
-
-The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
-
- - [ ] <!-- rebase-branch=renovate/lock-file-maintenance -->[build(npm): lock file maintenance](../pull/196)
+ - [ ] <!-- other-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
 
 ## Detected Dependencies
 
@@ -179,9 +173,9 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `@octokit/auth-app ^8.0.0`
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
- - `@types/node ^25.5.0` → [Updates: `^25.5.0`]
- - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `^8.57.2`]
- - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
+ - `@types/node ^25.5.0`
+ - `@typescript-eslint/eslint-plugin ^8.57.2`
+ - `@typescript-eslint/parser ^8.57.2`
  - `@vercel/ncc ^0.45.0`
  - `eslint ^10.1.0`
  - `globals ^17.4.0`
@@ -190,7 +184,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `ts-jest ^29.4.6`
  - `tsx ^4.7.0`
  - `typescript ^6.0.0`
- - `typescript-eslint ^8.57.2` → [Updates: `^8.57.2`]
+ - `typescript-eslint ^8.57.2`
 
 </details>
 
