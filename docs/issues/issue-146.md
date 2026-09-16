@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-09-14T10:34:19Z
+updated: 2026-09-16T00:04:50Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-09-15T07:17:36.260Z
+synced: 2026-09-16T07:20:15.445Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,9 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update dependency @types/node to v25.9.7
  - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+ - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
 ## Detected Dependencies
 
@@ -173,7 +175,7 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `@octokit/auth-app ^8.0.0`
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
- - `@types/node ^25.5.0`
+ - `@types/node ^25.5.0` → [Updates: `^25.5.0`]
  - `@typescript-eslint/eslint-plugin ^8.57.2`
  - `@typescript-eslint/parser ^8.57.2`
  - `@vercel/ncc ^0.45.0`
