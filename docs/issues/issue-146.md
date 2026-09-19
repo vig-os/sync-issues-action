@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-09-16T13:52:41Z
+updated: 2026-09-18T21:58:27Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-09-17T07:15:44.372Z
+synced: 2026-09-19T07:06:18.046Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,8 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@types/node`, `prettier`)
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@types/node`, `eslint`, `jest`, `prettier`)
+ - [ ] <!-- unschedule-branch=renovate/ubuntu-26.x -->ci(actions): update dependency ubuntu to v26
  - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
  - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
@@ -42,9 +43,9 @@ The following updates are awaiting their schedule. To get an update now, click o
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
 
 </details>
 
@@ -67,8 +68,8 @@ The following updates are awaiting their schedule. To get an update now, click o
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
 
 </details>
 
@@ -83,15 +84,15 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
 
 </details>
 
@@ -99,14 +100,14 @@ The following updates are awaiting their schedule. To get an update now, click o
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
 
 </details>
 
 <details><summary>.github/workflows/prepare-release-extension.yml (1)</summary>
 
- - `ubuntu 24.04`
+ - `ubuntu 24.04` → [Updates: `26.04`]
 
 </details>
 
@@ -131,9 +132,9 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/attest v4.2.2@1e69f48acb82d1966a394da916b4c1698aa569d6`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 24.04` → [Updates: `26.04`]
 
 </details>
 
@@ -179,9 +180,9 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `@typescript-eslint/eslint-plugin ^8.57.2`
  - `@typescript-eslint/parser ^8.57.2`
  - `@vercel/ncc ^0.45.0`
- - `eslint ^10.1.0`
+ - `eslint ^10.1.0` → [Updates: `^10.1.0`]
  - `globals ^17.4.0`
- - `jest ^30.3.0`
+ - `jest ^30.3.0` → [Updates: `^30.3.0`]
  - `prettier ^3.8.1` → [Updates: `^3.8.1`]
  - `ts-jest ^29.4.6`
  - `tsx ^4.7.0`
