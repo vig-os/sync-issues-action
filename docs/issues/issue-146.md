@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-09-20T07:00:48Z
+updated: 2026-09-21T06:48:31Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,21 +13,24 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-09-20T07:31:11.624Z
+synced: 2026-09-21T07:42:28.614Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Awaiting Schedule
+## Other Branches
 
-The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
+The following updates are pending. To force the creation of a PR, click on a checkbox below.
 
- - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@types/node`, `eslint`, `jest`, `prettier`, `tsx`)
- - [ ] <!-- unschedule-branch=renovate/ubuntu-26.x -->ci(actions): update dependency ubuntu to v26
- - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
- - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
+ - [ ] <!-- other-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+
+## Open
+
+The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
+
+ - [ ] <!-- rebase-branch=renovate/ubuntu-26.x -->[ci(actions): update dependency ubuntu to v26](../pull/203)
 
 ## Detected Dependencies
 
@@ -176,16 +179,16 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `@octokit/auth-app ^8.0.0`
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
- - `@types/node ^25.5.0` → [Updates: `^25.5.0`]
+ - `@types/node ^25.5.0`
  - `@typescript-eslint/eslint-plugin ^8.57.2`
  - `@typescript-eslint/parser ^8.57.2`
  - `@vercel/ncc ^0.45.0`
- - `eslint ^10.1.0` → [Updates: `^10.1.0`]
+ - `eslint ^10.1.0`
  - `globals ^17.4.0`
- - `jest ^30.3.0` → [Updates: `^30.3.0`]
- - `prettier ^3.8.1` → [Updates: `^3.8.1`]
+ - `jest ^30.3.0`
+ - `prettier ^3.8.1`
  - `ts-jest ^29.4.6`
- - `tsx ^4.7.0` → [Updates: `^4.7.0`]
+ - `tsx ^4.7.0`
  - `typescript ^6.0.0`
  - `typescript-eslint ^8.57.2`
 
