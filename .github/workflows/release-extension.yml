@@ -69,7 +69,7 @@ permissions:
 jobs:
   resolve-toolchain:
     name: Resolve toolchain
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 2
     outputs:
       mode: ${{ steps.resolve.outputs.mode }}
@@ -96,7 +96,7 @@ jobs:
   verify-dist:
     name: Verify dist bundle
     needs: [resolve-toolchain]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # Empty image (direnv/bare) => runs on the host; non-empty => in-container.
     container:
       image: ${{ needs.resolve-toolchain.outputs.image }}
@@ -145,7 +145,7 @@ jobs:
     # proven fresh at finalize_sha (which is the commit the published tag points
     # at) — never a stale one.
     needs: [verify-dist]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     # Exactly the scopes the attestation needs, within the #1144 seam ceiling
     # (contents:read, packages:write, id-token:write, attestations:write). No
