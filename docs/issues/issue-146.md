@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-09-28T05:05:55Z
+updated: 2026-09-28T11:53:24Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,24 +13,18 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-09-28T08:19:41.414Z
+synced: 2026-09-28T12:24:57.085Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Other Branches
+## Awaiting Schedule
 
-The following updates are pending. To force the creation of a PR, click on a checkbox below.
+The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- other-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
-
-## Open
-
-The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
-
- - [ ] <!-- rebase-branch=renovate/ubuntu-26.x -->[ci(actions): update dependency ubuntu to v26](../pull/203)
+ - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
 
 ## Detected Dependencies
 
@@ -46,9 +40,9 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
@@ -71,8 +65,8 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
@@ -87,15 +81,15 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
@@ -103,8 +97,8 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
@@ -119,17 +113,17 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
 <details><summary>.github/workflows/prepare-release-extension.yml (1)</summary>
 
- - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 26.04`
 
 </details>
 
@@ -154,9 +148,9 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/attest v4.2.2@1e69f48acb82d1966a394da916b4c1698aa569d6`
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
- - `ubuntu 24.04` → [Updates: `26.04`]
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
