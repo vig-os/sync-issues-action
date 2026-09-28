@@ -19,11 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## [0.5.1] - TBD
+## [v0.5.1](https://github.com/vig-os/sync-issues-action/releases/tag/v0.5.1) - 2026-09-28
 
 ### Changed
-
-- **Renovate: update `eslint` from `10.8.0` to `10.8.1`** ([#177](https://github.com/vig-os/sync-issues-action/pull/177))
 
 #### Dependencies
 
@@ -41,6 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update `ubuntu` from `24.04` to `26.04` ([#203](https://github.com/vig-os/sync-issues-action/pull/203))
 - Lock file maintenance (npm) ([#178](https://github.com/vig-os/sync-issues-action/pull/178), [#182](https://github.com/vig-os/sync-issues-action/pull/182), [#185](https://github.com/vig-os/sync-issues-action/pull/185), [#187](https://github.com/vig-os/sync-issues-action/pull/187), [#191](https://github.com/vig-os/sync-issues-action/pull/191), [#196](https://github.com/vig-os/sync-issues-action/pull/196), [#204](https://github.com/vig-os/sync-issues-action/pull/204), [#208](https://github.com/vig-os/sync-issues-action/pull/208))
 - Adopt vigOS devkit 1.17.0 ([#180](https://github.com/vig-os/sync-issues-action/pull/180), [#184](https://github.com/vig-os/sync-issues-action/pull/184), [#189](https://github.com/vig-os/sync-issues-action/pull/189), [#193](https://github.com/vig-os/sync-issues-action/pull/193), [#206](https://github.com/vig-os/sync-issues-action/pull/206), [#210](https://github.com/vig-os/sync-issues-action/pull/210)) — [release notes](https://github.com/vig-os/devkit/releases/tag/1.17.0)
+
+### Fixed
+
+- **The published `dist/` bundle now carries the locked runtime dependencies** ([#211](https://github.com/vig-os/sync-issues-action/issues/211))
+  - `dist/index.js` had been byte-identical to v0.5.0 since that release, so every dependency update merged in the meantime was absent from the bundle consumers actually run: it still embedded `@octokit/auth-app` 8.3.0, `@octokit/core` 10.0.13 and `@octokit/request` 7.0.7
+  - Regenerated with `@vercel/ncc` 0.45.0 against the current lockfile, so the versions listed under **Dependencies** above are the ones shipped in this release
+  - `dist-check.yml` only runs on pull requests to `release/**` and `main`, so the drift was invisible on `dev` — tracked upstream as [vig-os/devkit#1745](https://github.com/vig-os/devkit/issues/1745)
 
 ## [v0.5.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.5.0) - 2026-08-07
 
