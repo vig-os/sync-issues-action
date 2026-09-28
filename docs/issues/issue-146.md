@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-08-07T13:47:09Z
+updated: 2026-09-28T11:53:24Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,18 +13,18 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-08-07T14:06:08.000Z
+synced: 2026-09-28T12:24:57.085Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Rate-Limited
+## Awaiting Schedule
 
-The following updates are currently rate-limited. To force their creation now, click on a checkbox below.
+The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- unlimit-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+ - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
 
 ## Detected Dependencies
 
@@ -33,6 +33,16 @@ The following updates are currently rate-limited. To force their creation now, c
 
 <details><summary>.github/actions/setup-devkit-toolchain/action.yml</summary>
 
+
+</details>
+
+<details><summary>.github/workflows/abandon-release.yml (5)</summary>
+
+ - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
+ - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
@@ -55,8 +65,8 @@ The following updates are currently rate-limited. To force their creation now, c
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
@@ -71,15 +81,15 @@ The following updates are currently rate-limited. To force their creation now, c
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
@@ -87,14 +97,33 @@ The following updates are currently rate-limited. To force their creation now, c
 
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+
+</details>
+
+<details><summary>.github/workflows/prepare-hotfix.yml (14)</summary>
+
+ - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
+ - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
+ - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
+ - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
+ - `vig-os/commit-action v0.3.3@7ba7e1ae17547813e708d4cc6a771a09f978f724`
+ - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
+ - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
+ - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
+ - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
 <details><summary>.github/workflows/prepare-release-extension.yml (1)</summary>
 
- - `ubuntu 24.04`
+ - `ubuntu 26.04`
 
 </details>
 
@@ -119,9 +148,9 @@ The following updates are currently rate-limited. To force their creation now, c
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
  - `actions/attest v4.2.2@1e69f48acb82d1966a394da916b4c1698aa569d6`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
- - `ubuntu 24.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
 
 </details>
 
@@ -131,16 +160,6 @@ The following updates are currently rate-limited. To force their creation now, c
 </details>
 
 <details><summary>.github/workflows/release.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/renovate-changelog-build.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/renovate-changelog-commit.yml</summary>
 
 
 </details>
@@ -176,7 +195,7 @@ The following updates are currently rate-limited. To force their creation now, c
  - `@types/node ^25.5.0`
  - `@typescript-eslint/eslint-plugin ^8.57.2`
  - `@typescript-eslint/parser ^8.57.2`
- - `@vercel/ncc ^0.44.0`
+ - `@vercel/ncc ^0.45.0`
  - `eslint ^10.1.0`
  - `globals ^17.4.0`
  - `jest ^30.3.0`

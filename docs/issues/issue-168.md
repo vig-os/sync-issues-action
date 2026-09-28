@@ -1,19 +1,19 @@
 ---
 type: issue
-state: open
+state: closed
 created: 2026-08-07T13:04:06Z
-updated: 2026-08-07T13:08:40Z
+updated: 2026-08-07T14:19:45Z
 author: c-vigo
 author_url: https://github.com/c-vigo
 url: https://github.com/vig-os/sync-issues-action/issues/168
-comments: 1
+comments: 3
 labels: area:ci, feature, priority:blocking, effort:small, semver:minor
 assignees: none
 milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-08-07T14:06:07.478Z
+synced: 2026-08-08T03:26:33.903Z
 ---
 
 # [Issue 168]: [Add client-id input as the preferred App credential](https://github.com/vig-os/sync-issues-action/issues/168)
@@ -113,4 +113,32 @@ Dependents, now that the sibling issues are filed:
 - exo-pet/org-config#20 — org-secret creation and retirement on the exo-pet side, sequenced after vig-os/devkit#1365.
 
 Please record the release tag and SHA here once cut, so the pinned consumers above can update.
+
+---
+
+# [Comment #2]() by [c-vigo]()
+
+_Posted on August 7, 2026 at 02:18 PM_
+
+Released in **[v0.5.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.5.0)**.
+
+- Tag: `v0.5.0`
+- Release commit SHA (for pinning): `b62c8eca72f4ee7177caee4f689ee080a5997164`
+- Floating tags `v0` / `v0.5` point at the same commit
+
+Usage for downstream consumers (vig-os/devkit#1365, vig-os/tessera#364, …):
+
+```yaml
+uses: vig-os/sync-issues-action@b62c8eca72f4ee7177caee4f689ee080a5997164  # v0.5.0
+with:
+  client-id: ${{ secrets.COMMIT_APP_CLIENT_ID }}
+  app-private-key: ${{ secrets.COMMIT_APP_PRIVATE_KEY }}
+
+---
+
+# [Comment #3]() by [c-vigo]()
+
+_Posted on August 7, 2026 at 02:19 PM_
+
+All acceptance criteria met: client-id shipped in v0.5.0 (SHA recorded above), app-id still supported with a deprecation warning, both-set errors explicitly, docs and tests updated. Downstream migration continues in the linked sibling issues.
 

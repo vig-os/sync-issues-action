@@ -19,6 +19,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [v0.5.1](https://github.com/vig-os/sync-issues-action/releases/tag/v0.5.1) - 2026-09-28
+
+### Changed
+
+#### Dependencies
+
+- Update `eslint` from `10.8.0` to `10.11.0` ([#177](https://github.com/vig-os/sync-issues-action/pull/177), [#186](https://github.com/vig-os/sync-issues-action/pull/186), [#190](https://github.com/vig-os/sync-issues-action/pull/190), [#195](https://github.com/vig-os/sync-issues-action/pull/195), [#202](https://github.com/vig-os/sync-issues-action/pull/202))
+- Update `@vercel/ncc` from `^0.44.0` to `^0.45.0` ([#181](https://github.com/vig-os/sync-issues-action/pull/181))
+- Update `@typescript-eslint/eslint-plugin` from `8.67.0` to `8.70.0` ([#190](https://github.com/vig-os/sync-issues-action/pull/190), [#195](https://github.com/vig-os/sync-issues-action/pull/195), [#199](https://github.com/vig-os/sync-issues-action/pull/199))
+- Update `@typescript-eslint/parser` from `8.67.0` to `8.70.0` ([#190](https://github.com/vig-os/sync-issues-action/pull/190), [#195](https://github.com/vig-os/sync-issues-action/pull/195), [#199](https://github.com/vig-os/sync-issues-action/pull/199))
+- Update `jest` from `30.4.2` to `30.5.2` ([#190](https://github.com/vig-os/sync-issues-action/pull/190), [#195](https://github.com/vig-os/sync-issues-action/pull/195), [#202](https://github.com/vig-os/sync-issues-action/pull/202))
+- Update `tsx` from `4.23.12` to `4.23.15` ([#190](https://github.com/vig-os/sync-issues-action/pull/190), [#202](https://github.com/vig-os/sync-issues-action/pull/202))
+- Update `typescript-eslint` from `8.67.0` to `8.70.0` ([#190](https://github.com/vig-os/sync-issues-action/pull/190), [#195](https://github.com/vig-os/sync-issues-action/pull/195), [#199](https://github.com/vig-os/sync-issues-action/pull/199))
+- Update `globals` from `17.11.0` to `17.12.0` ([#195](https://github.com/vig-os/sync-issues-action/pull/195))
+- Update `@octokit/auth-app` from `8.3.0` to `8.3.1` ([#194](https://github.com/vig-os/sync-issues-action/pull/194))
+- Update `@types/node` from `25.9.5` to `25.9.8` ([#199](https://github.com/vig-os/sync-issues-action/pull/199), [#202](https://github.com/vig-os/sync-issues-action/pull/202))
+- Update `prettier` from `3.9.6` to `3.9.8` ([#202](https://github.com/vig-os/sync-issues-action/pull/202))
+- Update `ubuntu` from `24.04` to `26.04` ([#203](https://github.com/vig-os/sync-issues-action/pull/203))
+- Lock file maintenance (npm) ([#178](https://github.com/vig-os/sync-issues-action/pull/178), [#182](https://github.com/vig-os/sync-issues-action/pull/182), [#185](https://github.com/vig-os/sync-issues-action/pull/185), [#187](https://github.com/vig-os/sync-issues-action/pull/187), [#191](https://github.com/vig-os/sync-issues-action/pull/191), [#196](https://github.com/vig-os/sync-issues-action/pull/196), [#204](https://github.com/vig-os/sync-issues-action/pull/204), [#208](https://github.com/vig-os/sync-issues-action/pull/208))
+- Adopt vigOS devkit 1.17.0 ([#180](https://github.com/vig-os/sync-issues-action/pull/180), [#184](https://github.com/vig-os/sync-issues-action/pull/184), [#189](https://github.com/vig-os/sync-issues-action/pull/189), [#193](https://github.com/vig-os/sync-issues-action/pull/193), [#206](https://github.com/vig-os/sync-issues-action/pull/206), [#210](https://github.com/vig-os/sync-issues-action/pull/210)) — [release notes](https://github.com/vig-os/devkit/releases/tag/1.17.0)
+
+### Fixed
+
+- **The published `dist/` bundle now carries the locked runtime dependencies** ([#211](https://github.com/vig-os/sync-issues-action/issues/211))
+  - `dist/index.js` had been byte-identical to v0.5.0 since that release, so every dependency update merged in the meantime was absent from the bundle consumers actually run: it still embedded `@octokit/auth-app` 8.3.0, `@octokit/core` 10.0.13 and `@octokit/request` 7.0.7
+  - Regenerated with `@vercel/ncc` 0.45.0 against the current lockfile, so the versions listed under **Dependencies** above are the ones shipped in this release
+  - `dist-check.yml` only runs on pull requests to `release/**` and `main`, so the drift was invisible on `dev` — tracked upstream as [vig-os/devkit#1745](https://github.com/vig-os/devkit/issues/1745)
+
 ## [v0.5.0](https://github.com/vig-os/sync-issues-action/releases/tag/v0.5.0) - 2026-08-07
 
 ### Added
