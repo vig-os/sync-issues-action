@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-09-28T11:53:24Z
+updated: 2026-09-29T00:50:59Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-09-28T12:24:57.085Z
+synced: 2026-09-29T07:57:48.551Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,9 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies to v8.71.0 (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `typescript-eslint`)
  - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+ - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
 ## Detected Dependencies
 
@@ -36,13 +38,8 @@ The following updates are awaiting their schedule. To get an update now, click o
 
 </details>
 
-<details><summary>.github/workflows/abandon-release.yml (5)</summary>
+<details><summary>.github/workflows/abandon-release.yml</summary>
 
- - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
- - `ubuntu 26.04`
- - `ubuntu 26.04`
- - `ubuntu 26.04`
 
 </details>
 
@@ -102,22 +99,8 @@ The following updates are awaiting their schedule. To get an update now, click o
 
 </details>
 
-<details><summary>.github/workflows/prepare-hotfix.yml (14)</summary>
+<details><summary>.github/workflows/prepare-hotfix.yml</summary>
 
- - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
- - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `vig-os/commit-action v0.3.3@7ba7e1ae17547813e708d4cc6a771a09f978f724`
- - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
- - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `actions/create-github-app-token v3@bcd2ba49218906704ab6c1aa796996da409d3eb1`
- - `actions/checkout v7.0.1@3d3c42e5aac5ba805825da76410c181273ba90b1`
- - `ubuntu 26.04`
- - `ubuntu 26.04`
- - `ubuntu 26.04`
- - `ubuntu 26.04`
- - `ubuntu 26.04`
 
 </details>
 
@@ -193,8 +176,8 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
  - `@types/node ^25.5.0`
- - `@typescript-eslint/eslint-plugin ^8.57.2`
- - `@typescript-eslint/parser ^8.57.2`
+ - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `^8.57.2`]
+ - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
  - `@vercel/ncc ^0.45.0`
  - `eslint ^10.1.0`
  - `globals ^17.4.0`
@@ -203,7 +186,7 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `ts-jest ^29.4.6`
  - `tsx ^4.7.0`
  - `typescript ^6.0.0`
- - `typescript-eslint ^8.57.2`
+ - `typescript-eslint ^8.57.2` → [Updates: `^8.57.2`]
 
 </details>
 
