@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-10-05T01:41:25Z
+updated: 2026-10-05T20:40:57Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,24 +13,24 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-10-05T08:29:45.812Z
+synced: 2026-10-06T08:39:20.857Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Open
+## Awaiting Schedule
 
-The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
+The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/207) (`@types/node`, `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint`, `globals`, `typescript-eslint`)
- - [ ] <!-- rebase-branch=renovate/lock-file-maintenance -->[build(npm): lock file maintenance](../pull/216)
- - [ ] <!-- rebase-all-open-prs -->**Click on this checkbox to rebase all open PRs at once**
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies to v8.71.1 (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `typescript-eslint`)
+ - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
+ - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
 ## Detected Dependencies
 
-<details><summary>github-actions (19)</summary>
+<details><summary>github-actions (20)</summary>
 <blockquote>
 
 <details><summary>.github/actions/setup-devkit-toolchain/action.yml</summary>
@@ -120,6 +120,13 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
 </details>
 
+<details><summary>.github/workflows/publish-release-extension.yml (2)</summary>
+
+ - `ubuntu 26.04`
+ - `ubuntu 26.04`
+
+</details>
+
 <details><summary>.github/workflows/release-core.yml</summary>
 
 
@@ -175,12 +182,12 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `@octokit/auth-app ^8.0.0`
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
- - `@types/node ^25.5.0` → [Updates: `^25.5.0`]
+ - `@types/node ^25.5.0`
  - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `^8.57.2`]
  - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
  - `@vercel/ncc ^0.45.0`
- - `eslint ^10.1.0` → [Updates: `^10.1.0`]
- - `globals ^17.4.0` → [Updates: `^17.4.0`]
+ - `eslint ^10.1.0`
+ - `globals ^17.4.0`
  - `jest ^30.3.0`
  - `prettier ^3.8.1`
  - `ts-jest ^29.4.6`
