@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-10-05T20:40:57Z
+updated: 2026-10-10T09:16:50Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-10-06T08:39:20.857Z
+synced: 2026-10-11T08:22:35.630Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,7 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
 
- - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies to v8.71.1 (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `typescript-eslint`)
+ - [ ] <!-- unschedule-branch=renovate/npm-dev-dependencies -->build(npm): update npm dev dependencies (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `prettier`, `typescript-eslint`)
  - [ ] <!-- unschedule-branch=renovate/lock-file-maintenance -->build(npm): lock file maintenance
  - [ ] <!-- create-all-awaiting-schedule-prs -->🔐 **Create all awaiting schedule PRs at once** 🔐
 
@@ -189,7 +189,7 @@ The following updates are awaiting their schedule. To get an update now, click o
  - `eslint ^10.1.0`
  - `globals ^17.4.0`
  - `jest ^30.3.0`
- - `prettier ^3.8.1`
+ - `prettier ^3.8.1` → [Updates: `^3.8.1`]
  - `ts-jest ^29.4.6`
  - `tsx ^4.7.0`
  - `typescript ^6.0.0`
