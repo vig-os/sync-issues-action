@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-10-12T01:07:49Z
+updated: 2026-10-15T10:22:50Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-10-12T08:44:10.339Z
+synced: 2026-10-16T06:47:49.743Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,7 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
 
- - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/207) (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `prettier`, `typescript-eslint`)
+ - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/207) (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `prettier`, `ts-jest`, `typescript-eslint`)
  - [ ] <!-- rebase-branch=renovate/lock-file-maintenance -->[build(npm): lock file maintenance](../pull/218)
  - [ ] <!-- rebase-all-open-prs -->**Click on this checkbox to rebase all open PRs at once**
 
@@ -190,7 +190,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `globals ^17.4.0`
  - `jest ^30.3.0`
  - `prettier ^3.8.1` → [Updates: `^3.8.1`]
- - `ts-jest ^29.4.6`
+ - `ts-jest ^29.4.6` → [Updates: `^29.4.6`]
  - `tsx ^4.7.0`
  - `typescript ^6.0.0`
  - `typescript-eslint ^8.57.2` → [Updates: `^8.57.2`]
