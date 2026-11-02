@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-10-28T00:29:58Z
+updated: 2026-11-02T02:05:12Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,24 +13,19 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-10-28T07:58:54.703Z
+synced: 2026-11-02T08:57:40.485Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
 
 This issue lists Renovate updates and detected dependencies. Read the [Dependency Dashboard](https://docs.renovatebot.com/key-concepts/dashboard/) docs to learn more.<br>[View this repository on the Mend.io Web Portal](https://developer.mend.io/github/vig-os/sync-issues-action).
 
-## Awaiting Schedule
-
-The following updates are awaiting their schedule. To get an update now, click on a checkbox below.
-
- - [ ] <!-- unschedule-branch=renovate/major-npm-dev-dependencies -->build(npm): update dependency @types/node to v26
-
 ## Open
 
 The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
 
- - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/207) (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint`, `prettier`, `ts-jest`, `typescript-eslint`)
+ - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/207) (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint`, `globals`, `prettier`, `ts-jest`, `typescript-eslint`)
+ - [ ] <!-- rebase-branch=renovate/major-npm-dev-dependencies -->[build(npm): update dependency @types/node to v26](../pull/219)
  - [ ] <!-- rebase-branch=renovate/lock-file-maintenance -->[build(npm): lock file maintenance](../pull/218)
  - [ ] <!-- rebase-all-open-prs -->**Click on this checkbox to rebase all open PRs at once**
 
@@ -193,7 +188,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `@typescript-eslint/parser ^8.57.2` → [Updates: `^8.57.2`]
  - `@vercel/ncc ^0.45.0`
  - `eslint ^10.1.0` → [Updates: `^10.1.0`]
- - `globals ^17.4.0`
+ - `globals ^17.4.0` → [Updates: `^17.4.0`]
  - `jest ^30.3.0`
  - `prettier ^3.8.1` → [Updates: `^3.8.1`]
  - `ts-jest ^29.4.6` → [Updates: `^29.4.6`]
