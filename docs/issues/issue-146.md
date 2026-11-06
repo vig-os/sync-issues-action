@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-11-02T02:05:12Z
+updated: 2026-11-05T17:53:48Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-11-02T08:57:40.485Z
+synced: 2026-11-06T08:59:08.133Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -31,33 +31,8 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
 ## Detected Dependencies
 
-<details><summary>github-actions (20)</summary>
+<details><summary>github-actions (6)</summary>
 <blockquote>
-
-<details><summary>.github/actions/setup-devkit-toolchain/action.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/abandon-release.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/ci.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/codeql.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/devkit-upgrade.yml</summary>
-
-
-</details>
 
 <details><summary>.github/workflows/dist-check.yml (4)</summary>
 
@@ -100,24 +75,9 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
 </details>
 
-<details><summary>.github/workflows/prepare-hotfix.yml</summary>
-
-
-</details>
-
 <details><summary>.github/workflows/prepare-release-extension.yml (1)</summary>
 
  - `ubuntu 26.04`
-
-</details>
-
-<details><summary>.github/workflows/prepare-release.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/promote-release.yml</summary>
-
 
 </details>
 
@@ -125,11 +85,6 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
  - `ubuntu 26.04`
  - `ubuntu 26.04`
-
-</details>
-
-<details><summary>.github/workflows/release-core.yml</summary>
-
 
 </details>
 
@@ -142,31 +97,6 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `ubuntu 26.04`
  - `ubuntu 26.04`
  - `ubuntu 26.04`
-
-</details>
-
-<details><summary>.github/workflows/release-publish.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/release.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/scorecard.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/sync-issues.yml</summary>
-
-
-</details>
-
-<details><summary>.github/workflows/sync-main-to-dev.yml</summary>
-
 
 </details>
 
