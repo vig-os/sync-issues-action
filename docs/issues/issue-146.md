@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-11-24T00:02:34Z
+updated: 2026-11-25T01:10:28Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-11-24T12:04:26.977Z
+synced: 2026-11-25T10:56:20.260Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -24,7 +24,7 @@ This issue lists Renovate updates and detected dependencies. Read the [Dependenc
 
 The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
 
- - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/207) (`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint`, `globals`, `prettier`, `ts-jest`, `typescript-eslint`)
+ - [ ] <!-- rebase-branch=renovate/npm-dev-dependencies -->[build(npm): update npm dev dependencies](../pull/207) (`@types/node`, `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint`, `globals`, `prettier`, `ts-jest`, `typescript-eslint`)
  - [ ] <!-- rebase-branch=renovate/major-npm-dev-dependencies -->[build(npm): update dependency @types/node to v26](../pull/219)
  - [ ] <!-- rebase-branch=renovate/lock-file-maintenance -->[build(npm): lock file maintenance](../pull/218)
  - [ ] <!-- rebase-all-open-prs -->**Click on this checkbox to rebase all open PRs at once**
@@ -113,7 +113,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `@octokit/auth-app ^8.0.0`
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
- - `@types/node ^25.5.0` → [Updates: `^26.0.0`]
+ - `@types/node ^25.5.0` → [Updates: `lock file @ 25.9.10`, `^26.0.0`]
  - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `lock file @ 8.74.0`]
  - `@typescript-eslint/parser ^8.57.2` → [Updates: `lock file @ 8.74.0`]
  - `@vercel/ncc ^0.45.0`
