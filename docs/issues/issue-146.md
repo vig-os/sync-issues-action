@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-11-25T01:10:28Z
+updated: 2026-11-25T17:59:31Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-11-25T10:56:20.260Z
+synced: 2026-11-26T10:31:49.087Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -113,7 +113,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `@octokit/auth-app ^8.0.0`
  - `@eslint/js ^10.0.1`
  - `@types/jest ^30.0.0`
- - `@types/node ^25.5.0` → [Updates: `lock file @ 25.9.10`, `^26.0.0`]
+ - `@types/node ^25.5.0` → [Updates: `lock file @ 25.9.12`, `^26.0.0`]
  - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `lock file @ 8.74.0`]
  - `@typescript-eslint/parser ^8.57.2` → [Updates: `lock file @ 8.74.0`]
  - `@vercel/ncc ^0.45.0`
