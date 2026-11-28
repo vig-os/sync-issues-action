@@ -2,7 +2,7 @@
 type: issue
 state: open
 created: 2026-07-24T16:59:55Z
-updated: 2026-11-25T17:59:31Z
+updated: 2026-11-28T01:40:33Z
 author: renovate[bot]
 author_url: https://github.com/renovate[bot]
 url: https://github.com/vig-os/sync-issues-action/issues/146
@@ -13,7 +13,7 @@ milestone: none
 projects: none
 parent: none
 children: none
-synced: 2026-11-26T10:31:49.087Z
+synced: 2026-11-28T09:52:31.574Z
 ---
 
 # [Issue 146]: [Dependency Dashboard](https://github.com/vig-os/sync-issues-action/issues/146)
@@ -117,7 +117,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
  - `@typescript-eslint/eslint-plugin ^8.57.2` → [Updates: `lock file @ 8.74.0`]
  - `@typescript-eslint/parser ^8.57.2` → [Updates: `lock file @ 8.74.0`]
  - `@vercel/ncc ^0.45.0`
- - `eslint ^10.1.0` → [Updates: `lock file @ 10.15.0`]
+ - `eslint ^10.1.0` → [Updates: `lock file @ 10.16.0`]
  - `globals ^17.4.0` → [Updates: `lock file @ 17.14.0`]
  - `jest ^30.3.0`
  - `prettier ^3.8.1` → [Updates: `lock file @ 3.10.1`]
